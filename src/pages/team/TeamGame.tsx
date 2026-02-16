@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../contexts/SocketContext';
 import { formatCurrency, formatMW, formatPrice } from '../../lib/formatters';
@@ -6,7 +6,7 @@ import { ASSET_ICONS, ASSET_COLORS } from '../../lib/colors';
 import type {
   AssetBid, AssetInfo, BidBand, TeamAssetInstance, TimePeriod,
   AssetType, TeamBidSubmission, WalkthroughSuggestedBid,
-  TeamAnalysis, RoundAnalysis, AssetPerformanceSummary,
+  TeamAnalysis, RoundAnalysis, AssetPerformanceSummary, GamePhase,
 } from '../../../shared/types';
 import {
   TIME_PERIOD_SHORT_LABELS, TIME_PERIOD_TIME_RANGES,
@@ -18,6 +18,8 @@ import {
 } from '../../lib/bidding-strategies';
 import BidReviewModal from '../../components/game/BidReviewModal';
 import MeritOrderWalkthrough from '../../components/charts/MeritOrderWalkthrough';
+import GameStartTransition from '../../components/transitions/GameStartTransition';
+import RoundStartTransition from '../../components/transitions/RoundStartTransition';
 
 export default function TeamGame() {
   const navigate = useNavigate();
@@ -46,6 +48,33 @@ export default function TeamGame() {
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyId | ''>('');
   const [selectedIntensity, setSelectedIntensity] = useState<Intensity>('medium');
+
+  // Transition state
+  const [showGameStart, setShowGameStart] = useState(false);
+  const [showRoundStart, setShowRoundStart] = useState(false);
+  const prevPhaseRef = useRef<GamePhase | null>(null);
+  const prevRoundRef = useRef<number>(0);
+
+  // Detect phase transitions and trigger animations
+  useEffect(() => {
+    const currentPhase = gameState?.phase;
+    const currentRound = gameState?.currentRound || 0;
+    const prevPhase = prevPhaseRef.current;
+    const prevRound = prevRoundRef.current;
+
+    if (currentPhase && prevPhase) {
+      if (prevPhase === 'lobby' && currentPhase === 'briefing') {
+        setShowGameStart(true);
+      } else if (prevPhase === 'briefing' && currentPhase === 'bidding') {
+        setShowRoundStart(true);
+      } else if (prevPhase === 'results' && currentPhase === 'briefing' && currentRound !== prevRound) {
+        setShowRoundStart(true);
+      }
+    }
+
+    prevPhaseRef.current = currentPhase || null;
+    prevRoundRef.current = currentRound;
+  }, [gameState?.phase, gameState?.currentRound]);
 
   // Reset bids when new round starts
   useEffect(() => {
@@ -894,7 +923,7 @@ export default function TeamGame() {
                                       walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
                                     }`}
                                     min={-1000}
-                                    max={17500}
+                                    max={20000}
                                   />
                                 </div>
                                 <div className="flex-1">
@@ -1279,6 +1308,22 @@ export default function TeamGame() {
           </div>
         </div>
       )}
+
+      {/* Cinematic Transitions */}
+      <GameStartTransition
+        isVisible={showGameStart}
+        teamCount={gameState?.teams?.length || 0}
+        totalRounds={gameState?.totalRounds || 8}
+        onComplete={() => setShowGameStart(false)}
+      />
+      <RoundStartTransition
+        isVisible={showRoundStart}
+        roundNumber={gameState?.currentRound || 1}
+        totalRounds={gameState?.totalRounds || 8}
+        roundName={roundConfig?.name || `Round ${gameState?.currentRound || 1}`}
+        season={roundConfig?.season || 'summer'}
+        onComplete={() => setShowRoundStart(false)}
+      />
     </div>
   );
 }

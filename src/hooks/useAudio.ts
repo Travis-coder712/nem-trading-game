@@ -4,14 +4,19 @@ import { useRef, useState, useCallback, useEffect } from 'react';
  * Procedural ambient audio using Web Audio API.
  * Generates a warm, cinematic pad sound — no external files needed.
  * Falls back to an MP3 file if provided and available.
+ *
+ * When autoStart is true, audio begins on the first user interaction
+ * (click/touch/keydown) with the page. Browsers block autoplay without
+ * a user gesture, so this is the earliest we can start.
  */
-export function useAudio(mp3Src?: string) {
+export function useAudio(mp3Src?: string, autoStart = false) {
   const contextRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const nodesRef = useRef<OscillatorNode[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const modeRef = useRef<'webaudio' | 'mp3'>('webaudio');
+  const autoStartedRef = useRef(false);
 
   // Try to load MP3 if provided
   useEffect(() => {
@@ -156,6 +161,37 @@ export function useAudio(mp3Src?: string) {
       setIsPlaying(true);
     }
   }, [isPlaying, startWebAudio, stopWebAudio, startMp3, stopMp3]);
+
+  // Auto-start on first user gesture (click / touch / key)
+  useEffect(() => {
+    if (!autoStart || autoStartedRef.current) return;
+
+    const start = () => {
+      if (autoStartedRef.current) return;
+      autoStartedRef.current = true;
+
+      if (modeRef.current === 'mp3' && audioRef.current) {
+        startMp3();
+      } else {
+        startWebAudio();
+      }
+      setIsPlaying(true);
+
+      document.removeEventListener('click', start);
+      document.removeEventListener('touchstart', start);
+      document.removeEventListener('keydown', start);
+    };
+
+    document.addEventListener('click', start, { once: true });
+    document.addEventListener('touchstart', start, { once: true });
+    document.addEventListener('keydown', start, { once: true });
+
+    return () => {
+      document.removeEventListener('click', start);
+      document.removeEventListener('touchstart', start);
+      document.removeEventListener('keydown', start);
+    };
+  }, [autoStart, startWebAudio, startMp3]);
 
   // Cleanup on unmount
   useEffect(() => {

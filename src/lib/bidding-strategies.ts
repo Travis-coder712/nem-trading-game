@@ -77,7 +77,7 @@ export const STRATEGIES: StrategyDefinition[] = [
     name: 'Strategic Withdrawal',
     icon: '🔴',
     shortDescription: 'Withhold capacity to tighten supply',
-    description: 'Bid a portion at market cap ($17,500) to effectively remove it. Tightens supply and pushes prices up.',
+    description: 'Bid a portion at market cap ($20,000) to effectively remove it. Tightens supply and pushes prices up.',
     intensityLabels: {
       low: 'Withhold 15% of thermal',
       medium: 'Withhold 30% of thermal',
@@ -322,7 +322,7 @@ function strategicWithdrawalBands(mw: number, srmc: number, intensity: Intensity
     { pricePerMWh: srmc, quantityMW: activeMW },
   ];
   if (withdrawnMW > 0) {
-    bands.push({ pricePerMWh: 17500, quantityMW: withdrawnMW });
+    bands.push({ pricePerMWh: 20000, quantityMW: withdrawnMW });
   }
   return bands;
 }

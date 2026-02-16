@@ -23,9 +23,12 @@ export function setupSocketHandlers(
         if (gameId && !(socket as any).isHost) {
           const teamId = engine.disconnectTeam(gameId, socket.id);
           if (teamId) {
-            io.to(`game:${gameId}`).emit('game:phase_changed',
-              engine.getGame(gameId)?.phase || 'lobby'
-            );
+            console.log(`Team ${teamId} marked disconnected in game ${gameId}`);
+            // Send full state update to host so dashboard reflects disconnected status
+            const hostSnapshot = engine.getSnapshot(gameId);
+            if (hostSnapshot) {
+              io.to(`game:${gameId}:host`).emit('game:state_update', hostSnapshot);
+            }
           }
         }
       } catch (err) {

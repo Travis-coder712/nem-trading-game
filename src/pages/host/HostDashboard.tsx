@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../contexts/SocketContext';
 import { formatCurrency, formatCurrencyFull, formatMW, formatPrice } from '../../lib/formatters';
@@ -7,7 +7,9 @@ import MeritOrderChart from '../../components/charts/MeritOrderChart';
 import MeritOrderWalkthrough from '../../components/charts/MeritOrderWalkthrough';
 import ProfitLossBar from '../../components/charts/ProfitLossBar';
 import LeaderboardChart from '../../components/charts/LeaderboardChart';
-import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand } from '../../../shared/types';
+import GameStartTransition from '../../components/transitions/GameStartTransition';
+import RoundStartTransition from '../../components/transitions/RoundStartTransition';
+import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand, GamePhase } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 
 export default function HostDashboard() {
@@ -23,6 +25,38 @@ export default function HostDashboard() {
   const [demandEdits, setDemandEdits] = useState<Record<string, number>>({});
   const [demandEditMode, setDemandEditMode] = useState(false);
   const [viewingTeamId, setViewingTeamId] = useState<string>('');
+
+  // Transition state
+  const [showGameStart, setShowGameStart] = useState(false);
+  const [showRoundStart, setShowRoundStart] = useState(false);
+  const prevPhaseRef = useRef<GamePhase | null>(null);
+  const prevRoundRef = useRef<number>(0);
+
+  // Detect phase transitions and trigger animations
+  useEffect(() => {
+    const phase = gameState?.phase;
+    const round = gameState?.currentRound || 0;
+    const prevPhase = prevPhaseRef.current;
+    const prevRound = prevRoundRef.current;
+
+    if (phase && prevPhase) {
+      // Lobby -> Briefing (first round) = Game Start transition
+      if (prevPhase === 'lobby' && phase === 'briefing') {
+        setShowGameStart(true);
+      }
+      // Briefing -> Bidding = Round Start transition
+      else if (prevPhase === 'briefing' && phase === 'bidding') {
+        setShowRoundStart(true);
+      }
+      // Results -> Briefing (next round) = new round transition
+      else if (prevPhase === 'results' && phase === 'briefing' && round !== prevRound) {
+        setShowRoundStart(true);
+      }
+    }
+
+    prevPhaseRef.current = phase || null;
+    prevRoundRef.current = round;
+  }, [gameState?.phase, gameState?.currentRound]);
 
   // Sync demand edits when round config changes
   useEffect(() => {
@@ -1165,6 +1199,22 @@ export default function HostDashboard() {
           )}
         </div>
       </div>
+
+      {/* Cinematic Transitions */}
+      <GameStartTransition
+        isVisible={showGameStart}
+        teamCount={teams.length}
+        totalRounds={totalRounds}
+        onComplete={() => setShowGameStart(false)}
+      />
+      <RoundStartTransition
+        isVisible={showRoundStart}
+        roundNumber={round}
+        totalRounds={totalRounds}
+        roundName={roundConfig?.name || `Round ${round}`}
+        season={roundConfig?.season || 'summer'}
+        onComplete={() => setShowRoundStart(false)}
+      />
     </div>
   );
 }

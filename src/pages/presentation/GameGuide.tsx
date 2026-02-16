@@ -69,7 +69,7 @@ export default function GameGuide() {
             <li>Each round has <strong>time periods</strong> (Overnight, Morning, Afternoon, Evening)</li>
             <li>For each asset + period, submit a <strong>price bid</strong> ($/MWh) and <strong>quantity</strong> (MW)</li>
             <li>You can split bids into <strong>multiple bands</strong> (e.g., 200 MW at $30, 300 MW at $80)</li>
-            <li>Bids can range from <strong>-$1,000</strong> to <strong>$17,500</strong> per MWh</li>
+            <li>Bids can range from <strong>-$1,000</strong> to <strong>$20,000</strong> per MWh</li>
             <li>Wind and solar bids are limited by weather-dependent capacity factors</li>
           </ol>
         </Section>
@@ -123,7 +123,7 @@ export default function GameGuide() {
         {/* Quick Reference */}
         <Section title="Quick Reference">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-            <RefCard label="Price Cap" value="$17,500/MWh" />
+            <RefCard label="Price Cap" value="$20,000/MWh" />
             <RefCard label="Price Floor" value="-$1,000/MWh" />
             <RefCard label="Dispatch Interval" value="5 minutes (real NEM)" />
             <RefCard label="NEM Regions" value="QLD, NSW, VIC, SA, TAS" />

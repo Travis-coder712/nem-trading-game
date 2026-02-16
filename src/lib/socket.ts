@@ -9,9 +9,11 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(URL
   autoConnect: false,
   reconnection: true,
   reconnectionDelay: 500,
-  reconnectionDelayMax: 5000,
+  reconnectionDelayMax: 3000,
   reconnectionAttempts: Infinity,
-  timeout: 20000,
+  timeout: 30000,
   // Start with WebSocket, fall back to polling if needed
   transports: ['websocket', 'polling'],
+  // Upgrade from polling to websocket when available
+  upgrade: true,
 });

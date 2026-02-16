@@ -1,9 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
-  ReferenceLine, Cell, Tooltip,
-} from 'recharts';
-import type { TimePeriodDispatchResult, DispatchedBand, TimePeriod } from '../../../shared/types';
+import type { TimePeriodDispatchResult, TimePeriod } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS } from '../../../shared/types';
 import { formatMW } from '../../lib/formatters';
 
@@ -34,6 +30,9 @@ const TEAM_COLORS = [
 ];
 
 const STEP_INTERVAL = 1200;
+const CHART_HEIGHT = 400;
+const MARGIN = { top: 20, right: 30, bottom: 45, left: 60 };
+const MIN_BAR_HEIGHT_PX = 6; // minimum visible height for $0 bids
 
 export default function MeritOrderWalkthrough({ periodResults, initialPeriod, onClose }: Props) {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(
@@ -41,7 +40,23 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, on
   );
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hoveredBand, setHoveredBand] = useState<number | null>(null);
+  const [chartWidth, setChartWidth] = useState(800);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Measure container width
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setChartWidth(entry.contentRect.width);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const periodResult = useMemo(() =>
     periodResults.find(p => p.timePeriod === selectedPeriod) || periodResults[0],
@@ -93,9 +108,6 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, on
   const isFinalStep = currentStep >= totalSteps - 1;
   const visibleBandCount = isIntroStep ? 0 : Math.min(currentStep, allBands.length);
 
-  // Find the marginal band index
-  const marginalIndex = allBands.findIndex(b => b.isMarginal);
-
   // Current visible data
   const chartData = useMemo(() => {
     return allBands.slice(0, visibleBandCount);
@@ -104,15 +116,47 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, on
   // Cumulative MW so far
   const cumulativeMW = chartData.reduce((s, b) => s + b.offeredMW, 0);
 
-  // Find if we've crossed demand
+  // Demand and price info
   const demandMW = periodResult?.demandMW || 0;
-  const hasCrossedDemand = cumulativeMW >= demandMW && visibleBandCount > 0;
-
-  // Show clearing price line only on final step or after crossing demand
   const showClearingPrice = isFinalStep || (currentStep > allBands.length);
 
   // The band being added in this step
   const currentBand = !isIntroStep && currentStep <= allBands.length ? allBands[currentStep - 1] : null;
+
+  // Chart scale calculations
+  const totalMW = useMemo(() => {
+    const allMW = allBands.reduce((s, b) => s + b.offeredMW, 0);
+    return Math.max(allMW * 1.05, demandMW * 1.15, 100);
+  }, [allBands, demandMW]);
+
+  const yMax = useMemo(() => {
+    const prices = allBands.map(b => b.bidPriceMWh);
+    const maxPrice = Math.max(...prices, periodResult?.clearingPriceMWh || 0, 50);
+    return Math.ceil(maxPrice * 1.2 / 50) * 50;
+  }, [allBands, periodResult]);
+
+  const plotW = chartWidth - MARGIN.left - MARGIN.right;
+  const plotH = CHART_HEIGHT - MARGIN.top - MARGIN.bottom;
+
+  // Scale functions
+  const xScale = useCallback((mw: number) => MARGIN.left + (mw / totalMW) * plotW, [totalMW, plotW]);
+  const yScale = useCallback((price: number) => MARGIN.top + plotH - (price / yMax) * plotH, [yMax, plotH]);
+
+  // Y-axis ticks
+  const yTicks = useMemo(() => {
+    const step = yMax <= 100 ? 20 : yMax <= 300 ? 50 : 100;
+    const ticks = [];
+    for (let v = 0; v <= yMax; v += step) ticks.push(v);
+    return ticks;
+  }, [yMax]);
+
+  // X-axis ticks
+  const xTicks = useMemo(() => {
+    const step = totalMW <= 500 ? 100 : totalMW <= 2000 ? 200 : 500;
+    const ticks = [];
+    for (let v = 0; v <= totalMW; v += step) ticks.push(v);
+    return ticks;
+  }, [totalMW]);
 
   // Narrative text
   const narrative = useMemo(() => {
@@ -134,24 +178,28 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, on
     }
 
     if (currentBand) {
+      const priceLabel = currentBand.bidPriceMWh === 0
+        ? '$0/MWh (price taker)'
+        : `$${currentBand.bidPriceMWh}/MWh`;
+
       if (currentBand.isMarginal) {
         return {
           title: `Marginal Unit!`,
-          text: `${currentBand.teamName}'s ${currentBand.assetName} (bid $${currentBand.bidPriceMWh}/MWh, ${currentBand.offeredMW} MW) is the marginal unit — it's the last generator needed to meet demand. Its bid price sets the clearing price for ALL generators!`,
+          text: `${currentBand.teamName}'s ${currentBand.assetName} (bid ${priceLabel}, ${currentBand.offeredMW} MW) is the marginal unit — it's the last generator needed to meet demand. Its bid price sets the clearing price for ALL generators!`,
           highlight: 'marginal',
         };
       }
 
       if (currentBand.isDispatched) {
         return {
-          title: `Bid Dispatched`,
-          text: `${currentBand.teamName}'s ${currentBand.assetName} bids $${currentBand.bidPriceMWh}/MWh for ${currentBand.offeredMW} MW. Cumulative supply: ${formatMW(cumulativeMW)}${demandMW > 0 ? ` (${Math.round((cumulativeMW / demandMW) * 100)}% of demand)` : ''}.`,
+          title: currentBand.bidPriceMWh === 0 ? 'Price Taker Dispatched' : 'Bid Dispatched',
+          text: `${currentBand.teamName}'s ${currentBand.assetName} bids ${priceLabel} for ${currentBand.offeredMW} MW. Cumulative supply: ${formatMW(cumulativeMW)}${demandMW > 0 ? ` (${Math.round((cumulativeMW / demandMW) * 100)}% of demand)` : ''}.`,
           highlight: 'dispatched',
         };
       } else {
         return {
-          title: `Not Dispatched`,
-          text: `${currentBand.teamName}'s ${currentBand.assetName} bids $${currentBand.bidPriceMWh}/MWh for ${currentBand.offeredMW} MW — but demand is already met. This unit earns nothing.`,
+          title: 'Not Dispatched',
+          text: `${currentBand.teamName}'s ${currentBand.assetName} bids ${priceLabel} for ${currentBand.offeredMW} MW — but demand is already met. This unit earns nothing.`,
           highlight: 'undispatched',
         };
       }
@@ -212,27 +260,6 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, on
     return () => window.removeEventListener('keydown', handleKey);
   }, [goNext, goPrev, onClose]);
 
-  // Y-axis range
-  const yMax = useMemo(() => {
-    const prices = allBands.map(b => b.bidPriceMWh);
-    const maxPrice = Math.max(...prices, periodResult?.clearingPriceMWh || 0, 50);
-    return Math.min(Math.ceil(maxPrice * 1.2 / 50) * 50, 500);
-  }, [allBands, periodResult]);
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload?.[0]?.payload) return null;
-    const d = payload[0].payload;
-    return (
-      <div className="bg-navy-800 border border-white/20 rounded-lg p-2.5 shadow-xl text-xs">
-        <div className="font-semibold text-white">{d.teamName}</div>
-        <div className="text-navy-300">{d.assetName} ({d.assetType})</div>
-        <div className="text-electric-300 mt-1">Bid: <span className="font-mono">${d.bidPriceMWh}/MWh</span></div>
-        <div className="text-navy-300">Offered: <span className="font-mono">{d.offeredMW} MW</span></div>
-        {d.isMarginal && <div className="text-amber-400 font-bold mt-1">Sets the clearing price!</div>}
-      </div>
-    );
-  };
-
   if (!periodResult) {
     return <div className="text-navy-400 text-center py-8">No dispatch data available</div>;
   }
@@ -267,64 +294,159 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, on
         <span>Supply shown: <strong className="text-electric-300 font-mono">{formatMW(cumulativeMW)}</strong></span>
       </div>
 
-      {/* Chart */}
-      <div className="bg-navy-900/50 border border-white/10 rounded-xl p-4">
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={chartData} barCategoryGap={0} barGap={0}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis
-              dataKey="cumulativeMW"
-              type="number"
-              domain={[0, Math.max(cumulativeMW * 1.1, demandMW * 1.2, 100)]}
-              tick={{ fill: '#a0aec0', fontSize: 11 }}
-              label={{ value: 'Cumulative MW', position: 'bottom', fill: '#a0aec0', fontSize: 11 }}
-            />
-            <YAxis
-              domain={[0, yMax]}
-              tick={{ fill: '#a0aec0', fontSize: 11 }}
-              label={{ value: '$/MWh', angle: -90, position: 'insideLeft', fill: '#a0aec0', fontSize: 11 }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-
-            {/* Demand line (always visible) */}
-            <ReferenceLine
-              x={demandMW}
-              stroke="#e53e3e"
-              strokeDasharray="5 5"
-              strokeWidth={2}
-              label={{ value: `Demand ${formatMW(demandMW)}`, fill: '#fc8181', fontSize: 10, position: 'top' }}
-            />
-
-            {/* Clearing price line (only after final step or after marginal) */}
-            {showClearingPrice && (
-              <ReferenceLine
-                y={periodResult.clearingPriceMWh}
-                stroke="#ecc94b"
-                strokeDasharray="5 5"
-                strokeWidth={2}
-                label={{
-                  value: `$${periodResult.clearingPriceMWh.toFixed(0)}/MWh`,
-                  fill: '#ecc94b', fontSize: 11, position: 'right',
-                }}
+      {/* Chart - custom SVG */}
+      <div ref={containerRef} className="bg-navy-900/50 border border-white/10 rounded-xl p-4">
+        <svg width={chartWidth} height={CHART_HEIGHT} className="overflow-visible">
+          {/* Grid lines */}
+          {yTicks.map(v => (
+            <g key={`y-${v}`}>
+              <line
+                x1={MARGIN.left} y1={yScale(v)}
+                x2={MARGIN.left + plotW} y2={yScale(v)}
+                stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3"
               />
-            )}
+              <text x={MARGIN.left - 8} y={yScale(v) + 4} textAnchor="end"
+                fill="#a0aec0" fontSize={11}>${v}</text>
+            </g>
+          ))}
+          {xTicks.map(v => (
+            <g key={`x-${v}`}>
+              <line
+                x1={xScale(v)} y1={MARGIN.top}
+                x2={xScale(v)} y2={MARGIN.top + plotH}
+                stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3"
+              />
+              <text x={xScale(v)} y={MARGIN.top + plotH + 16} textAnchor="middle"
+                fill="#a0aec0" fontSize={11}>{v}</text>
+            </g>
+          ))}
 
-            <Bar dataKey="bidPriceMWh" name="Bid Price">
-              {chartData.map((entry, idx) => {
-                const isCurrentBand = idx === visibleBandCount - 1;
-                const isMarginal = entry.isMarginal;
-                return (
-                  <Cell
-                    key={`cell-${idx}`}
-                    fill={entry.isDispatched ? entry.color : `${entry.color}33`}
-                    stroke={isMarginal ? '#ecc94b' : isCurrentBand ? '#fff' : 'transparent'}
-                    strokeWidth={isMarginal ? 3 : isCurrentBand ? 2 : 0}
-                  />
-                );
-              })}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+          {/* Axis labels */}
+          <text x={MARGIN.left + plotW / 2} y={CHART_HEIGHT - 4}
+            textAnchor="middle" fill="#a0aec0" fontSize={11}>Cumulative MW</text>
+          <text x={14} y={MARGIN.top + plotH / 2}
+            textAnchor="middle" fill="#a0aec0" fontSize={11}
+            transform={`rotate(-90, 14, ${MARGIN.top + plotH / 2})`}>$/MWh</text>
+
+          {/* Axes */}
+          <line x1={MARGIN.left} y1={MARGIN.top} x2={MARGIN.left} y2={MARGIN.top + plotH}
+            stroke="rgba(255,255,255,0.2)" />
+          <line x1={MARGIN.left} y1={MARGIN.top + plotH} x2={MARGIN.left + plotW} y2={MARGIN.top + plotH}
+            stroke="rgba(255,255,255,0.2)" />
+
+          {/* Demand line (always visible) */}
+          <line
+            x1={xScale(demandMW)} y1={MARGIN.top - 5}
+            x2={xScale(demandMW)} y2={MARGIN.top + plotH + 5}
+            stroke="#e53e3e" strokeDasharray="5 5" strokeWidth={2}
+          />
+          <text x={xScale(demandMW)} y={MARGIN.top - 8}
+            textAnchor="middle" fill="#fc8181" fontSize={10}>
+            Demand {formatMW(demandMW)}
+          </text>
+
+          {/* Clearing price line */}
+          {showClearingPrice && (
+            <>
+              <line
+                x1={MARGIN.left - 5} y1={yScale(periodResult.clearingPriceMWh)}
+                x2={MARGIN.left + plotW + 5} y2={yScale(periodResult.clearingPriceMWh)}
+                stroke="#ecc94b" strokeDasharray="5 5" strokeWidth={2}
+              />
+              <text x={MARGIN.left + plotW + 8} y={yScale(periodResult.clearingPriceMWh) + 4}
+                textAnchor="start" fill="#ecc94b" fontSize={11}>
+                ${periodResult.clearingPriceMWh.toFixed(0)}/MWh
+              </text>
+            </>
+          )}
+
+          {/* Bid bars — width proportional to MW, height proportional to price */}
+          {chartData.map((band, idx) => {
+            const x = xScale(band.cumulativeMW);
+            const w = Math.max((band.offeredMW / totalMW) * plotW, 2); // min 2px width
+            const isCurrentBand = idx === visibleBandCount - 1;
+            const isZeroPrice = band.bidPriceMWh === 0;
+
+            // For $0 bids: use a minimum visual height so they're visible
+            const priceBarH = (band.bidPriceMWh / yMax) * plotH;
+            const barH = Math.max(priceBarH, MIN_BAR_HEIGHT_PX);
+            const barY = MARGIN.top + plotH - barH;
+
+            const fillOpacity = band.isDispatched ? 1 : 0.2;
+            const fill = band.color;
+
+            let strokeColor = 'transparent';
+            let strokeWidth = 0;
+            if (band.isMarginal) { strokeColor = '#ecc94b'; strokeWidth = 3; }
+            else if (isCurrentBand) { strokeColor = '#fff'; strokeWidth = 2; }
+
+            return (
+              <g key={`band-${idx}`}
+                onMouseEnter={() => setHoveredBand(idx)}
+                onMouseLeave={() => setHoveredBand(null)}
+                style={{ cursor: 'pointer' }}
+              >
+                <rect
+                  x={x} y={barY} width={w} height={barH}
+                  fill={fill} fillOpacity={fillOpacity}
+                  stroke={strokeColor} strokeWidth={strokeWidth}
+                  rx={1}
+                />
+
+                {/* $0 bid indicator — dashed top border + label */}
+                {isZeroPrice && (
+                  <>
+                    <line
+                      x1={x} y1={barY}
+                      x2={x + w} y2={barY}
+                      stroke={fill} strokeWidth={2} strokeDasharray="3 2"
+                    />
+                    {w > 20 && (
+                      <text
+                        x={x + w / 2} y={barY + barH / 2 + 3}
+                        textAnchor="middle" fill="white" fontSize={9} fontWeight="bold"
+                      >$0</text>
+                    )}
+                  </>
+                )}
+
+                {/* Label on wide-enough bars */}
+                {!isZeroPrice && w > 35 && barH > 18 && (
+                  <text
+                    x={x + w / 2} y={barY + Math.min(barH / 2 + 4, barH - 4)}
+                    textAnchor="middle" fill="white" fontSize={9} fontWeight="bold"
+                    opacity={0.9}
+                  >
+                    ${band.bidPriceMWh}
+                  </text>
+                )}
+
+                {/* Marginal star */}
+                {band.isMarginal && (
+                  <text x={x + w / 2} y={barY - 6} textAnchor="middle" fontSize={14}>⭐</text>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Tooltip on hover */}
+          {hoveredBand !== null && chartData[hoveredBand] && (() => {
+            const d = chartData[hoveredBand];
+            const tipX = Math.min(xScale(d.cumulativeMW + d.offeredMW / 2), chartWidth - 180);
+            const tipY = Math.max(yScale(d.bidPriceMWh) - 90, 5);
+            return (
+              <foreignObject x={tipX - 75} y={tipY} width={170} height={90}>
+                <div className="bg-navy-800 border border-white/20 rounded-lg p-2 shadow-xl text-xs pointer-events-none">
+                  <div className="font-semibold text-white">{d.teamName}</div>
+                  <div className="text-navy-300">{d.assetName} ({d.assetType})</div>
+                  <div className="text-electric-300 mt-0.5">Bid: <span className="font-mono">${d.bidPriceMWh}/MWh</span></div>
+                  <div className="text-navy-300">Offered: <span className="font-mono">{d.offeredMW} MW</span></div>
+                  {d.isMarginal && <div className="text-amber-400 font-bold">Sets the clearing price!</div>}
+                </div>
+              </foreignObject>
+            );
+          })()}
+        </svg>
       </div>
 
       {/* Narrative */}

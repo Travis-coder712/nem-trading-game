@@ -35,7 +35,7 @@ export class GameEngine {
       mode,
       teamCount: Math.min(15, Math.max(2, teamCount)),
       rounds,
-      priceCapMWh: 17500,
+      priceCapMWh: 20000,
       priceFloorMWh: -1000,
       balancingEnabled,
       balancingThresholdPercent: 40,

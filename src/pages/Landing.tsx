@@ -153,6 +153,14 @@ export default function Landing() {
               📚 Learn the NEM
             </button>
             <a
+              href="/api/pre-read"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 text-sm font-medium text-electric-300 border border-electric-500/30 hover:border-electric-400 hover:bg-electric-500/10 rounded-xl transition-all"
+            >
+              📖 Player Pre-Read
+            </a>
+            <a
               href="/guide"
               target="_blank"
               rel="noopener noreferrer"

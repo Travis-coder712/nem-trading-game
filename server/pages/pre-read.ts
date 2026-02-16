@@ -98,7 +98,7 @@ export function getPreReadHTML(): string {
   <div class="two-col">
     <div class="card">
       <h4>Price ($/MWh)</h4>
-      <p>The minimum price you'll accept to generate. You can bid from <span class="stat">-$1,000</span> to <span class="stat">$17,500</span> per MWh.</p>
+      <p>The minimum price you'll accept to generate. You can bid from <span class="stat">-$1,000</span> to <span class="stat">$20,000</span> per MWh.</p>
     </div>
     <div class="card">
       <h4>Quantity (MW)</h4>
@@ -334,7 +334,7 @@ export function getPreReadHTML(): string {
       <p><strong>Bid Band</strong> &mdash; A price/quantity pair. You can submit multiple bands per asset.</p>
       <p><strong>Clearing Price</strong> &mdash; The price of the last (most expensive) dispatched generator. Everyone dispatched receives this price.</p>
       <p><strong>Dispatch</strong> &mdash; The process of AEMO selecting which generators run to meet demand.</p>
-      <p><strong>Market Cap</strong> &mdash; Maximum price: $17,500/MWh. Floor: -$1,000/MWh.</p>
+      <p><strong>Market Cap</strong> &mdash; Maximum price: $20,000/MWh. Floor: -$1,000/MWh.</p>
     </div>
     <div>
       <p><strong>Merit Order</strong> &mdash; Bids sorted cheapest to most expensive. AEMO dispatches up the stack.</p>

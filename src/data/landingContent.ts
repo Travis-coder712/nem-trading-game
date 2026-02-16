@@ -97,7 +97,7 @@ export const EDUCATION_SLIDES: LandingSlide[] = [
   {
     icon: '📉',
     heading: 'Market Dynamics',
-    body: "NEM prices swing from **-$1,000/MWh** (negative! generators pay to stay on) to **$17,500/MWh** (the price cap during scarcity). Key dynamics:\n\u2022 **Negative prices** \u2014 when renewables oversupply, usually midday\n\u2022 **Price spikes** \u2014 during heatwaves, plant outages, or low wind\n\u2022 **The duck curve** \u2014 midday solar suppresses prices, evening demand surges\n\u2022 **Volatility** \u2014 creates opportunities for strategic bidders",
+    body: "NEM prices swing from **-$1,000/MWh** (negative! generators pay to stay on) to **$20,000/MWh** (the price cap during scarcity). Key dynamics:\n\u2022 **Negative prices** \u2014 when renewables oversupply, usually midday\n\u2022 **Price spikes** \u2014 during heatwaves, plant outages, or low wind\n\u2022 **The duck curve** \u2014 midday solar suppresses prices, evening demand surges\n\u2022 **Volatility** \u2014 creates opportunities for strategic bidders",
   },
   {
     icon: '🎯',

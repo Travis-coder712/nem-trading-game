@@ -76,7 +76,7 @@ export const BIDDING_STRATEGIES: BiddingStrategy[] = [
   {
     id: 'strategic_withdrawal',
     name: 'Strategic Withdrawal',
-    description: 'Withhold 30% of your thermal capacity by bidding it at the market cap ($17,500/MWh), effectively removing it from the market. This tightens supply and may push clearing prices higher. The remaining 70% is bid at SRMC. WARNING: if other teams also withdraw, you could trigger extreme prices.',
+    description: 'Withhold 30% of your thermal capacity by bidding it at the market cap ($20,000/MWh), effectively removing it from the market. This tightens supply and may push clearing prices higher. The remaining 70% is bid at SRMC. WARNING: if other teams also withdraw, you could trigger extreme prices.',
     shortDescription: 'Withhold 30% capacity to tighten supply and raise prices',
     generateBids: (assets, assetDefs, roundConfig) => {
       return generateStrategyBids(assets, assetDefs, roundConfig, (def, available) => {
@@ -89,7 +89,7 @@ export const BIDDING_STRATEGIES: BiddingStrategy[] = [
           { pricePerMWh: def.srmcPerMWh, quantityMW: activePortion },
         ];
         if (withdrawnPortion > 0) {
-          bands.push({ pricePerMWh: 17500, quantityMW: withdrawnPortion });
+          bands.push({ pricePerMWh: 20000, quantityMW: withdrawnPortion });
         }
         return bands;
       });

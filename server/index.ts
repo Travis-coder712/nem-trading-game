@@ -19,9 +19,12 @@ const io = new Server(httpServer, {
     origin: true, // Allow all origins (needed for ngrok/tunnel access)
     methods: ['GET', 'POST'],
   },
-  // More tolerant settings for flaky connections (hotspot, mobile, etc.)
-  pingInterval: 25000,
-  pingTimeout: 20000,
+  // Tolerant settings for flaky connections (hotspot, mobile, etc.)
+  // Ping every 10s, wait up to 30s for a response before declaring dead
+  pingInterval: 10000,
+  pingTimeout: 30000,
+  // Allow large payloads for later rounds with more accumulated data
+  maxHttpBufferSize: 5e6, // 5MB
 });
 
 app.use(cors());
