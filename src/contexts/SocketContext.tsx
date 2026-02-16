@@ -21,6 +21,7 @@ interface SocketContextValue {
   biddingTimeRemaining: number;
   bidStatus: Record<string, boolean>;
   allBidsIn: boolean;
+  teamScreenData: GameStateSnapshot | null;
 
   // Host actions
   createGame: (mode: string, teamCount: number, balancingEnabled: boolean) => void;
@@ -32,6 +33,7 @@ interface SocketContextValue {
   adjustTimer: (seconds: number) => void;
   setDemand: (demand: Record<string, number>) => void;
   resetGame: () => void;
+  viewTeamScreen: (teamId: string) => void;
 
   // Team actions
   joinGame: (teamName: string, gameId: string) => void;
@@ -52,7 +54,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [biddingTimeRemaining, setBiddingTimeRemaining] = useState(0);
   const [bidStatus, setBidStatus] = useState<Record<string, boolean>>({});
   const [allBidsIn, setAllBidsIn] = useState(false);
-  const hasAttemptedReconnect = useRef(false);
+  const [teamScreenData, setTeamScreenData] = useState<GameStateSnapshot | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     socket.connect();
@@ -60,31 +63,27 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     socket.on('connect', () => {
       setConnected(true);
 
-      // On reconnection, try to rejoin as previously connected team
+      // On every (re)connection, try to rejoin as previously connected team
       const savedTeamId = sessionStorage.getItem(SS_TEAM_ID);
       const savedGameId = sessionStorage.getItem(SS_GAME_ID);
 
-      if (savedTeamId && savedGameId && !hasAttemptedReconnect.current) {
-        hasAttemptedReconnect.current = true;
+      if (savedTeamId && savedGameId) {
         setReconnecting(true);
         console.log(`Attempting reconnect: team=${savedTeamId} game=${savedGameId}`);
         socket.emit('team:reconnect', { teamId: savedTeamId, gameId: savedGameId });
 
-        // Timeout: if we don't get a state update within 3 seconds, clear the reconnect state
-        setTimeout(() => {
+        // Clear any previous timeout
+        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+
+        // Generous timeout for slow mobile/hotspot connections
+        reconnectTimeoutRef.current = setTimeout(() => {
           setReconnecting(false);
-        }, 3000);
-      } else if (savedTeamId && savedGameId) {
-        // Subsequent reconnects (socket.io auto-reconnect after disconnect)
-        console.log(`Re-reconnecting: team=${savedTeamId} game=${savedGameId}`);
-        socket.emit('team:reconnect', { teamId: savedTeamId, gameId: savedGameId });
+        }, 15000);
       }
     });
 
     socket.on('disconnect', () => {
       setConnected(false);
-      // Allow reconnection on next connect
-      // Don't clear hasAttemptedReconnect - we handle subsequent reconnects in the else branch
     });
 
     socket.on('game:state_update', (state) => {
@@ -92,6 +91,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setBiddingTimeRemaining(state.biddingTimeRemaining);
       setBidStatus(state.bidStatus || {});
       setReconnecting(false);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
     });
 
     socket.on('game:phase_changed', (phase) => {
@@ -125,9 +128,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setLastBalancing(result);
     });
 
+    socket.on('host:team_screen_data', (data) => {
+      setTeamScreenData(data);
+    });
+
     socket.on('team:reconnected', (data) => {
       console.log(`Reconnected as team "${data.teamName}" in game ${data.gameId}`);
       setReconnecting(false);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       // Refresh stored values (in case they changed)
       sessionStorage.setItem(SS_TEAM_ID, data.teamId);
       sessionStorage.setItem(SS_GAME_ID, data.gameId);
@@ -140,6 +151,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       socket.off('connect');
       socket.off('disconnect');
       socket.off('game:state_update');
@@ -151,6 +163,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       socket.off('scenario:event_triggered');
       socket.off('scenario:balancing_applied');
       socket.off('team:reconnected');
+      socket.off('host:team_screen_data');
       socket.off('error');
       socket.disconnect();
     };
@@ -170,6 +183,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const resetGame = useCallback(() => {
     socket.emit('host:reset_game');
     // Clear any saved team sessions since game is being reset
+  }, []);
+
+  const viewTeamScreen = useCallback((teamId: string) => {
+    socket.emit('host:view_team_screen', { teamId });
   }, []);
 
   const joinGame = useCallback((teamName: string, gameId: string) => {
@@ -203,7 +220,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem(SS_TEAM_ID);
     sessionStorage.removeItem(SS_GAME_ID);
     sessionStorage.removeItem(SS_TEAM_NAME);
-    hasAttemptedReconnect.current = false;
     setGameState(null);
   }, []);
 
@@ -218,6 +234,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       biddingTimeRemaining,
       bidStatus,
       allBidsIn,
+      teamScreenData,
       createGame,
       startRound,
       startBidding,
@@ -227,6 +244,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       adjustTimer,
       setDemand,
       resetGame,
+      viewTeamScreen,
       joinGame,
       submitBids,
       requestState,

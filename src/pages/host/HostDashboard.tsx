@@ -4,23 +4,25 @@ import { useSocket } from '../../contexts/SocketContext';
 import { formatCurrency, formatCurrencyFull, formatMW, formatPrice } from '../../lib/formatters';
 import { ASSET_ICONS } from '../../lib/colors';
 import MeritOrderChart from '../../components/charts/MeritOrderChart';
+import MeritOrderWalkthrough from '../../components/charts/MeritOrderWalkthrough';
 import ProfitLossBar from '../../components/charts/ProfitLossBar';
 import LeaderboardChart from '../../components/charts/LeaderboardChart';
-import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, DispatchedBand } from '../../../shared/types';
+import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 
 export default function HostDashboard() {
   const navigate = useNavigate();
   const {
     connected, gameState, roundResults, biddingTimeRemaining,
-    bidStatus, allBidsIn, lastBalancing,
-    startRound, startBidding, endBidding, nextRound, resetGame, setDemand,
+    bidStatus, allBidsIn, lastBalancing, teamScreenData,
+    startRound, startBidding, endBidding, nextRound, resetGame, setDemand, viewTeamScreen,
   } = useSocket();
   const [qrData, setQrData] = useState<{ qrDataUrl: string; joinUrl: string } | null>(null);
-  const [activeView, setActiveView] = useState<'overview' | 'merit' | 'profit' | 'leaderboard' | 'slides' | 'analysis' | 'dispatch'>('overview');
+  const [activeView, setActiveView] = useState<'overview' | 'merit' | 'profit' | 'leaderboard' | 'slides' | 'analysis' | 'dispatch' | 'team_view' | 'walkthrough'>('overview');
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('day_peak');
   const [demandEdits, setDemandEdits] = useState<Record<string, number>>({});
   const [demandEditMode, setDemandEditMode] = useState(false);
+  const [viewingTeamId, setViewingTeamId] = useState<string>('');
 
   // Sync demand edits when round config changes
   useEffect(() => {
@@ -81,7 +83,17 @@ export default function HostDashboard() {
       {/* Top Bar */}
       <div className="bg-navy-900/80 border-b border-white/10 px-4 py-3 flex items-center justify-between sticky top-0 z-50 backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          <span className="text-xl">⚡</span>
+          <button
+            onClick={() => {
+              if (window.confirm('Exit game? This will leave the current session.')) {
+                navigate('/');
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Exit
+          </button>
           <div>
             <h1 className="text-white font-bold text-sm">NEM Merit Order Game</h1>
             <p className="text-navy-400 text-xs">
@@ -163,19 +175,30 @@ export default function HostDashboard() {
             )}
 
             {phase === 'final' && (
-              <button
-                onClick={resetGame}
-                className="w-full py-2.5 bg-navy-600 hover:bg-navy-500 text-white font-semibold rounded-lg transition-colors text-sm"
-              >
-                Reset Game 🔄
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    resetGame();
+                    navigate('/host');
+                  }}
+                  className="w-full py-2.5 bg-electric-500 hover:bg-electric-400 text-white font-semibold rounded-lg transition-colors text-sm"
+                >
+                  New Game
+                </button>
+                <button
+                  onClick={() => navigate('/')}
+                  className="w-full py-2.5 bg-navy-600 hover:bg-navy-500 text-white font-semibold rounded-lg transition-colors text-sm"
+                >
+                  Back to Home
+                </button>
+              </div>
             )}
           </div>
 
           {/* View Toggle */}
           <div className="mb-6 space-y-1">
             <div className="text-xs text-navy-400 uppercase tracking-wide mb-2">Display</div>
-            {(['overview', 'analysis', 'dispatch', 'merit', 'profit', 'leaderboard', 'slides'] as const).map(view => (
+            {(['overview', 'analysis', 'walkthrough', 'dispatch', 'merit', 'profit', 'leaderboard', 'team_view', 'slides'] as const).map(view => (
               <button
                 key={view}
                 onClick={() => setActiveView(view)}
@@ -187,10 +210,12 @@ export default function HostDashboard() {
               >
                 {view === 'overview' ? '📋 Overview' :
                  view === 'analysis' ? '🔍 Round Analysis' :
+                 view === 'walkthrough' ? '🎬 Walkthrough' :
                  view === 'dispatch' ? '⚡ Dispatch Overview' :
                  view === 'merit' ? '📊 Merit Order' :
                  view === 'profit' ? '💰 Profit/Loss' :
                  view === 'leaderboard' ? '🏆 Leaderboard' :
+                 view === 'team_view' ? '👁 Team View' :
                  '📖 Slides'}
               </button>
             ))}
@@ -526,6 +551,22 @@ export default function HostDashboard() {
                 </div>
                 <p className="text-navy-400 text-sm mt-1">Time Remaining</p>
               </div>
+            </div>
+          )}
+
+          {/* Walkthrough View */}
+          {activeView === 'walkthrough' && lastResults && (
+            <div className="animate-fade-in">
+              <h2 className="text-2xl font-bold text-white mb-4">Merit Order Walkthrough</h2>
+              <p className="text-navy-400 text-sm mb-4">Step through how the merit order was built and how the clearing price was set.</p>
+              <MeritOrderWalkthrough periodResults={lastResults.periodResults} />
+            </div>
+          )}
+
+          {activeView === 'walkthrough' && !lastResults && (
+            <div className="text-center text-navy-400 py-12">
+              <div className="text-3xl mb-2">📊</div>
+              <p>Walkthrough available after dispatch results</p>
             </div>
           )}
 
@@ -898,6 +939,193 @@ export default function HostDashboard() {
             );
           })()}
 
+          {/* Team View */}
+          {activeView === 'team_view' && (
+            <div className="animate-fade-in">
+              <h2 className="text-xl font-bold text-white mb-4">Team View</h2>
+              <p className="text-navy-400 text-sm mb-4">Select a team to see what they see on their screen.</p>
+
+              {/* Team Selector */}
+              <div className="flex gap-2 flex-wrap mb-6">
+                {teams.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setViewingTeamId(t.id);
+                      viewTeamScreen(t.id);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      viewingTeamId === t.id
+                        ? 'text-white shadow-lg'
+                        : 'bg-white/10 text-navy-300 hover:bg-white/20 hover:text-white'
+                    }`}
+                    style={viewingTeamId === t.id ? { backgroundColor: t.color } : undefined}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full inline-block mr-2" style={{ backgroundColor: t.color }} />
+                    {t.name}
+                    {!t.isConnected && <span className="ml-1 text-red-400 text-xs">(offline)</span>}
+                  </button>
+                ))}
+              </div>
+
+              {/* Team Screen Preview */}
+              {viewingTeamId && teamScreenData?.myTeam ? (
+                <div className="bg-navy-800 border border-white/10 rounded-xl overflow-hidden">
+                  {/* Team Header Preview */}
+                  <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: teamScreenData.myTeam.color }}>
+                    <span className="text-xl">⚡</span>
+                    <div>
+                      <div className="text-white font-bold text-sm">{teamScreenData.myTeam.name}</div>
+                      <div className="text-white/70 text-xs">
+                        {phase === 'bidding' ? `Round ${gameState?.currentRound}` :
+                         phase === 'results' ? 'Results' :
+                         phase === 'briefing' ? 'Briefing' :
+                         phase === 'lobby' ? 'Waiting...' : phase}
+                      </div>
+                    </div>
+                    <div className="ml-auto text-white/80 text-sm font-mono">
+                      {formatCurrency(teamScreenData.myTeam.cumulativeProfitDollars)} profit
+                    </div>
+                  </div>
+
+                  <div className="p-5 space-y-4">
+                    {/* Team Assets */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-navy-200 mb-2">Assets</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {teamScreenData.myTeam.assets.map(asset => {
+                          const assetDef = (teamScreenData.myAssetDefs || []).find((d: AssetInfo) => d.id === asset.assetDefinitionId);
+                          return (
+                            <div key={asset.assetDefinitionId} className={`px-3 py-2 bg-white/5 rounded-lg border border-white/10 ${
+                              asset.isForceOutage ? 'opacity-50' : ''
+                            }`}>
+                              <div className="text-xs font-medium text-white">
+                                {assetDef?.name || asset.assetDefinitionId}
+                              </div>
+                              <div className="text-[10px] text-navy-400">
+                                {formatMW(asset.currentAvailableMW)} available
+                                {assetDef && ` · SRMC $${assetDef.srmcPerMWh}`}
+                                {asset.isForceOutage && <span className="text-red-400 ml-1">OUTAGE</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Team's Last Round Results */}
+                    {teamScreenData.lastRoundResults && (() => {
+                      const teamResult = teamScreenData.lastRoundResults!.teamResults.find(
+                        r => r.teamId === teamScreenData.myTeam!.id
+                      );
+                      if (!teamResult) return null;
+                      return (
+                        <div>
+                          <h4 className="text-sm font-semibold text-navy-200 mb-2">Last Round Performance</h4>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-white/5 rounded-lg px-3 py-2 text-center">
+                              <div className="text-[10px] text-navy-400">Revenue</div>
+                              <div className="text-sm font-mono text-green-400">{formatCurrency(teamResult.totalRevenueDollars)}</div>
+                            </div>
+                            <div className="bg-white/5 rounded-lg px-3 py-2 text-center">
+                              <div className="text-[10px] text-navy-400">Cost</div>
+                              <div className="text-sm font-mono text-red-400">{formatCurrency(teamResult.totalCostDollars)}</div>
+                            </div>
+                            <div className="bg-white/5 rounded-lg px-3 py-2 text-center">
+                              <div className="text-[10px] text-navy-400">Profit</div>
+                              <div className={`text-sm font-mono font-bold ${teamResult.totalProfitDollars >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                {formatCurrency(teamResult.totalProfitDollars)}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Period breakdown */}
+                          <div className="mt-3 space-y-2">
+                            {teamResult.periodBreakdown.map(pb => (
+                              <div key={pb.timePeriod} className="bg-white/5 rounded-lg px-3 py-2">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs text-navy-300">{TIME_PERIOD_SHORT_LABELS[pb.timePeriod]}</span>
+                                  <span className={`text-xs font-mono ${pb.periodProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {formatCurrency(pb.periodProfit)}
+                                  </span>
+                                </div>
+                                <div className="flex gap-2 flex-wrap">
+                                  {pb.assets.map(a => (
+                                    <span key={a.assetDefinitionId} className="text-[10px] text-navy-400">
+                                      {a.assetName}: {formatMW(a.dispatchedMW)} @ {formatPrice(a.revenueFromDispatch / Math.max(1, a.energyMWh))}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Team Analysis */}
+                    {teamScreenData.lastRoundAnalysis && (() => {
+                      const ta = teamScreenData.lastRoundAnalysis!.teamAnalyses.find(
+                        a => a.teamId === teamScreenData.myTeam!.id
+                      );
+                      if (!ta) return null;
+                      return (
+                        <div>
+                          <h4 className="text-sm font-semibold text-navy-200 mb-2">Analysis</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                              <div className="text-xs text-green-400 font-medium mb-1">Strengths</div>
+                              {ta.strengths.map((s, i) => (
+                                <p key={i} className="text-[11px] text-navy-300 mb-0.5">{s}</p>
+                              ))}
+                            </div>
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                              <div className="text-xs text-amber-400 font-medium mb-1">Improvements</div>
+                              {ta.improvements.map((s, i) => (
+                                <p key={i} className="text-[11px] text-navy-300 mb-0.5">{s}</p>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="mt-2 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                            <div className="text-xs text-blue-400 font-medium mb-1">Next Round Advice</div>
+                            <p className="text-[11px] text-navy-300">{ta.nextRoundAdvice}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Rank & Position */}
+                    <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-3">
+                      <div className="text-2xl">
+                        {teamScreenData.myTeam.rank === 1 ? '🥇' :
+                         teamScreenData.myTeam.rank === 2 ? '🥈' :
+                         teamScreenData.myTeam.rank === 3 ? '🥉' : `#${teamScreenData.myTeam.rank}`}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white">
+                          Rank {teamScreenData.myTeam.rank} of {teams.length}
+                        </div>
+                        <div className="text-xs text-navy-400">
+                          Cumulative: {formatCurrency(teamScreenData.myTeam.cumulativeProfitDollars)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : viewingTeamId ? (
+                <div className="text-center text-navy-400 py-12">
+                  <div className="text-3xl mb-2">⏳</div>
+                  <p>Loading team data...</p>
+                </div>
+              ) : (
+                <div className="text-center text-navy-500 py-12">
+                  <div className="text-3xl mb-2">👆</div>
+                  <p>Select a team above to view their screen</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Final Results */}
           {phase === 'final' && (
             <div className="max-w-2xl mx-auto text-center animate-fade-in">
@@ -915,6 +1143,24 @@ export default function HostDashboard() {
               )}
 
               <LeaderboardChart leaderboard={leaderboard} />
+
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => {
+                    resetGame();
+                    navigate('/host');
+                  }}
+                  className="px-6 py-3 bg-electric-500 hover:bg-electric-400 text-white font-semibold rounded-lg transition-colors"
+                >
+                  New Game
+                </button>
+                <button
+                  onClick={() => navigate('/')}
+                  className="px-6 py-3 bg-navy-600 hover:bg-navy-500 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Back to Home
+                </button>
+              </div>
             </div>
           )}
         </div>

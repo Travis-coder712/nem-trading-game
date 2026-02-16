@@ -599,6 +599,7 @@ export interface ServerToClientEvents {
   'scenario:event_triggered': (event: ScenarioEvent) => void;
   'scenario:balancing_applied': (data: BalancingResult) => void;
   'host:bid_status': (data: Record<string, boolean>) => void;
+  'host:team_screen_data': (data: GameStateSnapshot) => void;
   'error': (message: string) => void;
 }
 
@@ -616,6 +617,7 @@ export interface ClientToServerEvents {
   'host:reset_game': () => void;
   'host:adjust_timer': (seconds: number) => void;
   'host:set_demand': (demand: Record<string, number>) => void;
+  'host:view_team_screen': (data: { teamId: string }) => void;
   'team:join': (data: { teamName: string; gameId: string }) => void;
   'team:reconnect': (data: { teamId: string; gameId: string }) => void;
   'team:submit_bids': (submission: TeamBidSubmission) => void;

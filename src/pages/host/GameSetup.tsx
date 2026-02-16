@@ -59,6 +59,15 @@ export default function GameSetup() {
       <div className="max-w-3xl mx-auto animate-slide-up">
         {/* Header */}
         <div className="text-center mb-8">
+          <div className="flex justify-start mb-4">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-sm transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+              Exit
+            </button>
+          </div>
           <h1 className="text-3xl font-bold text-white mb-2">⚡ Game Setup</h1>
           <p className="text-navy-300">Configure your NEM Merit Order training session</p>
           <div className={`inline-flex items-center mt-2 px-3 py-1 rounded-full text-xs font-medium ${

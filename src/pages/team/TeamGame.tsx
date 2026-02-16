@@ -16,18 +16,22 @@ import {
   STRATEGIES, generateStrategyBids, getAvailableStrategies,
   type StrategyId, type Intensity,
 } from '../../lib/bidding-strategies';
+import BidReviewModal from '../../components/game/BidReviewModal';
+import MeritOrderWalkthrough from '../../components/charts/MeritOrderWalkthrough';
 
 export default function TeamGame() {
   const navigate = useNavigate();
   const {
     gameState, connected, reconnecting, biddingTimeRemaining, roundResults,
-    submitBids, requestState,
+    submitBids, requestState, clearSession,
   } = useSocket();
 
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('day_peak');
   const [bids, setBids] = useState<Map<string, AssetBid>>(new Map()); // key: assetId_period
   const [submitted, setSubmitted] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [showBidReview, setShowBidReview] = useState(false);
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
 
   useEffect(() => {
     // Only redirect to join if we don't have a team AND we're not reconnecting
@@ -273,18 +277,48 @@ export default function TeamGame() {
 
   // Show reconnecting state
   if (!team && (reconnecting || sessionStorage.getItem('nem_team_id'))) {
+    const savedTeamName = sessionStorage.getItem('nem_team_name');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-6">
+        <div className="text-center p-6 max-w-sm">
           <div className="text-5xl mb-4 animate-spin">🔄</div>
           <h2 className="text-xl font-bold text-gray-800">Reconnecting...</h2>
-          <p className="text-gray-500 mt-2">Getting you back in the game</p>
+          <p className="text-gray-500 mt-2">
+            Getting {savedTeamName ? `"${savedTeamName}"` : 'you'} back in the game
+          </p>
           {!connected && (
             <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm">
               <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
               Connecting to server...
             </div>
           )}
+          <div className="mt-6 space-y-3">
+            <button
+              onClick={() => {
+                if (connected) {
+                  const savedTeamId = sessionStorage.getItem('nem_team_id');
+                  const savedGameId = sessionStorage.getItem('nem_game_id');
+                  if (savedTeamId && savedGameId) {
+                    requestState();
+                  }
+                } else {
+                  window.location.reload();
+                }
+              }}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors text-sm"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => {
+                clearSession();
+                navigate('/team/join');
+              }}
+              className="w-full py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors text-sm"
+            >
+              Rejoin as New Team
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -308,7 +342,18 @@ export default function TeamGame() {
       <div className="sticky top-0 z-50 shadow-md" style={{ backgroundColor: teamColor }}>
         <div className="px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl">⚡</span>
+            <button
+              onClick={() => {
+                if (window.confirm('Exit game? You will leave the current session.')) {
+                  clearSession();
+                  navigate('/');
+                }
+              }}
+              className="flex items-center gap-1 px-2 py-1 bg-white/20 hover:bg-white/30 text-white/80 hover:text-white rounded text-xs transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+              Exit
+            </button>
             <div>
               <div className="text-white font-bold text-sm">{team.name}</div>
               <div className="text-white/70 text-xs">
@@ -981,6 +1026,14 @@ export default function TeamGame() {
               </div>
             </div>
 
+            {/* Walkthrough Button */}
+            <button
+              onClick={() => setShowWalkthrough(true)}
+              className="w-full py-3 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl text-sm font-semibold text-indigo-700 hover:from-indigo-100 hover:to-blue-100 transition-colors flex items-center justify-center gap-2"
+            >
+              <span>🎬</span> See How the Merit Order Set the Price
+            </button>
+
             {/* Leaderboard */}
             <div className="bg-white rounded-xl shadow-sm p-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Leaderboard</h3>
@@ -1146,6 +1199,27 @@ export default function TeamGame() {
                 </div>
               ))}
             </div>
+
+            <div className="mt-8 flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  clearSession();
+                  navigate('/team/join');
+                }}
+                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold rounded-xl transition-colors"
+              >
+                Play Again
+              </button>
+              <button
+                onClick={() => {
+                  clearSession();
+                  navigate('/');
+                }}
+                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
+              >
+                Back to Home
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -1154,11 +1228,55 @@ export default function TeamGame() {
       {phase === 'bidding' && !submitted && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg px-4 py-3 z-50">
           <button
-            onClick={handleSubmit}
+            onClick={() => setShowBidReview(true)}
             className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-base rounded-xl shadow-md active:scale-[0.98] transition-transform"
           >
-            Submit Bids ✓
+            Review Bids
           </button>
+        </div>
+      )}
+
+      {/* Bid Review Modal */}
+      {showBidReview && roundConfig && (
+        <BidReviewModal
+          bids={bids}
+          assets={assets}
+          assetDefs={assetDefs}
+          periods={roundConfig.timePeriods as TimePeriod[]}
+          demandPerPeriod={gameState?.fleetInfo?.demandMW || {}}
+          teamCount={gameState?.expectedTeamCount || gameState?.teams?.length || 1}
+          season={roundConfig.season}
+          onConfirm={() => {
+            setShowBidReview(false);
+            handleSubmit();
+          }}
+          onCancel={() => setShowBidReview(false)}
+        />
+      )}
+
+      {/* Merit Order Walkthrough Modal */}
+      {showWalkthrough && roundResults && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/70 backdrop-blur-sm">
+          <div className="bg-navy-900 border border-white/10 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col">
+            <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">Merit Order Walkthrough</h2>
+                <p className="text-xs text-navy-400">See how bids stack up and set the clearing price</p>
+              </div>
+              <button
+                onClick={() => setShowWalkthrough(false)}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-sm transition-colors"
+              >
+                Close
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-5">
+              <MeritOrderWalkthrough
+                periodResults={roundResults.periodResults}
+                onClose={() => setShowWalkthrough(false)}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

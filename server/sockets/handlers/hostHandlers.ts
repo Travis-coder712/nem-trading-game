@@ -193,6 +193,16 @@ export function registerHostHandlers(
     engine.resetGame(gameId);
     broadcastSnapshot(io, engine, gameId);
   }));
+
+  socket.on('host:view_team_screen', safe((data) => {
+    const gameId = (socket as any).gameId;
+    if (!gameId || !data?.teamId) return;
+
+    const teamSnapshot = engine.getSnapshot(gameId, data.teamId);
+    if (teamSnapshot) {
+      socket.emit('host:team_screen_data', teamSnapshot);
+    }
+  }));
 }
 
 function endBiddingAndDispatch(
