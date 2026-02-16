@@ -4,7 +4,7 @@
 
 // ---- Enumerations ----
 
-export type GameMode = 'quick' | 'full' | 'experienced';
+export type GameMode = 'beginner' | 'quick' | 'full' | 'experienced';
 
 export type GamePhase =
   | 'lobby'

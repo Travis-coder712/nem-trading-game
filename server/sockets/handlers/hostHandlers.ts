@@ -2,12 +2,23 @@ import type { Server, Socket } from 'socket.io';
 import type { GameEngine } from '../../engine/GameEngine.ts';
 import type { ClientToServerEvents, ServerToClientEvents } from '../../../shared/types.ts';
 
+/** Wrap a socket handler in try/catch so errors don't crash the server */
+function safe(handler: (...args: any[]) => void) {
+  return (...args: any[]) => {
+    try {
+      handler(...args);
+    } catch (err) {
+      console.error('Error in socket handler:', err);
+    }
+  };
+}
+
 export function registerHostHandlers(
   io: Server<ClientToServerEvents, ServerToClientEvents>,
   socket: Socket<ClientToServerEvents, ServerToClientEvents>,
   engine: GameEngine,
 ) {
-  socket.on('host:create_game', (config) => {
+  socket.on('host:create_game', safe((config) => {
     const game = engine.createGame(config.mode, config.teamCount, config.balancingEnabled);
     socket.join(`game:${game.id}`);
     socket.join(`game:${game.id}:host`);
@@ -18,9 +29,9 @@ export function registerHostHandlers(
     if (snapshot) {
       socket.emit('game:state_update', snapshot);
     }
-  });
+  }));
 
-  socket.on('host:start_round', () => {
+  socket.on('host:start_round', safe(() => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
 
@@ -54,9 +65,9 @@ export function registerHostHandlers(
     });
 
     broadcastSnapshot(io, engine, gameId);
-  });
+  }));
 
-  socket.on('host:start_bidding', () => {
+  socket.on('host:start_bidding', safe(() => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
 
@@ -65,20 +76,25 @@ export function registerHostHandlers(
 
     // Start timer
     const timer = setInterval(() => {
-      const remaining = engine.tickTimer(gameId);
-      io.to(`game:${gameId}`).emit('bidding:time_remaining', remaining);
+      try {
+        const remaining = engine.tickTimer(gameId);
+        io.to(`game:${gameId}`).emit('bidding:time_remaining', remaining);
 
-      if (remaining <= 0) {
+        if (remaining <= 0) {
+          clearInterval(timer);
+          endBiddingAndDispatch(io, socket, engine, gameId);
+        }
+      } catch (err) {
+        console.error('Error in bidding timer:', err);
         clearInterval(timer);
-        endBiddingAndDispatch(io, socket, engine, gameId);
       }
     }, 1000);
 
     (socket as any).biddingTimer = timer;
     broadcastSnapshot(io, engine, gameId);
-  });
+  }));
 
-  socket.on('host:end_bidding', () => {
+  socket.on('host:end_bidding', safe(() => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
 
@@ -86,15 +102,15 @@ export function registerHostHandlers(
     if (timer) clearInterval(timer);
 
     endBiddingAndDispatch(io, socket, engine, gameId);
-  });
+  }));
 
-  socket.on('host:show_results', () => {
+  socket.on('host:show_results', safe(() => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
     broadcastSnapshot(io, engine, gameId);
-  });
+  }));
 
-  socket.on('host:next_round', () => {
+  socket.on('host:next_round', safe(() => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
 
@@ -145,9 +161,9 @@ export function registerHostHandlers(
     });
 
     broadcastSnapshot(io, engine, gameId);
-  });
+  }));
 
-  socket.on('host:adjust_timer', (seconds) => {
+  socket.on('host:adjust_timer', safe((seconds) => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
 
@@ -156,9 +172,9 @@ export function registerHostHandlers(
       game.biddingTimeRemaining = Math.max(0, seconds);
       io.to(`game:${gameId}`).emit('bidding:time_remaining', game.biddingTimeRemaining);
     }
-  });
+  }));
 
-  socket.on('host:set_demand', (demand) => {
+  socket.on('host:set_demand', safe((demand) => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
 
@@ -169,14 +185,14 @@ export function registerHostHandlers(
     } else {
       socket.emit('error', 'Cannot update demand');
     }
-  });
+  }));
 
-  socket.on('host:reset_game', () => {
+  socket.on('host:reset_game', safe(() => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
     engine.resetGame(gameId);
     broadcastSnapshot(io, engine, gameId);
-  });
+  }));
 }
 
 function endBiddingAndDispatch(

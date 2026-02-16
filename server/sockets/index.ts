@@ -17,16 +17,25 @@ export function setupSocketHandlers(
     registerTeamHandlers(io, socket, engine);
 
     socket.on('disconnect', () => {
-      console.log(`Client disconnected: ${socket.id}`);
-      const gameId = (socket as any).gameId;
-      if (gameId && !(socket as any).isHost) {
-        const teamId = engine.disconnectTeam(gameId, socket.id);
-        if (teamId) {
-          io.to(`game:${gameId}`).emit('game:phase_changed',
-            engine.getGame(gameId)?.phase || 'lobby'
-          );
+      try {
+        console.log(`Client disconnected: ${socket.id}`);
+        const gameId = (socket as any).gameId;
+        if (gameId && !(socket as any).isHost) {
+          const teamId = engine.disconnectTeam(gameId, socket.id);
+          if (teamId) {
+            io.to(`game:${gameId}`).emit('game:phase_changed',
+              engine.getGame(gameId)?.phase || 'lobby'
+            );
+          }
         }
+      } catch (err) {
+        console.error('Error handling disconnect:', err);
       }
+    });
+
+    // Catch any errors on the socket itself
+    socket.on('error', (err) => {
+      console.error(`Socket error (${socket.id}):`, err);
     });
   });
 }

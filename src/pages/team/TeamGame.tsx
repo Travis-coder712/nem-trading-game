@@ -13,7 +13,7 @@ import {
   ASSET_TYPE_LABELS, SEASON_LABELS, getPeriodDescriptions,
 } from '../../../shared/types';
 import {
-  STRATEGIES, generateStrategyBids,
+  STRATEGIES, generateStrategyBids, getAvailableStrategies,
   type StrategyId, type Intensity,
 } from '../../lib/bidding-strategies';
 
@@ -88,6 +88,11 @@ export default function TeamGame() {
     }
     return Array.from(types);
   }, [assets, assetDefs]);
+
+  // Filter strategies to only show ones relevant to the team's current asset types
+  const filteredStrategies = useMemo(() => {
+    return getAvailableStrategies(availableAssetTypes);
+  }, [availableAssetTypes]);
 
   // Auto-populate walkthrough bids when entering bidding phase
   useEffect(() => {
@@ -392,13 +397,13 @@ export default function TeamGame() {
                             const def = getAssetDef(asset.assetDefinitionId);
                             if (!def) return null;
                             return (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                                def.srmcPerMWh === 0 ? 'bg-green-100 text-green-700' :
-                                def.srmcPerMWh < 50 ? 'bg-blue-100 text-blue-700' :
-                                def.srmcPerMWh < 100 ? 'bg-amber-100 text-amber-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                ${def.srmcPerMWh}/MWh
+                              <span className={`text-xs font-extrabold px-2 py-0.5 rounded-lg border flex-shrink-0 ${
+                                def.srmcPerMWh === 0 ? 'bg-green-100 text-green-800 border-green-300' :
+                                def.srmcPerMWh < 50 ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                                def.srmcPerMWh < 100 ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                                'bg-red-100 text-red-800 border-red-300'
+                              }`} title="Short Run Marginal Cost - your cost to generate each MWh">
+                                SRMC ${def.srmcPerMWh}/MWh
                               </span>
                             );
                           })()}
@@ -416,6 +421,37 @@ export default function TeamGame() {
                 })}
               </div>
             </div>
+
+            {/* Demand & Fleet Summary */}
+            {gameState?.fleetInfo && roundConfig.baseDemandMW && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mt-4">
+                <div className="text-sm font-bold text-blue-800 mb-2">
+                  📊 {SEASON_LABELS[roundConfig.season]} — Demand vs Fleet Capacity
+                </div>
+                <div className={`grid gap-2 ${roundConfig.timePeriods.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
+                  {roundConfig.timePeriods.map(p => {
+                    const demandMW = roundConfig.baseDemandMW[p] || 0;
+                    const fleetMW = gameState.fleetInfo!.totalFleetMW[p] || 0;
+                    const pct = gameState.fleetInfo!.demandAsPercentOfFleet[p] || 0;
+                    const desc = getPeriodDescriptions(p as TimePeriod, roundConfig.season, availableAssetTypes);
+                    return (
+                      <div key={p} className="bg-white/70 rounded-lg px-3 py-2">
+                        <div className="text-xs font-medium text-gray-600">{desc.icon} {desc.label}</div>
+                        <div className="text-lg font-bold font-mono text-blue-700">{formatMW(demandMW)}</div>
+                        <div className="text-xs text-gray-500">of {formatMW(fleetMW)} fleet</div>
+                        <span className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                          pct >= 90 ? 'bg-red-100 text-red-700' :
+                          pct >= 70 ? 'bg-amber-100 text-amber-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {pct}% of fleet
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <p className="text-center text-gray-400 text-sm mt-4">
               Waiting for host to open bidding...
@@ -437,113 +473,42 @@ export default function TeamGame() {
               </div>
             )}
 
-            {/* Strategy Selector Panel */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-3 overflow-hidden">
-              {/* Toggle Header */}
-              <button
-                onClick={() => setStrategyOpen(!strategyOpen)}
-                className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🧠</span>
-                  <span className="text-sm font-semibold text-gray-800">Strategy Auto-Fill</span>
-                  {selectedStrategy && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                      {STRATEGIES.find(s => s.id === selectedStrategy)?.icon}{' '}
-                      {STRATEGIES.find(s => s.id === selectedStrategy)?.name} ({selectedIntensity})
-                    </span>
-                  )}
-                </div>
-                <span className={`text-gray-400 transition-transform ${strategyOpen ? 'rotate-180' : ''}`}>
-                  ▼
-                </span>
-              </button>
-
-              {/* Expanded Panel */}
-              {strategyOpen && (
-                <div className="border-t border-gray-100 px-4 py-3 space-y-3">
-                  <p className="text-[11px] text-gray-500">
-                    Choose a strategy and intensity to auto-fill bids for <strong>all assets</strong> across <strong>all time periods</strong>. You can still adjust individual bids after.
-                  </p>
-
-                  {/* Strategy Dropdown */}
-                  <div>
-                    <label className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Strategy</label>
-                    <select
-                      value={selectedStrategy}
-                      onChange={e => setSelectedStrategy(e.target.value as StrategyId)}
-                      className="w-full mt-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em', paddingRight: '2.5rem' }}
-                    >
-                      <option value="">Select a strategy...</option>
-                      {STRATEGIES.map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.icon} {s.name} — {s.shortDescription}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Strategy Description */}
-                  {selectedStrategy && (() => {
-                    const strat = STRATEGIES.find(s => s.id === selectedStrategy);
-                    if (!strat) return null;
-                    return (
-                      <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                        <p className="text-[11px] text-gray-600 leading-relaxed">{strat.description}</p>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Intensity Selector */}
-                  {selectedStrategy && (
-                    <div>
-                      <label className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Intensity</label>
-                      <div className="flex gap-1.5 mt-1">
-                        {(['low', 'medium', 'max'] as Intensity[]).map(level => {
-                          const strat = STRATEGIES.find(s => s.id === selectedStrategy);
-                          const isActive = selectedIntensity === level;
-                          const colors = level === 'low'
-                            ? 'bg-green-50 text-green-700 border-green-300'
-                            : level === 'medium'
-                            ? 'bg-blue-50 text-blue-700 border-blue-300'
-                            : 'bg-red-50 text-red-700 border-red-300';
-                          const activeColors = level === 'low'
-                            ? 'bg-green-500 text-white border-green-500'
-                            : level === 'medium'
-                            ? 'bg-blue-500 text-white border-blue-500'
-                            : 'bg-red-500 text-white border-red-500';
-
-                          return (
-                            <button
-                              key={level}
-                              onClick={() => setSelectedIntensity(level)}
-                              className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${
-                                isActive ? activeColors : `${colors} hover:opacity-80`
-                              }`}
-                            >
-                              <div className="font-bold capitalize">{level}</div>
-                              <div className={`text-[10px] mt-0.5 ${isActive ? 'text-white/80' : 'opacity-70'}`}>
-                                {strat?.intensityLabels[level]}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Apply Button */}
-                  {selectedStrategy && (
+            {/* Demand Overview Banner - All Periods */}
+            <div className="bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-xl p-4 mb-3">
+              <div className="text-xs font-bold uppercase tracking-wide text-white/80 mb-2">
+                📊 Demand This Round — {SEASON_LABELS[roundConfig.season]}
+              </div>
+              <div className={`grid gap-2 ${roundConfig.timePeriods.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
+                {roundConfig.timePeriods.map(p => {
+                  const desc = getPeriodDescriptions(p as TimePeriod, roundConfig.season, availableAssetTypes);
+                  const demandMW = roundConfig.baseDemandMW[p] || 0;
+                  const pctOfFleet = gameState?.fleetInfo?.demandAsPercentOfFleet[p] || 0;
+                  return (
                     <button
-                      onClick={() => applyStrategy(selectedStrategy as StrategyId, selectedIntensity)}
-                      className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white font-bold text-sm rounded-lg shadow-sm active:scale-[0.98] transition-all"
+                      key={p}
+                      onClick={() => setSelectedPeriod(p as TimePeriod)}
+                      className={`rounded-lg p-2 text-left transition-all ${
+                        selectedPeriod === p ? 'bg-white/25 ring-2 ring-white' : 'bg-white/10 hover:bg-white/15'
+                      }`}
                     >
-                      Apply {STRATEGIES.find(s => s.id === selectedStrategy)?.name} ({selectedIntensity}) to All Assets
+                      <div className="text-xs opacity-80">{desc.icon} {desc.label}</div>
+                      <div className="text-lg font-bold font-mono">{formatMW(demandMW)}</div>
+                      <div className={`text-xs font-bold ${
+                        pctOfFleet >= 90 ? 'text-red-300' : pctOfFleet >= 70 ? 'text-amber-300' : 'text-green-300'
+                      }`}>{pctOfFleet}% of fleet</div>
                     </button>
-                  )}
-                </div>
-              )}
+                  );
+                })}
+              </div>
+              {/* Hint for selected period */}
+              {(() => {
+                const desc = getPeriodDescriptions(selectedPeriod, roundConfig.season, availableAssetTypes);
+                return (
+                  <div className="mt-2 text-sm text-white/90 bg-white/10 rounded-lg px-3 py-2">
+                    <span className="font-semibold">{desc.icon} {desc.label}:</span> {desc.priceContext}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Period Tabs */}
@@ -666,6 +631,115 @@ export default function TeamGame() {
               )}
             </div>
 
+            {/* Strategy Selector Panel */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-3 overflow-hidden">
+              {/* Toggle Header */}
+              <button
+                onClick={() => setStrategyOpen(!strategyOpen)}
+                className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🧠</span>
+                  <span className="text-sm font-semibold text-gray-800">Strategy Auto-Fill</span>
+                  {selectedStrategy && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                      {STRATEGIES.find(s => s.id === selectedStrategy)?.icon}{' '}
+                      {STRATEGIES.find(s => s.id === selectedStrategy)?.name} ({selectedIntensity})
+                    </span>
+                  )}
+                </div>
+                <span className={`text-gray-400 transition-transform ${strategyOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+
+              {/* Expanded Panel */}
+              {strategyOpen && (
+                <div className="border-t border-gray-100 px-4 py-3 space-y-3">
+                  <p className="text-[11px] text-gray-500">
+                    Choose a strategy and intensity to auto-fill bids for <strong>all assets</strong> across <strong>all time periods</strong>. You can still adjust individual bids after.
+                  </p>
+
+                  {/* Strategy Dropdown */}
+                  <div>
+                    <label className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Strategy</label>
+                    <select
+                      value={selectedStrategy}
+                      onChange={e => setSelectedStrategy(e.target.value as StrategyId)}
+                      className="w-full mt-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em', paddingRight: '2.5rem' }}
+                    >
+                      <option value="">Select a strategy...</option>
+                      {filteredStrategies.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.icon} {s.name} — {s.shortDescription}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Strategy Description */}
+                  {selectedStrategy && (() => {
+                    const strat = STRATEGIES.find(s => s.id === selectedStrategy);
+                    if (!strat) return null;
+                    return (
+                      <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                        <p className="text-[11px] text-gray-600 leading-relaxed">{strat.description}</p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Intensity Selector */}
+                  {selectedStrategy && (
+                    <div>
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Intensity</label>
+                      <div className="flex gap-1.5 mt-1">
+                        {(['low', 'medium', 'max'] as Intensity[]).map(level => {
+                          const strat = STRATEGIES.find(s => s.id === selectedStrategy);
+                          const isActive = selectedIntensity === level;
+                          const colors = level === 'low'
+                            ? 'bg-green-50 text-green-700 border-green-300'
+                            : level === 'medium'
+                            ? 'bg-blue-50 text-blue-700 border-blue-300'
+                            : 'bg-red-50 text-red-700 border-red-300';
+                          const activeColors = level === 'low'
+                            ? 'bg-green-500 text-white border-green-500'
+                            : level === 'medium'
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'bg-red-500 text-white border-red-500';
+
+                          return (
+                            <button
+                              key={level}
+                              onClick={() => setSelectedIntensity(level)}
+                              className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${
+                                isActive ? activeColors : `${colors} hover:opacity-80`
+                              }`}
+                            >
+                              <div className="font-bold capitalize">{level}</div>
+                              <div className={`text-[10px] mt-0.5 ${isActive ? 'text-white/80' : 'opacity-70'}`}>
+                                {strat?.intensityLabels[level]}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Apply Button */}
+                  {selectedStrategy && (
+                    <button
+                      onClick={() => applyStrategy(selectedStrategy as StrategyId, selectedIntensity)}
+                      className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white font-bold text-sm rounded-lg shadow-sm active:scale-[0.98] transition-all"
+                    >
+                      Apply {STRATEGIES.find(s => s.id === selectedStrategy)?.name} ({selectedIntensity}) to All Assets
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Asset Bid Cards */}
             <div className="space-y-3">
               {assets.map(asset => {
@@ -695,12 +769,12 @@ export default function TeamGame() {
                             if (!def) return null;
                             const srmc = def.srmcPerMWh;
                             return (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                                srmc === 0 ? 'bg-green-100 text-green-700' :
-                                srmc < 50 ? 'bg-blue-100 text-blue-700' :
-                                srmc < 100 ? 'bg-amber-100 text-amber-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
+                              <span className={`text-sm font-extrabold px-2.5 py-1 rounded-lg border-2 shadow-sm ${
+                                srmc === 0 ? 'bg-green-100 text-green-800 border-green-300' :
+                                srmc < 50 ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                                srmc < 100 ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                                'bg-red-100 text-red-800 border-red-300'
+                              }`} title="Short Run Marginal Cost - your cost to generate each MWh">
                                 SRMC ${srmc}/MWh
                               </span>
                             );
@@ -717,6 +791,17 @@ export default function TeamGame() {
                         {totalBid}/{asset.currentAvailableMW} MW
                       </div>
                     </div>
+
+                    {/* SRMC Cost Reminder */}
+                    {(() => {
+                      const def = getAssetDef(asset.assetDefinitionId);
+                      if (!def) return null;
+                      return (
+                        <div className="px-4 py-1.5 bg-gray-50 text-[11px] text-gray-500 border-b border-gray-100">
+                          Your cost to generate: <strong className="text-gray-700">${def.srmcPerMWh}/MWh</strong> — bid above this to cover costs
+                        </div>
+                      );
+                    })()}
 
                     {/* Quick Bid Buttons */}
                     <div className="px-4 py-2 flex gap-2 border-b border-gray-50">
@@ -757,7 +842,7 @@ export default function TeamGame() {
                                   <label className="text-[10px] text-gray-400">$/MWh</label>
                                   <input
                                     type="number"
-                                    value={band.pricePerMWh || ''}
+                                    value={band.pricePerMWh ?? ''}
                                     onChange={e => updateBand(asset.assetDefinitionId, selectedPeriod, i, 'pricePerMWh', parseFloat(e.target.value) || 0)}
                                     placeholder="Price"
                                     className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
@@ -771,7 +856,7 @@ export default function TeamGame() {
                                   <label className="text-[10px] text-gray-400">MW</label>
                                   <input
                                     type="number"
-                                    value={band.quantityMW || ''}
+                                    value={band.quantityMW ?? ''}
                                     onChange={e => updateBand(asset.assetDefinitionId, selectedPeriod, i, 'quantityMW', parseFloat(e.target.value) || 0)}
                                     placeholder="MW"
                                     className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
@@ -883,9 +968,14 @@ export default function TeamGame() {
               <div className="grid grid-cols-2 gap-2">
                 {roundResults.periodResults.map(pr => (
                   <div key={pr.timePeriod} className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-xs text-gray-500 capitalize">{pr.timePeriod.replace(/_/g, ' ')}</div>
-                    <div className="text-lg font-bold font-mono text-blue-600">${Math.round(pr.clearingPriceMWh)}</div>
-                    <div className="text-xs text-gray-400">/MWh</div>
+                    <div className="text-sm font-medium text-gray-700 capitalize">{pr.timePeriod.replace(/_/g, ' ')}</div>
+                    <div className="text-2xl font-bold font-mono text-blue-600">${Math.round(pr.clearingPriceMWh)}<span className="text-sm text-gray-400">/MWh</span></div>
+                    <div className="mt-1 text-sm font-mono font-semibold text-gray-600">
+                      Demand: {formatMW(pr.demandMW)}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Reserve: {pr.reserveMarginPercent.toFixed(0)}%
+                    </div>
                   </div>
                 ))}
               </div>

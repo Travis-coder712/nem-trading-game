@@ -98,6 +98,32 @@ export const STRATEGIES: StrategyDefinition[] = [
   },
 ];
 
+/**
+ * Filter available strategies based on what asset types the team currently has.
+ * Hides strategies that don't make sense without the right assets.
+ */
+export function getAvailableStrategies(assetTypes: AssetType[]): StrategyDefinition[] {
+  const typeSet = new Set(assetTypes);
+  const hasBattery = typeSet.has('battery');
+  const hasThermal = typeSet.has('coal') || typeSet.has('gas_ccgt') || typeSet.has('gas_peaker');
+  const uniqueTypes = typeSet.size;
+
+  return STRATEGIES.filter(s => {
+    switch (s.id) {
+      case 'battery_arbitrageur':
+        return hasBattery;
+      case 'portfolio_optimizer':
+        return uniqueTypes >= 3;
+      case 'strategic_withdrawal':
+      case 'price_maker':
+        return hasThermal;
+      default:
+        // price_taker and srmc_bidder always available
+        return true;
+    }
+  });
+}
+
 // Approximate SRMC by asset type (client-side doesn't have exact per-team values)
 const SRMC_DEFAULTS: Record<string, number> = {
   coal: 35,

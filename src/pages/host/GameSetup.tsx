@@ -4,6 +4,14 @@ import { useSocket } from '../../contexts/SocketContext';
 
 const GAME_MODES = [
   {
+    id: 'beginner',
+    name: 'Beginner Intro',
+    rounds: 1,
+    duration: '10-15 min',
+    description: 'One guided round with 2 assets (coal + gas). Perfect for first-timers who\'ve never seen an electricity market.',
+    icon: '🎓',
+  },
+  {
     id: 'quick',
     name: 'Quick Game',
     rounds: 8,
@@ -32,7 +40,7 @@ const GAME_MODES = [
 export default function GameSetup() {
   const navigate = useNavigate();
   const { createGame, gameState, connected } = useSocket();
-  const [selectedMode, setSelectedMode] = useState('quick');
+  const [selectedMode, setSelectedMode] = useState('beginner');
   const [teamCount, setTeamCount] = useState(6);
   const [balancingEnabled, setBalancingEnabled] = useState(true);
 
@@ -64,7 +72,7 @@ export default function GameSetup() {
         {/* Game Mode Selection */}
         <div className="mb-8">
           <label className="block text-sm font-medium text-navy-200 mb-3">Game Mode</label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {GAME_MODES.map(mode => (
               <button
                 key={mode.id}

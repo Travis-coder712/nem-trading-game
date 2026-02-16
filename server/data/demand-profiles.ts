@@ -1,92 +1,106 @@
 import type { Season, TimePeriod } from '../../shared/types.ts';
 
 /**
- * Seasonal demand multipliers relative to a base demand value.
- * Summer peaks are driven by air conditioning (afternoon).
- * Winter peaks are driven by heating (evening).
- * Spring/autumn have lower, flatter demand.
+ * Target demand as % of fleet capacity per season/period.
+ * These drive a competitive market where supply is tight at peaks
+ * and loose at off-peaks. Values in range 0.50 – 1.00.
+ *
+ * Summer afternoon → near 100% (heatwave stress).
+ * Winter evening   → near 100% (heating peak).
+ * Off-peaks        → 50-65%  (plenty of spare capacity).
  */
-export const SEASONAL_DEMAND_MULTIPLIERS: Record<Season, Record<TimePeriod, number>> = {
+export const DEMAND_FLEET_TARGETS: Record<Season, Record<TimePeriod, number>> = {
   summer: {
-    night_offpeak: 0.65,
-    day_offpeak: 0.80,
-    day_peak: 1.20,
-    night_peak: 0.95,
+    night_offpeak: 0.55,
+    day_offpeak:   0.65,
+    day_peak:      0.95,    // summer heatwave — near total fleet
+    night_peak:    0.80,
   },
   autumn: {
-    night_offpeak: 0.55,
-    day_offpeak: 0.70,
-    day_peak: 0.85,
-    night_peak: 0.80,
+    night_offpeak: 0.50,
+    day_offpeak:   0.60,
+    day_peak:      0.70,
+    night_peak:    0.68,
   },
   winter: {
-    night_offpeak: 0.60,
-    day_offpeak: 0.75,
-    day_peak: 0.90,
-    night_peak: 1.15,
+    night_offpeak: 0.55,
+    day_offpeak:   0.65,
+    day_peak:      0.75,
+    night_peak:    0.92,    // winter evening heating peak
   },
   spring: {
     night_offpeak: 0.50,
-    day_offpeak: 0.65,
-    day_peak: 0.80,
-    night_peak: 0.75,
+    day_offpeak:   0.58,
+    day_peak:      0.65,
+    night_peak:    0.63,
   },
 };
 
 /**
- * Calculate the base demand for the game scaled to the number of teams.
- * The demand is calibrated so that about 65-80% of total generation capacity
- * is needed on average, creating a competitive market.
- */
-export function calculateBaseDemand(teamCount: number): number {
-  // Each team starts with 800MW coal
-  // With all assets: ~800 + 350 + 150 + 300 + 200 + 250 + 150 = 2200MW per team
-  // But renewables have capacity factors, so effective is less
-  // Base demand targets ~70% of total coal capacity for early rounds
-  return teamCount * 560; // ~70% of 800MW per team
-}
-
-/**
- * Generate demand values for each time period in a round.
+ * Generate demand values based on actual fleet capacity per period.
+ * Targets 50-95% of fleet capacity depending on season and time of day,
+ * with random variability around the target.
+ *
+ * @param fleetCapacityPerPeriod  Total generation MW available per period (all teams, after capacity factors)
+ * @param season                  Current season
+ * @param periods                 Which time periods to generate demand for
+ * @param variability             Random noise factor (0 = exact target, 0.05 = ±5%)
+ * @param scenarioMultiplier      Scenario event demand multipliers per period
  */
 export function generateDemandForRound(
-  teamCount: number,
+  _teamCount: number,
   season: Season,
   periods: TimePeriod[],
   variability: number,
-  roundNumber: number,
+  _roundNumber: number,
   scenarioMultiplier: Record<string, number> = {},
+  fleetCapacityPerPeriod?: Record<string, number>,
 ): Record<string, number> {
-  const baseDemand = calculateScaledBaseDemand(teamCount, roundNumber);
   const demand: Record<string, number> = {};
 
   for (const period of periods) {
-    const seasonalMult = SEASONAL_DEMAND_MULTIPLIERS[season][period];
-    const scenarioMult = scenarioMultiplier[period] || 1.0;
-    const randomVariation = 1 + (Math.random() * 2 - 1) * variability;
+    const fleetMW = fleetCapacityPerPeriod?.[period];
 
-    demand[period] = Math.round(baseDemand * seasonalMult * scenarioMult * randomVariation);
+    if (fleetMW && fleetMW > 0) {
+      // Fleet-aware demand: target a percentage of actual fleet capacity
+      const target = DEMAND_FLEET_TARGETS[season][period];
+      const scenarioMult = scenarioMultiplier[period] || 1.0;
+      const randomVariation = 1 + (Math.random() * 2 - 1) * variability;
+
+      demand[period] = Math.round(fleetMW * target * scenarioMult * randomVariation);
+    } else {
+      // Fallback: legacy fixed calculation if fleet info not available
+      const baseDemand = calculateScaledBaseDemand(_teamCount, _roundNumber);
+      const seasonalMult = LEGACY_SEASONAL_MULTIPLIERS[season][period];
+      const scenarioMult = scenarioMultiplier[period] || 1.0;
+      const randomVariation = 1 + (Math.random() * 2 - 1) * variability;
+
+      demand[period] = Math.round(baseDemand * seasonalMult * scenarioMult * randomVariation);
+    }
   }
 
   return demand;
 }
 
-/**
- * Scale base demand based on round number (more assets = higher demand)
- */
+// ---- Legacy fallback (used when fleet capacity not yet computed) ----
+
+const LEGACY_SEASONAL_MULTIPLIERS: Record<Season, Record<TimePeriod, number>> = {
+  summer: { night_offpeak: 0.65, day_offpeak: 0.80, day_peak: 1.20, night_peak: 0.95 },
+  autumn: { night_offpeak: 0.55, day_offpeak: 0.70, day_peak: 0.85, night_peak: 0.80 },
+  winter: { night_offpeak: 0.60, day_offpeak: 0.75, day_peak: 0.90, night_peak: 1.15 },
+  spring: { night_offpeak: 0.50, day_offpeak: 0.65, day_peak: 0.80, night_peak: 0.75 },
+};
+
 function calculateScaledBaseDemand(teamCount: number, roundNumber: number): number {
   const coalBase = teamCount * 560;
 
   if (roundNumber <= 4) {
     return coalBase;
   } else if (roundNumber <= 6) {
-    // Gas added - increase demand to make gas economic at peaks
     return coalBase * 1.3;
   } else if (roundNumber <= 8) {
-    // Renewables + hydro + battery added
     return coalBase * 1.5;
   } else {
-    // Full portfolio - complex demand
     return coalBase * 1.6;
   }
 }

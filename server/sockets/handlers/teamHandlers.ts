@@ -2,12 +2,23 @@ import type { Server, Socket } from 'socket.io';
 import type { GameEngine } from '../../engine/GameEngine.ts';
 import type { ClientToServerEvents, ServerToClientEvents } from '../../../shared/types.ts';
 
+/** Wrap a socket handler in try/catch so errors don't crash the server */
+function safe(handler: (...args: any[]) => void) {
+  return (...args: any[]) => {
+    try {
+      handler(...args);
+    } catch (err) {
+      console.error('Error in socket handler:', err);
+    }
+  };
+}
+
 export function registerTeamHandlers(
   io: Server<ClientToServerEvents, ServerToClientEvents>,
   socket: Socket<ClientToServerEvents, ServerToClientEvents>,
   engine: GameEngine,
 ) {
-  socket.on('team:join', (data) => {
+  socket.on('team:join', safe((data) => {
     const { teamName, gameId } = data;
 
     const team = engine.addTeam(gameId, teamName, socket.id);
@@ -43,9 +54,9 @@ export function registerTeamHandlers(
     if (hostSnapshot) {
       io.to(`game:${gameId}:host`).emit('game:state_update', hostSnapshot);
     }
-  });
+  }));
 
-  socket.on('team:reconnect', (data) => {
+  socket.on('team:reconnect', safe((data) => {
     const { teamId, gameId } = data;
 
     const team = engine.reconnectTeam(gameId, teamId, socket.id);
@@ -97,9 +108,9 @@ export function registerTeamHandlers(
     if (hostSnapshot) {
       io.to(`game:${gameId}:host`).emit('game:state_update', hostSnapshot);
     }
-  });
+  }));
 
-  socket.on('team:submit_bids', (submission) => {
+  socket.on('team:submit_bids', safe((submission) => {
     const gameId = (socket as any).gameId;
     const teamId = (socket as any).teamId;
     if (!gameId || !teamId) return;
@@ -121,9 +132,9 @@ export function registerTeamHandlers(
     } else {
       socket.emit('error', 'Failed to submit bids. Bidding may have ended.');
     }
-  });
+  }));
 
-  socket.on('team:request_state', () => {
+  socket.on('team:request_state', safe(() => {
     const gameId = (socket as any).gameId;
     const teamId = (socket as any).teamId;
     if (!gameId || !teamId) return;
@@ -132,5 +143,5 @@ export function registerTeamHandlers(
     if (snapshot) {
       socket.emit('game:state_update', snapshot);
     }
-  });
+  }));
 }

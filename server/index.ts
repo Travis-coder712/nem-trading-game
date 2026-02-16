@@ -19,8 +19,9 @@ const io = new Server(httpServer, {
     origin: true, // Allow all origins (needed for ngrok/tunnel access)
     methods: ['GET', 'POST'],
   },
-  pingInterval: 10000,
-  pingTimeout: 5000,
+  // More tolerant settings for flaky connections (hotspot, mobile, etc.)
+  pingInterval: 25000,
+  pingTimeout: 20000,
 });
 
 app.use(cors());
@@ -106,6 +107,16 @@ httpServer.listen(PORT, '0.0.0.0', async () => {
   }
 
   console.log('');
+});
+
+// Global error handlers — prevent crashes from killing the server
+process.on('uncaughtException', (err) => {
+  console.error('⚠️  Uncaught exception (server kept running):', err.message);
+  console.error(err.stack);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️  Unhandled rejection (server kept running):', reason);
 });
 
 // Graceful shutdown - close ngrok tunnel

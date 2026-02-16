@@ -122,6 +122,11 @@ export function getAvailableAssets(allAssets: AssetDefinition[], roundNumber: nu
     return allAssets; // All assets available in experienced mode
   }
 
+  if (gameMode === 'beginner') {
+    // Beginner mode: only coal and gas CCGT
+    return allAssets.filter(a => a.type === 'coal' || a.type === 'gas_ccgt');
+  }
+
   const quickModeRoundMap: Record<number, number> = {
     1: 1, 2: 3, 3: 5, 4: 6, 5: 7, 6: 9, 7: 11, 8: 15,
   };

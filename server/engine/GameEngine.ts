@@ -19,6 +19,7 @@ import { getScenarioEventsForRound, SCENARIO_EVENTS } from '../data/scenarios.ts
 import { fullGameRounds } from '../data/rounds/full-game.ts';
 import { quickGameRounds } from '../data/rounds/quick-game.ts';
 import { experiencedReplayRounds } from '../data/rounds/experienced-replay.ts';
+import { beginnerRounds } from '../data/rounds/beginner.ts';
 
 export class GameEngine {
   private games = new Map<string, GameState>();
@@ -151,6 +152,9 @@ export class GameEngine {
     // Apply scenario events
     this.applyScenarioEvents(game, roundConfig);
 
+    // Compute actual fleet capacity per period (accounting for capacity factors)
+    const fleetCapPerPeriod = this.computeFleetCapacityPerPeriod(game, roundConfig);
+
     // Generate demand (fill in the baseDemandMW values)
     const scenarioMultiplier = this.getScenarioDemandMultipliers(game);
     const demand = generateDemandForRound(
@@ -160,6 +164,7 @@ export class GameEngine {
       roundConfig.demandVariability,
       game.currentRound,
       scenarioMultiplier,
+      fleetCapPerPeriod,
     );
     roundConfig.baseDemandMW = demand;
 
@@ -559,10 +564,49 @@ export class GameEngine {
 
   private getRoundsForMode(mode: GameMode): RoundConfig[] {
     switch (mode) {
+      case 'beginner': return beginnerRounds;
       case 'quick': return quickGameRounds;
       case 'full': return fullGameRounds;
       case 'experienced': return experiencedReplayRounds;
     }
+  }
+
+  /**
+   * Compute total fleet generation capacity per period for all teams,
+   * taking into account renewable capacity factors for the season.
+   * Used so demand generation can target a % of actual fleet capacity.
+   */
+  private computeFleetCapacityPerPeriod(
+    game: GameState,
+    roundConfig: RoundConfig,
+  ): Record<string, number> {
+    const gameDefs = this.assetDefs.get(game.id)!;
+    const result: Record<string, number> = {};
+
+    for (const period of roundConfig.timePeriods) {
+      let totalMW = 0;
+
+      for (const team of game.teams) {
+        for (const asset of team.assets) {
+          const def = gameDefs.get(asset.assetDefinitionId);
+          if (!def) continue;
+
+          let mw = asset.currentAvailableMW;
+
+          if (def.type === 'wind') {
+            mw = Math.round(mw * getWindCapacityFactor(roundConfig.season, period as TimePeriod));
+          } else if (def.type === 'solar') {
+            mw = Math.round(mw * getSolarCapacityFactor(roundConfig.season, period as TimePeriod));
+          }
+
+          totalMW += mw;
+        }
+      }
+
+      result[period] = totalMW;
+    }
+
+    return result;
   }
 
   private assignAssetsForRound(game: GameState, roundConfig: RoundConfig): void {

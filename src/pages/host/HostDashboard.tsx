@@ -6,8 +6,8 @@ import { ASSET_ICONS } from '../../lib/colors';
 import MeritOrderChart from '../../components/charts/MeritOrderChart';
 import ProfitLossBar from '../../components/charts/ProfitLossBar';
 import LeaderboardChart from '../../components/charts/LeaderboardChart';
-import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis } from '../../../shared/types';
-import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS } from '../../../shared/types';
+import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, DispatchedBand } from '../../../shared/types';
+import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 
 export default function HostDashboard() {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export default function HostDashboard() {
     startRound, startBidding, endBidding, nextRound, resetGame, setDemand,
   } = useSocket();
   const [qrData, setQrData] = useState<{ qrDataUrl: string; joinUrl: string } | null>(null);
-  const [activeView, setActiveView] = useState<'overview' | 'merit' | 'profit' | 'leaderboard' | 'slides' | 'analysis'>('overview');
+  const [activeView, setActiveView] = useState<'overview' | 'merit' | 'profit' | 'leaderboard' | 'slides' | 'analysis' | 'dispatch'>('overview');
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('day_peak');
   const [demandEdits, setDemandEdits] = useState<Record<string, number>>({});
   const [demandEditMode, setDemandEditMode] = useState(false);
@@ -175,7 +175,7 @@ export default function HostDashboard() {
           {/* View Toggle */}
           <div className="mb-6 space-y-1">
             <div className="text-xs text-navy-400 uppercase tracking-wide mb-2">Display</div>
-            {(['overview', 'analysis', 'merit', 'profit', 'leaderboard', 'slides'] as const).map(view => (
+            {(['overview', 'analysis', 'dispatch', 'merit', 'profit', 'leaderboard', 'slides'] as const).map(view => (
               <button
                 key={view}
                 onClick={() => setActiveView(view)}
@@ -187,6 +187,7 @@ export default function HostDashboard() {
               >
                 {view === 'overview' ? '📋 Overview' :
                  view === 'analysis' ? '🔍 Round Analysis' :
+                 view === 'dispatch' ? '⚡ Dispatch Overview' :
                  view === 'merit' ? '📊 Merit Order' :
                  view === 'profit' ? '💰 Profit/Loss' :
                  view === 'leaderboard' ? '🏆 Leaderboard' :
@@ -553,6 +554,170 @@ export default function HostDashboard() {
                   height={450}
                 />
               </div>
+            </div>
+          )}
+
+          {/* Dispatch Overview View */}
+          {activeView === 'dispatch' && lastResults && (
+            <div className="animate-fade-in space-y-6">
+              <h2 className="text-2xl font-bold text-white mb-4">Dispatch Overview — Round {round}</h2>
+
+              {/* Summary Table: rows = asset types, columns = periods */}
+              {(() => {
+                const allPeriods = lastResults.periodResults.map(pr => pr.timePeriod);
+                // Gather unique asset types across all dispatched bands
+                const assetTypesSet = new Set<AssetType>();
+                for (const pr of lastResults.periodResults) {
+                  for (const band of [...pr.meritOrderStack, ...pr.undispatchedBands]) {
+                    assetTypesSet.add(band.assetType);
+                  }
+                }
+                const assetTypes = Array.from(assetTypesSet).sort();
+
+                // Build summary: assetType -> period -> dispatched MW
+                const summary: Record<string, Record<string, number>> = {};
+                for (const at of assetTypes) {
+                  summary[at] = {};
+                  for (const p of allPeriods) {
+                    summary[at][p] = 0;
+                  }
+                }
+
+                for (const pr of lastResults.periodResults) {
+                  for (const band of pr.meritOrderStack) {
+                    if (band.dispatchedMW > 0) {
+                      summary[band.assetType][pr.timePeriod] = (summary[band.assetType][pr.timePeriod] || 0) + band.dispatchedMW;
+                    }
+                  }
+                }
+
+                return (
+                  <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-white/10">
+                      <h3 className="text-sm font-semibold text-white">Total Dispatched MW by Asset Type</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className="text-left text-xs text-navy-400 font-medium px-4 py-2">Asset Type</th>
+                            {allPeriods.map(p => (
+                              <th key={p} className="text-right text-xs text-navy-400 font-medium px-4 py-2">
+                                {TIME_PERIOD_SHORT_LABELS[p] || p}
+                              </th>
+                            ))}
+                            <th className="text-right text-xs text-navy-400 font-medium px-4 py-2">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {assetTypes.map(at => {
+                            const rowTotal = allPeriods.reduce((s, p) => s + (summary[at][p] || 0), 0);
+                            return (
+                              <tr key={at} className="border-b border-white/5 hover:bg-white/5">
+                                <td className="px-4 py-2 text-sm text-white flex items-center gap-2">
+                                  <span>{ASSET_ICONS[at] || '🏭'}</span>
+                                  {ASSET_TYPE_LABELS[at] || at}
+                                </td>
+                                {allPeriods.map(p => (
+                                  <td key={p} className="px-4 py-2 text-right text-sm font-mono text-navy-200">
+                                    {summary[at][p] > 0 ? `${Math.round(summary[at][p])}` : <span className="text-navy-600">—</span>}
+                                  </td>
+                                ))}
+                                <td className="px-4 py-2 text-right text-sm font-mono font-bold text-electric-300">
+                                  {Math.round(rowTotal)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {/* Demand row */}
+                          <tr className="border-t-2 border-white/20 bg-white/5">
+                            <td className="px-4 py-2 text-sm font-semibold text-amber-300">📊 Demand</td>
+                            {allPeriods.map(p => {
+                              const pr = lastResults.periodResults.find(r => r.timePeriod === p);
+                              return (
+                                <td key={p} className="px-4 py-2 text-right text-sm font-mono font-bold text-amber-300">
+                                  {pr ? Math.round(pr.demandMW) : '—'}
+                                </td>
+                              );
+                            })}
+                            <td className="px-4 py-2 text-right text-sm font-mono font-bold text-amber-300">
+                              {Math.round(lastResults.periodResults.reduce((s, pr) => s + pr.demandMW, 0))}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Per-Team Breakdown */}
+              {(() => {
+                const allPeriods = lastResults.periodResults.map(pr => pr.timePeriod);
+
+                // Group dispatched bands by team
+                const teamDispatched = new Map<string, { teamName: string; assets: Map<string, Record<string, number>> }>();
+
+                for (const pr of lastResults.periodResults) {
+                  for (const band of pr.meritOrderStack) {
+                    if (band.dispatchedMW <= 0) continue;
+
+                    if (!teamDispatched.has(band.teamId)) {
+                      teamDispatched.set(band.teamId, { teamName: band.teamName, assets: new Map() });
+                    }
+                    const teamData = teamDispatched.get(band.teamId)!;
+
+                    if (!teamData.assets.has(band.assetName)) {
+                      teamData.assets.set(band.assetName, {});
+                    }
+                    const assetPeriods = teamData.assets.get(band.assetName)!;
+                    assetPeriods[pr.timePeriod] = (assetPeriods[pr.timePeriod] || 0) + band.dispatchedMW;
+                  }
+                }
+
+                return (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white">Per-Team Dispatch Breakdown</h3>
+                    {Array.from(teamDispatched.entries()).map(([teamId, teamData]) => {
+                      const team = teams.find(t => t.id === teamId);
+                      return (
+                        <div key={teamId} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                          <div className="px-4 py-2.5 border-b border-white/10 flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team?.color || '#888' }} />
+                            <span className="text-sm font-semibold text-white">{teamData.teamName}</span>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-white/5">
+                                  <th className="text-left text-[11px] text-navy-400 font-medium px-4 py-1.5">Asset</th>
+                                  {allPeriods.map(p => (
+                                    <th key={p} className="text-right text-[11px] text-navy-400 font-medium px-4 py-1.5">
+                                      {TIME_PERIOD_SHORT_LABELS[p] || p}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Array.from(teamData.assets.entries()).map(([assetName, periods]) => (
+                                  <tr key={assetName} className="border-b border-white/5 hover:bg-white/5">
+                                    <td className="px-4 py-1.5 text-xs text-navy-200">{assetName}</td>
+                                    {allPeriods.map(p => (
+                                      <td key={p} className="px-4 py-1.5 text-right text-xs font-mono text-navy-300">
+                                        {periods[p] ? `${Math.round(periods[p])} MW` : <span className="text-navy-600">—</span>}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
