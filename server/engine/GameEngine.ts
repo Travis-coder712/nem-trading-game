@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import type {
-  AssetBid, AssetDefinition, AssetInfo, AssetType, BalancingResult, FleetInfo, GameConfig,
+  AssetBid, AssetConfigOverrides, AssetDefinition, AssetInfo, AssetType, BalancingResult, FleetInfo, GameConfig,
   GameMode, GamePhase, GameState, LeaderboardEntry, RoundAnalysis, RoundConfig,
   RoundDispatchResult, ScenarioEffect, ScenarioEvent, Season,
   Team, TeamAssetInstance, TeamBidSubmission, TeamPublicInfo,
@@ -27,7 +27,14 @@ export class GameEngine {
   private biddingTimers = new Map<string, NodeJS.Timeout>();
   private roundAnalyses = new Map<string, RoundAnalysis[]>(); // gameId -> analyses per round
 
-  createGame(mode: GameMode, teamCount: number, balancingEnabled: boolean): GameState {
+  createGame(
+    mode: GameMode,
+    teamCount: number,
+    balancingEnabled: boolean,
+    biddingGuardrailEnabled: boolean = true,
+    assetConfig?: AssetConfigOverrides,
+    assetVariation?: boolean,
+  ): GameState {
     const gameId = uuidv4().slice(0, 8);
     const rounds = this.getRoundsForMode(mode);
 
@@ -40,6 +47,9 @@ export class GameEngine {
       balancingEnabled,
       balancingThresholdPercent: 40,
       defaultBiddingTimeSeconds: 240,
+      biddingGuardrailEnabled,
+      assetConfig,
+      assetVariation: assetVariation ?? true,
     };
 
     const state: GameState = {
@@ -93,8 +103,13 @@ export class GameEngine {
       rank: teamIndex + 1,
     };
 
-    // Create asset definitions for this team
-    const teamAssets = createAssetDefinitionsForTeam(teamIndex);
+    // Create asset definitions for this team (with optional custom overrides)
+    const teamAssets = createAssetDefinitionsForTeam(
+      teamIndex,
+      game.config.assetConfig,
+      game.config.assetVariation ?? true,
+      game.config.teamCount,
+    );
     const gameDefs = this.assetDefs.get(gameId)!;
     for (const asset of teamAssets) {
       gameDefs.set(asset.id, asset);
@@ -458,6 +473,7 @@ export class GameEngine {
         : undefined,
       lastRoundAnalysis: this.getLastRoundAnalysis(gameId),
       fleetInfo: this.getFleetInfo(gameId),
+      biddingGuardrailEnabled: game.config.biddingGuardrailEnabled,
     };
   }
 
@@ -614,7 +630,12 @@ export class GameEngine {
 
     for (let i = 0; i < game.teams.length; i++) {
       const team = game.teams[i];
-      const allTeamAssets = createAssetDefinitionsForTeam(i);
+      const allTeamAssets = createAssetDefinitionsForTeam(
+        i,
+        game.config.assetConfig,
+        game.config.assetVariation ?? true,
+        game.config.teamCount,
+      );
       const available = getAvailableAssets(allTeamAssets, game.currentRound, game.config.mode);
 
       // Store asset defs

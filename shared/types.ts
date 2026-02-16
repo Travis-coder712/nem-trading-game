@@ -400,6 +400,31 @@ export interface RoundConfig {
     slides: EducationalSlide[];
   };
   walkthrough?: WalkthroughConfig;
+  /** Optional seasonal context shown during briefing to explain how this season affects demand, supply, and bidding */
+  seasonalGuidance?: {
+    headline: string;     // e.g. "Summer: High demand, strong solar, evening crunch"
+    demandContext: string; // How demand differs this season
+    supplyContext: string; // How supply differs this season
+    biddingAdvice: string; // What teams should consider changing in their bidding
+  };
+}
+
+// ---- Asset Configuration Presets ----
+
+export interface AssetConfigOverride {
+  name: string;
+  nameplateMW: number;
+  srmcPerMWh?: number; // undefined for wind/solar/battery (always $0)
+}
+
+export type AssetConfigOverrides = Partial<Record<AssetType, AssetConfigOverride>>;
+
+export interface AssetConfigPreset {
+  id: string;
+  name: string;
+  createdAt: string;
+  applyVariation: boolean; // whether to spread SRMC across teams
+  assets: AssetConfigOverrides;
 }
 
 export interface GameConfig {
@@ -411,6 +436,12 @@ export interface GameConfig {
   balancingEnabled: boolean;
   balancingThresholdPercent: number;
   defaultBiddingTimeSeconds: number;
+  /** When true, warns teams if they bid too much capacity at $0 (risk of $0 clearing price) */
+  biddingGuardrailEnabled: boolean;
+  /** Optional custom asset configuration overrides */
+  assetConfig?: AssetConfigOverrides;
+  /** Whether to apply SRMC variation across teams when using custom config */
+  assetVariation?: boolean;
 }
 
 export interface GameState {
@@ -478,6 +509,8 @@ export interface GameStateSnapshot {
   lastRoundResults?: RoundDispatchResult;
   lastRoundAnalysis?: RoundAnalysis;
   fleetInfo?: FleetInfo;
+  /** Whether the bidding guardrail (warn on too much $0 capacity) is active */
+  biddingGuardrailEnabled?: boolean;
 }
 
 export interface BiddingStrategy {
@@ -605,7 +638,7 @@ export interface ServerToClientEvents {
 
 // ---- Client to Server Events ----
 export interface ClientToServerEvents {
-  'host:create_game': (config: { mode: GameMode; teamCount: number; balancingEnabled: boolean }) => void;
+  'host:create_game': (config: { mode: GameMode; teamCount: number; balancingEnabled: boolean; biddingGuardrailEnabled: boolean; assetConfig?: AssetConfigOverrides; assetVariation?: boolean }) => void;
   'host:start_round': () => void;
   'host:start_bidding': () => void;
   'host:end_bidding': () => void;

@@ -46,7 +46,7 @@ export default function GameGuide() {
                   <th className="text-left py-2 pr-4">Type</th>
                   <th className="text-left py-2 pr-4">Icon</th>
                   <th className="text-right py-2 pr-4">Capacity</th>
-                  <th className="text-right py-2 pr-4">SRMC ($/MWh)</th>
+                  <th className="text-right py-2 pr-4">Marginal Cost ($/MWh)</th>
                   <th className="text-left py-2">Characteristics</th>
                 </tr>
               </thead>
@@ -88,12 +88,12 @@ export default function GameGuide() {
         {/* Profit Calculation */}
         <Section title="Profit Calculation">
           <div className="bg-navy-800/50 print:bg-gray-100 rounded-xl p-4 font-mono text-center text-lg print:text-sm my-4">
-            <strong>Profit = (Clearing Price − SRMC) × MW Dispatched × Hours</strong>
+            <strong>Profit = (Clearing Price − Marginal Cost) × MW Dispatched × Hours</strong>
           </div>
           <ul className="list-disc list-inside space-y-1 ml-2 text-sm">
             <li>If you bid <strong>below</strong> the clearing price → dispatched, earn profit</li>
             <li>If you bid <strong>above</strong> the clearing price → not dispatched, earn nothing</li>
-            <li>If you bid <strong>at</strong> your SRMC → break even (cover costs exactly)</li>
+            <li>If you bid <strong>at</strong> your marginal cost → break even (cover costs exactly)</li>
             <li>If clearing price goes <strong>negative</strong> → dispatched generators lose money!</li>
           </ul>
         </Section>
@@ -102,9 +102,9 @@ export default function GameGuide() {
         <Section title="Bidding Strategies">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 print:gap-2">
             <StrategyCard name="Price Taker" desc="Bid $0 on everything. Guarantees dispatch, accepts whatever clearing price results." />
-            <StrategyCard name="SRMC Bidder" desc="Bid at your Short Run Marginal Cost. Rational baseline — covers costs, earns when price is high." />
+            <StrategyCard name="Marginal Cost Bidder" desc="Bid at your Short Run Marginal Cost. Rational baseline — covers costs, earns when price is high." />
             <StrategyCard name="Price Maker" desc="Bid high on some capacity to push up the clearing price for all your dispatched units." />
-            <StrategyCard name="Portfolio Optimizer" desc="Mix strategies: $0 on renewables, SRMC on baseload, high on peakers." />
+            <StrategyCard name="Portfolio Optimizer" desc="Mix strategies: $0 on renewables, marginal cost on baseload, high on peakers." />
             <StrategyCard name="Strategic Withdrawal" desc="Withhold 20-30% of capacity to tighten supply and raise prices." />
             <StrategyCard name="Battery Arbitrage" desc="Charge at negative/low prices, discharge at peak. Profit from price spreads." />
           </div>
@@ -127,7 +127,7 @@ export default function GameGuide() {
             <RefCard label="Price Floor" value="-$1,000/MWh" />
             <RefCard label="Dispatch Interval" value="5 minutes (real NEM)" />
             <RefCard label="NEM Regions" value="QLD, NSW, VIC, SA, TAS" />
-            <RefCard label="SRMC Badge Colors" value="Green=$0, Blue=<$50, Amber=<$100, Red=$100+" />
+            <RefCard label="Marginal Cost Badge Colors" value="Green=$0, Blue=<$50, Amber=<$100, Red=$100+" />
             <RefCard label="Game Periods" value="4 per round (after Round 1)" />
           </div>
         </Section>

@@ -19,7 +19,14 @@ export function registerHostHandlers(
   engine: GameEngine,
 ) {
   socket.on('host:create_game', safe((config) => {
-    const game = engine.createGame(config.mode, config.teamCount, config.balancingEnabled);
+    const game = engine.createGame(
+      config.mode,
+      config.teamCount,
+      config.balancingEnabled,
+      config.biddingGuardrailEnabled ?? true,
+      config.assetConfig,
+      config.assetVariation,
+    );
     socket.join(`game:${game.id}`);
     socket.join(`game:${game.id}:host`);
     (socket as any).gameId = game.id;

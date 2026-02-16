@@ -38,14 +38,14 @@ export const STRATEGIES: StrategyDefinition[] = [
   },
   {
     id: 'srmc_bidder',
-    name: 'SRMC Bidder',
+    name: 'Marginal Cost Bidder',
     icon: '🔵',
     shortDescription: 'Bid at marginal cost - safe & rational',
     description: 'Bid at your Short Run Marginal Cost. Economically rational baseline - you only run when it covers costs.',
     intensityLabels: {
-      low: 'Bid at 80% of SRMC',
-      medium: 'Bid at SRMC',
-      max: 'Bid at 120% of SRMC',
+      low: 'Bid at 80% of marginal cost',
+      medium: 'Bid at marginal cost',
+      max: 'Bid at 120% of marginal cost',
     },
   },
   {
@@ -89,11 +89,11 @@ export const STRATEGIES: StrategyDefinition[] = [
     name: 'Battery Arbitrageur',
     icon: '🟡',
     shortDescription: 'Charge cheap, discharge at premium',
-    description: 'Battery charges in off-peak and discharges at peak. Other assets bid at SRMC or slight premium.',
+    description: 'Battery charges in off-peak and discharges at peak. Other assets bid at marginal cost or slight premium.',
     intensityLabels: {
-      low: 'Discharge at $100, others at SRMC',
-      medium: 'Discharge at $200, others at SRMC',
-      max: 'Discharge at $400, others above SRMC',
+      low: 'Discharge at $100, others at marginal cost',
+      medium: 'Discharge at $200, others at marginal cost',
+      max: 'Discharge at $400, others above marginal cost',
     },
   },
 ];

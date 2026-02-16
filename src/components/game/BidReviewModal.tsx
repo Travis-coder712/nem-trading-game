@@ -81,7 +81,7 @@ export default function BidReviewModal({
               type: 'below_srmc',
               asset: def.name,
               period,
-              message: `${def.name} bid at $${band.pricePerMWh}/MWh is below SRMC ($${def.srmcPerMWh}/MWh) in ${TIME_PERIOD_SHORT_LABELS[period]}`,
+              message: `${def.name} bid at $${band.pricePerMWh}/MWh is below marginal cost ($${def.srmcPerMWh}/MWh) in ${TIME_PERIOD_SHORT_LABELS[period]}`,
             });
             break; // only warn once per asset per period
           }
@@ -166,7 +166,7 @@ export default function BidReviewModal({
                               {def?.name || ASSET_TYPE_LABELS[typeKey]}
                             </div>
                             <div className="text-[10px] text-gray-400">
-                              {formatMW(asset.currentAvailableMW)} avail &bull; SRMC ${srmc}
+                              {formatMW(asset.currentAvailableMW)} avail &bull; Marginal Cost ${srmc}
                               {asset.isForceOutage && <span className="text-red-500 ml-1">OUTAGE</span>}
                             </div>
                           </div>
@@ -286,7 +286,7 @@ export default function BidReviewModal({
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <span className="text-sm">⚠️</span>
-                    <span className="text-xs font-bold text-amber-800">Below SRMC Bids ({srmcWarnings.length})</span>
+                    <span className="text-xs font-bold text-amber-800">Below Marginal Cost ({srmcWarnings.length})</span>
                   </div>
                   <ul className="space-y-0.5">
                     {srmcWarnings.map((w, i) => (
@@ -294,7 +294,7 @@ export default function BidReviewModal({
                     ))}
                   </ul>
                   <p className="text-[10px] text-amber-600 mt-1.5 italic">
-                    Bidding below SRMC means you'll lose money if dispatched at that price. This can be strategic (to guarantee dispatch when clearing price is higher) but make sure it's intentional.
+                    Bidding below marginal cost means you'll lose money if dispatched at that price. This can be strategic (to guarantee dispatch when clearing price is higher) but make sure it's intentional.
                   </p>
                 </div>
               )}

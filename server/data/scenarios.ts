@@ -55,7 +55,7 @@ export const SCENARIO_EVENTS: ScenarioEvent[] = [
     type: 'fuel_price_spike',
     name: 'Gas Price Spike',
     description: 'International LNG demand has pushed domestic gas prices from $10/GJ to $18/GJ. Gas generator short-run marginal costs have increased by approximately 60%.',
-    learningObjective: 'See how fuel price volatility flows through to electricity prices via gas generator SRMCs.',
+    learningObjective: 'See how fuel price volatility flows through to electricity prices via gas generator marginal costs.',
     effects: [
       { type: 'modify_srmc', targetAssetType: 'gas_ccgt', multiplier: 1.6 },
       { type: 'modify_srmc', targetAssetType: 'gas_peaker', multiplier: 1.6 },

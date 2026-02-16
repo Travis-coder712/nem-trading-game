@@ -1,4 +1,4 @@
-import type { AssetDefinition, AssetType, Season, TimePeriod } from '../../shared/types.ts';
+import type { AssetDefinition, AssetType, AssetConfigOverrides, Season, TimePeriod } from '../../shared/types.ts';
 
 // Wind capacity factors by season and time period
 export const WIND_CAPACITY_FACTORS: Record<Season, Record<TimePeriod, number>> = {
@@ -21,14 +21,51 @@ const COAL_SRMC_VARIANTS = [28, 30, 32, 34, 36, 38, 40, 42, 35, 33, 31, 37, 39, 
 const GAS_CCGT_SRMC_VARIANTS = [68, 72, 75, 78, 82, 70, 74, 80, 76, 73, 71, 77, 79, 69, 81];
 const GAS_PEAKER_SRMC_VARIANTS = [130, 140, 145, 150, 155, 135, 142, 148, 152, 138, 132, 146, 158, 136, 144];
 
-export function createAssetDefinitionsForTeam(teamIndex: number): AssetDefinition[] {
+/**
+ * Generate an SRMC value with optional variation across teams.
+ * When applyVariation is true, spreads values +/-20% around the base using the team index.
+ */
+function getSrmcWithVariation(baseSrmc: number, teamIndex: number, teamCount: number, applyVariation: boolean): number {
+  if (!applyVariation || teamCount <= 1) return baseSrmc;
+  // Spread evenly from -20% to +20% of base across teams
+  const spread = 0.20;
+  const position = teamCount > 1 ? teamIndex / (teamCount - 1) : 0.5; // 0 to 1
+  const multiplier = 1 - spread + (position * 2 * spread); // 0.80 to 1.20
+  return Math.round(baseSrmc * multiplier);
+}
+
+/**
+ * Create asset definitions for a team, optionally applying custom overrides.
+ * @param teamIndex - zero-based team index
+ * @param overrides - optional per-asset-type overrides for name, SRMC, nameplate MW
+ * @param applyVariation - when true with overrides, spread SRMC across teams for diversity
+ * @param teamCount - total teams in game (used for variation spread calculation)
+ */
+export function createAssetDefinitionsForTeam(
+  teamIndex: number,
+  overrides?: AssetConfigOverrides,
+  applyVariation: boolean = true,
+  teamCount: number = 15,
+): AssetDefinition[] {
+  const coalOverride = overrides?.coal;
+  const ccgtOverride = overrides?.gas_ccgt;
+  const peakerOverride = overrides?.gas_peaker;
+  const windOverride = overrides?.wind;
+  const solarOverride = overrides?.solar;
+  const hydroOverride = overrides?.hydro;
+  const batteryOverride = overrides?.battery;
+
   return [
     {
       id: `coal_${teamIndex}`,
-      name: `${getCoalPlantName(teamIndex)}`,
+      name: coalOverride?.name
+        ? `${coalOverride.name} ${teamIndex + 1}`
+        : getCoalPlantName(teamIndex),
       type: 'coal',
-      nameplateMW: 800,
-      srmcPerMWh: COAL_SRMC_VARIANTS[teamIndex % COAL_SRMC_VARIANTS.length],
+      nameplateMW: coalOverride?.nameplateMW ?? 800,
+      srmcPerMWh: coalOverride?.srmcPerMWh != null
+        ? getSrmcWithVariation(coalOverride.srmcPerMWh, teamIndex, teamCount, applyVariation)
+        : COAL_SRMC_VARIANTS[teamIndex % COAL_SRMC_VARIANTS.length],
       minStableLoadMW: 250,
       rampRateMWPerMin: 5,
       startupCostDollars: 50000,
@@ -37,10 +74,14 @@ export function createAssetDefinitionsForTeam(teamIndex: number): AssetDefinitio
     },
     {
       id: `gas_ccgt_${teamIndex}`,
-      name: `${getGasCCGTName(teamIndex)}`,
+      name: ccgtOverride?.name
+        ? `${ccgtOverride.name} ${teamIndex + 1}`
+        : getGasCCGTName(teamIndex),
       type: 'gas_ccgt',
-      nameplateMW: 350,
-      srmcPerMWh: GAS_CCGT_SRMC_VARIANTS[teamIndex % GAS_CCGT_SRMC_VARIANTS.length],
+      nameplateMW: ccgtOverride?.nameplateMW ?? 350,
+      srmcPerMWh: ccgtOverride?.srmcPerMWh != null
+        ? getSrmcWithVariation(ccgtOverride.srmcPerMWh, teamIndex, teamCount, applyVariation)
+        : GAS_CCGT_SRMC_VARIANTS[teamIndex % GAS_CCGT_SRMC_VARIANTS.length],
       minStableLoadMW: 100,
       rampRateMWPerMin: 10,
       startupCostDollars: 20000,
@@ -49,10 +90,14 @@ export function createAssetDefinitionsForTeam(teamIndex: number): AssetDefinitio
     },
     {
       id: `gas_peaker_${teamIndex}`,
-      name: `${getGasPeakerName(teamIndex)}`,
+      name: peakerOverride?.name
+        ? `${peakerOverride.name} ${teamIndex + 1}`
+        : getGasPeakerName(teamIndex),
       type: 'gas_peaker',
-      nameplateMW: 150,
-      srmcPerMWh: GAS_PEAKER_SRMC_VARIANTS[teamIndex % GAS_PEAKER_SRMC_VARIANTS.length],
+      nameplateMW: peakerOverride?.nameplateMW ?? 150,
+      srmcPerMWh: peakerOverride?.srmcPerMWh != null
+        ? getSrmcWithVariation(peakerOverride.srmcPerMWh, teamIndex, teamCount, applyVariation)
+        : GAS_PEAKER_SRMC_VARIANTS[teamIndex % GAS_PEAKER_SRMC_VARIANTS.length],
       minStableLoadMW: 30,
       rampRateMWPerMin: 25,
       startupCostDollars: 5000,
@@ -61,9 +106,11 @@ export function createAssetDefinitionsForTeam(teamIndex: number): AssetDefinitio
     },
     {
       id: `wind_${teamIndex}`,
-      name: `${getWindFarmName(teamIndex)}`,
+      name: windOverride?.name
+        ? `${windOverride.name} ${teamIndex + 1}`
+        : getWindFarmName(teamIndex),
       type: 'wind',
-      nameplateMW: 300,
+      nameplateMW: windOverride?.nameplateMW ?? 300,
       srmcPerMWh: 0,
       minStableLoadMW: 0,
       rampRateMWPerMin: 50,
@@ -76,9 +123,11 @@ export function createAssetDefinitionsForTeam(teamIndex: number): AssetDefinitio
     },
     {
       id: `solar_${teamIndex}`,
-      name: `${getSolarFarmName(teamIndex)}`,
+      name: solarOverride?.name
+        ? `${solarOverride.name} ${teamIndex + 1}`
+        : getSolarFarmName(teamIndex),
       type: 'solar',
-      nameplateMW: 200,
+      nameplateMW: solarOverride?.nameplateMW ?? 200,
       srmcPerMWh: 0,
       minStableLoadMW: 0,
       rampRateMWPerMin: 100,
@@ -88,10 +137,14 @@ export function createAssetDefinitionsForTeam(teamIndex: number): AssetDefinitio
     },
     {
       id: `hydro_${teamIndex}`,
-      name: `${getHydroName(teamIndex)}`,
+      name: hydroOverride?.name
+        ? `${hydroOverride.name} ${teamIndex + 1}`
+        : getHydroName(teamIndex),
       type: 'hydro',
-      nameplateMW: 250,
-      srmcPerMWh: 8,
+      nameplateMW: hydroOverride?.nameplateMW ?? 250,
+      srmcPerMWh: hydroOverride?.srmcPerMWh != null
+        ? getSrmcWithVariation(hydroOverride.srmcPerMWh, teamIndex, teamCount, applyVariation)
+        : 8,
       minStableLoadMW: 20,
       rampRateMWPerMin: 30,
       startupCostDollars: 2000,
@@ -101,18 +154,20 @@ export function createAssetDefinitionsForTeam(teamIndex: number): AssetDefinitio
     },
     {
       id: `battery_${teamIndex}`,
-      name: `${getBatteryName(teamIndex)}`,
+      name: batteryOverride?.name
+        ? `${batteryOverride.name} ${teamIndex + 1}`
+        : getBatteryName(teamIndex),
       type: 'battery',
-      nameplateMW: 150,
+      nameplateMW: batteryOverride?.nameplateMW ?? 150,
       srmcPerMWh: 0,
       minStableLoadMW: 0,
       rampRateMWPerMin: 150,
       startupCostDollars: 0,
       mustRun: false,
       availableFromRound: 8,
-      maxStorageMWh: 300,
+      maxStorageMWh: Math.round((batteryOverride?.nameplateMW ?? 150) * 2), // 2 hours of storage
       roundTripEfficiency: 0.85,
-      maxChargeMW: 150,
+      maxChargeMW: batteryOverride?.nameplateMW ?? 150,
     },
   ];
 }

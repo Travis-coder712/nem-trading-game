@@ -64,7 +64,7 @@ export const beginnerRounds: RoundConfig[] = [
     },
     walkthrough: {
       introText:
-        'We\'ve pre-filled bids for you! Your coal plant is cheap to run (check the SRMC badge). ' +
+        'We\'ve pre-filled bids for you! Your coal plant is cheap to run (check the Marginal Cost badge). ' +
         'Your gas plant costs more. You can adjust the bids or submit as-is. ' +
         'Tip: your coal should bid low to guarantee dispatch. Your gas can bid higher for afternoon peak!',
       suggestedBids: [

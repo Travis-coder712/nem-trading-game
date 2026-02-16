@@ -1,9 +1,17 @@
 /**
  * Cinematic transition that plays at the start of each bidding round.
- * Shows round number, name, season, and key market conditions.
+ *
+ * CRITICAL: This component uses pure CSS animations + a single window.setTimeout
+ * for auto-dismiss. All previous approaches using React useEffect + multiple
+ * setTimeout calls failed because React's lifecycle (re-renders, HMR, effect
+ * cleanup) would kill or restart the timers, leaving the overlay stuck.
+ *
+ * The new approach:
+ * 1. CSS @keyframes handle ALL visual animation (no React state changes during animation)
+ * 2. A single window.setTimeout fires once on mount to dismiss after the total duration
+ * 3. The dismiss timeout ID is stored on `window` so React cannot interfere with it
  */
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useRef } from 'react';
 import type { Season } from '../../../shared/types';
 import { playRoundSlam, playTitleReveal, playSeasonChime, playWipeSweep } from '../../lib/transitionAudio';
 
@@ -18,224 +26,238 @@ interface RoundStartTransitionProps {
 
 const SEASON_CONFIG: Record<string, { icon: string; label: string; color: string; bgGradient: string }> = {
   summer: {
-    icon: '🔥',
-    label: 'SUMMER',
-    color: '#f56565',
+    icon: '🔥', label: 'SUMMER', color: '#f56565',
     bgGradient: 'radial-gradient(ellipse at 50% 30%, rgba(245,101,101,0.2) 0%, transparent 60%)',
   },
   autumn: {
-    icon: '🍂',
-    label: 'AUTUMN',
-    color: '#d69e2e',
+    icon: '🍂', label: 'AUTUMN', color: '#d69e2e',
     bgGradient: 'radial-gradient(ellipse at 50% 30%, rgba(214,158,46,0.2) 0%, transparent 60%)',
   },
   winter: {
-    icon: '❄️',
-    label: 'WINTER',
-    color: '#63b3ed',
+    icon: '❄️', label: 'WINTER', color: '#63b3ed',
     bgGradient: 'radial-gradient(ellipse at 50% 30%, rgba(99,179,237,0.2) 0%, transparent 60%)',
   },
   spring: {
-    icon: '🌱',
-    label: 'SPRING',
-    color: '#48bb78',
+    icon: '🌱', label: 'SPRING', color: '#48bb78',
     bgGradient: 'radial-gradient(ellipse at 50% 30%, rgba(72,187,120,0.2) 0%, transparent 60%)',
   },
 };
 
+const TOTAL_DURATION_MS = 4500;
+
 export default function RoundStartTransition({
   isVisible, roundNumber, totalRounds, roundName, season, onComplete,
 }: RoundStartTransitionProps) {
-  const [stage, setStage] = useState(0);
   const seasonCfg = SEASON_CONFIG[season] || SEASON_CONFIG.summer;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
-  useEffect(() => {
-    if (!isVisible) {
-      setStage(0);
-      return;
-    }
+  // NUCLEAR OPTION: Schedule dismiss entirely outside React.
+  // When isVisible becomes true, we set a global window timeout that calls
+  // onComplete. No refs, no guards, no React involvement whatsoever.
+  // The timeout ID is stored on a data attribute on the DOM element itself.
+  const mountedRef = useRef(false);
+  if (isVisible && !mountedRef.current) {
+    mountedRef.current = true;
+    // Use queueMicrotask to ensure this runs after the current render
+    queueMicrotask(() => {
+      const el = document.querySelector('[data-round-transition]');
+      if (el && !el.getAttribute('data-timeout-set')) {
+        el.setAttribute('data-timeout-set', 'true');
+        // Schedule sound effects to match CSS animation timings
+        window.setTimeout(() => playRoundSlam(), 200);
+        window.setTimeout(() => playTitleReveal(), 1100);
+        window.setTimeout(() => playSeasonChime(), 2100);
+        window.setTimeout(() => playWipeSweep(), 3600);
+        window.setTimeout(() => {
+          onCompleteRef.current();
+        }, TOTAL_DURATION_MS);
+      }
+    });
+  }
+  if (!isVisible) {
+    mountedRef.current = false;
+  }
 
-    // Sequence of animation stages with synchronised audio
-    const timers = [
-      setTimeout(() => { setStage(1); playRoundSlam(); }, 100),
-      setTimeout(() => { setStage(2); playTitleReveal(); }, 700),
-      setTimeout(() => { setStage(3); playSeasonChime(); }, 1300),
-      setTimeout(() => { setStage(4); playWipeSweep(); }, 2500),
-      setTimeout(() => onComplete(), 3100),
-    ];
-
-    return () => timers.forEach(clearTimeout);
-  }, [isVisible, onComplete]);
+  if (!isVisible) return null;
 
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+    <div
+      data-round-transition="true"
+      className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden"
+      style={{ animation: 'rsTransFadeIn 0.2s ease-out forwards' }}
+    >
+      {/* Inline keyframes — guarantees they exist even after HMR */}
+      <style>{`
+        @keyframes rsTransFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes rsTransBgPulse { 0% { opacity: 0.3; } 50% { opacity: 0.8; } 100% { opacity: 0.3; } }
+        @keyframes rsTransLineGrow { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+        @keyframes rsTransRoundSlam {
+          0% { transform: scale(4); opacity: 0; }
+          60% { transform: scale(0.9); opacity: 1; }
+          80% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes rsTransTitleSlide {
+          0% { opacity: 0; transform: translateY(30px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes rsTransSeasonPop {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes rsTransBadgePop {
+          0% { transform: scale(0); }
+          70% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
+        @keyframes rsTransProgressFill {
+          0% { width: ${((roundNumber - 1) / totalRounds) * 100}%; }
+          100% { width: ${(roundNumber / totalRounds) * 100}%; }
+        }
+        @keyframes rsTransWipeIn {
+          0% { transform: scaleX(0); }
+          100% { transform: scaleX(1); }
+        }
+        @keyframes rsTransFadeOut {
+          0% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        @keyframes rsTransVertLine {
+          0% { opacity: 0; transform: scaleY(0); }
+          40% { opacity: 0.6; transform: scaleY(1); }
+          100% { opacity: 0; transform: scaleY(0); }
+        }
+      `}</style>
+
+      {/* Background */}
+      <div className="absolute inset-0 bg-navy-950">
+        <div
+          className="absolute inset-0"
+          style={{
+            background: seasonCfg.bgGradient,
+            animation: 'rsTransBgPulse 3s ease-in-out',
+          }}
+        />
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute h-full w-1"
+            style={{
+              left: `${10 + i * 20}%`,
+              background: `linear-gradient(to bottom, transparent 20%, ${seasonCfg.color}20 50%, transparent 80%)`,
+              transform: 'skewX(-15deg)',
+              animation: `rsTransVertLine 1.8s ${0.15 * i}s ease-in-out forwards`,
+              opacity: 0,
+            }}
+          />
+        ))}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-1"
+          style={{
+            background: `linear-gradient(to right, transparent, ${seasonCfg.color}, transparent)`,
+            transformOrigin: 'left',
+            animation: 'rsTransLineGrow 1.5s 0.3s ease-out forwards',
+            transform: 'scaleX(0)',
+          }}
+        />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 text-center w-full max-w-2xl px-6">
+        {/* Round Number — slams in at 0.2s */}
+        <div
+          className="mb-2"
+          style={{
+            animation: 'rsTransRoundSlam 0.6s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+          }}
         >
-          {/* Dark background with season-colored radial glow */}
-          <div className="absolute inset-0 bg-navy-950">
-            <motion.div
-              className="absolute inset-0"
-              style={{ background: seasonCfg.bgGradient }}
-              animate={{ opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            />
+          <div className="text-sm font-mono uppercase tracking-[0.4em] text-navy-400 mb-2">Round</div>
+          <div
+            className="font-mono text-8xl md:text-9xl font-black"
+            style={{ color: seasonCfg.color, textShadow: `0 0 80px ${seasonCfg.color}80, 0 0 160px ${seasonCfg.color}30` }}
+          >
+            {roundNumber}
+          </div>
+        </div>
 
-            {/* Diagonal sweeping bars */}
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute h-full w-1"
+        {/* Title — slides in at 1.1s */}
+        <div
+          style={{
+            animation: 'rsTransTitleSlide 0.5s 1.1s ease-out both',
+          }}
+        >
+          <div
+            className="h-px mx-auto max-w-sm mb-5"
+            style={{
+              background: `linear-gradient(to right, transparent, ${seasonCfg.color}80, transparent)`,
+              transformOrigin: 'left',
+              animation: 'rsTransLineGrow 0.5s 1.1s ease-out both',
+            }}
+          />
+          <h2
+            className="text-2xl md:text-3xl font-bold text-white tracking-wide"
+            style={{ textShadow: '0 0 40px rgba(255,255,255,0.1)' }}
+          >
+            {roundName}
+          </h2>
+        </div>
+
+        {/* Season badge + progress — appears at 2.1s */}
+        <div
+          className="mt-8"
+          style={{
+            animation: 'rsTransSeasonPop 0.5s 2.1s ease-out both',
+          }}
+        >
+          <div
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full border mb-6"
+            style={{
+              borderColor: `${seasonCfg.color}40`,
+              backgroundColor: `${seasonCfg.color}10`,
+              animation: 'rsTransBadgePop 0.4s 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+            }}
+          >
+            <span className="text-xl">{seasonCfg.icon}</span>
+            <span className="text-sm font-mono font-bold tracking-widest" style={{ color: seasonCfg.color }}>
+              {seasonCfg.label}
+            </span>
+          </div>
+
+          <div className="max-w-xs mx-auto">
+            <div className="flex justify-between text-[10px] font-mono text-navy-500 mb-1.5">
+              <span>ROUND {roundNumber}</span>
+              <span>OF {totalRounds}</span>
+            </div>
+            <div className="w-full h-1.5 bg-navy-800 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full"
                 style={{
-                  left: `${10 + i * 20}%`,
-                  background: `linear-gradient(to bottom, transparent 20%, ${seasonCfg.color}20 50%, transparent 80%)`,
-                  transform: 'skewX(-15deg)',
+                  backgroundColor: seasonCfg.color,
+                  animation: `rsTransProgressFill 0.8s 2.3s ease-out both`,
+                  width: `${((roundNumber - 1) / totalRounds) * 100}%`,
                 }}
-                initial={{ opacity: 0, scaleY: 0 }}
-                animate={{ opacity: [0, 0.6, 0], scaleY: [0, 1, 0] }}
-                transition={{ duration: 1.8, delay: 0.15 * i, ease: 'easeInOut' }}
               />
-            ))}
-
-            {/* Bottom ticker line */}
-            <motion.div
-              className="absolute bottom-0 left-0 right-0 h-1"
-              style={{ background: `linear-gradient(to right, transparent, ${seasonCfg.color}, transparent)` }}
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 1.5, delay: 0.3 }}
-            />
+            </div>
           </div>
+        </div>
+      </div>
 
-          <div className="relative z-10 text-center w-full max-w-2xl px-6">
-            {/* Stage 1: Round number slams in */}
-            <AnimatePresence>
-              {stage >= 1 && (
-                <motion.div
-                  initial={{ scale: 4, opacity: 0, y: -20 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 250, damping: 20 }}
-                  className="mb-2"
-                >
-                  <div className="text-sm font-mono uppercase tracking-[0.4em] text-navy-400 mb-2">
-                    Round
-                  </div>
-                  <div
-                    className="font-mono text-8xl md:text-9xl font-black"
-                    style={{
-                      color: seasonCfg.color,
-                      textShadow: `0 0 80px ${seasonCfg.color}80, 0 0 160px ${seasonCfg.color}30`,
-                    }}
-                  >
-                    {roundNumber}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Stage 2: Round name + divider */}
-            <AnimatePresence>
-              {stage >= 2 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 120, damping: 15 }}
-                >
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: '100%' }}
-                    transition={{ duration: 0.5 }}
-                    className="h-px mx-auto max-w-sm mb-5"
-                    style={{ background: `linear-gradient(to right, transparent, ${seasonCfg.color}80, transparent)` }}
-                  />
-                  <h2
-                    className="text-2xl md:text-3xl font-bold text-white tracking-wide"
-                    style={{ textShadow: '0 0 40px rgba(255,255,255,0.1)' }}
-                  >
-                    {roundName}
-                  </h2>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Stage 3: Season badge + progress bar */}
-            <AnimatePresence>
-              {stage >= 3 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="mt-8"
-                >
-                  {/* Season badge */}
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-                    className="inline-flex items-center gap-2 px-5 py-2 rounded-full border mb-6"
-                    style={{
-                      borderColor: `${seasonCfg.color}40`,
-                      backgroundColor: `${seasonCfg.color}10`,
-                    }}
-                  >
-                    <span className="text-xl">{seasonCfg.icon}</span>
-                    <span
-                      className="text-sm font-mono font-bold tracking-widest"
-                      style={{ color: seasonCfg.color }}
-                    >
-                      {seasonCfg.label}
-                    </span>
-                  </motion.div>
-
-                  {/* Progress bar */}
-                  <div className="max-w-xs mx-auto">
-                    <div className="flex justify-between text-[10px] font-mono text-navy-500 mb-1.5">
-                      <span>ROUND {roundNumber}</span>
-                      <span>OF {totalRounds}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-navy-800 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: seasonCfg.color }}
-                        initial={{ width: `${((roundNumber - 1) / totalRounds) * 100}%` }}
-                        animate={{ width: `${(roundNumber / totalRounds) * 100}%` }}
-                        transition={{ duration: 0.8, ease: 'easeOut' }}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Stage 4: Wipe transition — horizontal bars sweep across */}
-          <AnimatePresence>
-            {stage >= 4 && (
-              <>
-                {[...Array(6)].map((_, i) => (
-                  <motion.div
-                    key={`wipe-${i}`}
-                    className="absolute left-0 right-0 z-50"
-                    style={{
-                      top: `${i * (100 / 6)}%`,
-                      height: `${100 / 6 + 1}%`,
-                      backgroundColor: i % 2 === 0 ? '#08101c' : '#0f1f38',
-                    }}
-                    initial={{ scaleX: 0, originX: i % 2 === 0 ? 0 : 1 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.4, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                ))}
-              </>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      {/* Wipe-out bands — start at 3.6s */}
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={`wipe-${i}`}
+          className="absolute left-0 right-0 z-50"
+          style={{
+            top: `${i * (100 / 6)}%`,
+            height: `${100 / 6 + 1}%`,
+            backgroundColor: i % 2 === 0 ? '#08101c' : '#0f1f38',
+            transformOrigin: i % 2 === 0 ? 'left' : 'right',
+            animation: `rsTransWipeIn 0.4s ${3.6 + i * 0.05}s cubic-bezier(0.22, 1, 0.36, 1) both`,
+            transform: 'scaleX(0)',
+          }}
+        />
+      ))}
+    </div>
   );
 }

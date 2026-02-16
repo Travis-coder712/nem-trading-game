@@ -9,7 +9,7 @@ import ProfitLossBar from '../../components/charts/ProfitLossBar';
 import LeaderboardChart from '../../components/charts/LeaderboardChart';
 import GameStartTransition from '../../components/transitions/GameStartTransition';
 import RoundStartTransition from '../../components/transitions/RoundStartTransition';
-import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand, GamePhase } from '../../../shared/types';
+import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 
 export default function HostDashboard() {
@@ -18,6 +18,7 @@ export default function HostDashboard() {
     connected, gameState, roundResults, biddingTimeRemaining,
     bidStatus, allBidsIn, lastBalancing, teamScreenData,
     startRound, startBidding, endBidding, nextRound, resetGame, setDemand, viewTeamScreen,
+    clearHostSession,
   } = useSocket();
   const [qrData, setQrData] = useState<{ qrDataUrl: string; joinUrl: string } | null>(null);
   const [activeView, setActiveView] = useState<'overview' | 'merit' | 'profit' | 'leaderboard' | 'slides' | 'analysis' | 'dispatch' | 'team_view' | 'walkthrough'>('overview');
@@ -25,38 +26,28 @@ export default function HostDashboard() {
   const [demandEdits, setDemandEdits] = useState<Record<string, number>>({});
   const [demandEditMode, setDemandEditMode] = useState(false);
   const [viewingTeamId, setViewingTeamId] = useState<string>('');
+  const [showDispatchTables, setShowDispatchTables] = useState(false);
 
-  // Transition state
+  // Transition overlays — triggered directly from button clicks (host only).
+  // No socket effects, no timers to cancel, no dedup logic needed.
   const [showGameStart, setShowGameStart] = useState(false);
   const [showRoundStart, setShowRoundStart] = useState(false);
-  const prevPhaseRef = useRef<GamePhase | null>(null);
-  const prevRoundRef = useRef<number>(0);
 
-  // Detect phase transitions and trigger animations
-  useEffect(() => {
-    const phase = gameState?.phase;
-    const round = gameState?.currentRound || 0;
-    const prevPhase = prevPhaseRef.current;
-    const prevRound = prevRoundRef.current;
+  // Wrapped handlers that show the transition, then call the socket action
+  const handleStartRound = useCallback(() => {
+    setShowGameStart(true);
+    startRound();
+  }, [startRound]);
 
-    if (phase && prevPhase) {
-      // Lobby -> Briefing (first round) = Game Start transition
-      if (prevPhase === 'lobby' && phase === 'briefing') {
-        setShowGameStart(true);
-      }
-      // Briefing -> Bidding = Round Start transition
-      else if (prevPhase === 'briefing' && phase === 'bidding') {
-        setShowRoundStart(true);
-      }
-      // Results -> Briefing (next round) = new round transition
-      else if (prevPhase === 'results' && phase === 'briefing' && round !== prevRound) {
-        setShowRoundStart(true);
-      }
-    }
+  const handleStartBidding = useCallback(() => {
+    setShowRoundStart(true);
+    startBidding();
+  }, [startBidding]);
 
-    prevPhaseRef.current = phase || null;
-    prevRoundRef.current = round;
-  }, [gameState?.phase, gameState?.currentRound]);
+  const handleNextRound = useCallback(() => {
+    setShowRoundStart(true);
+    nextRound();
+  }, [nextRound]);
 
   // Sync demand edits when round config changes
   useEffect(() => {
@@ -120,6 +111,7 @@ export default function HostDashboard() {
           <button
             onClick={() => {
               if (window.confirm('Exit game? This will leave the current session.')) {
+                clearHostSession();
                 navigate('/');
               }
             }}
@@ -153,7 +145,7 @@ export default function HostDashboard() {
 
       <div className="flex">
         {/* Sidebar */}
-        <div className="w-64 min-h-[calc(100vh-56px)] bg-navy-900/50 border-r border-white/10 p-4 flex flex-col">
+        <div className="w-64 min-h-[calc(100vh-56px)] max-h-[calc(100vh-56px)] overflow-y-auto bg-navy-900/50 border-r border-white/10 p-4 flex flex-col">
           {/* Phase indicator */}
           <div className="mb-6">
             <div className="text-xs text-navy-400 uppercase tracking-wide mb-2">Phase</div>
@@ -173,7 +165,7 @@ export default function HostDashboard() {
 
             {phase === 'lobby' && (
               <button
-                onClick={startRound}
+                onClick={handleStartRound}
                 disabled={teams.length < 2}
                 className="w-full py-2.5 bg-electric-500 hover:bg-electric-400 text-white font-semibold rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm"
               >
@@ -183,7 +175,7 @@ export default function HostDashboard() {
 
             {phase === 'briefing' && (
               <button
-                onClick={startBidding}
+                onClick={handleStartBidding}
                 className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-white font-semibold rounded-lg transition-colors text-sm animate-pulse-glow"
               >
                 Open Bidding 💰
@@ -201,7 +193,7 @@ export default function HostDashboard() {
 
             {phase === 'results' && (
               <button
-                onClick={nextRound}
+                onClick={handleNextRound}
                 className="w-full py-2.5 bg-electric-500 hover:bg-electric-400 text-white font-semibold rounded-lg transition-colors text-sm"
               >
                 {round >= totalRounds ? 'Finish Game 🏆' : `Next Round →`}
@@ -213,6 +205,7 @@ export default function HostDashboard() {
                 <button
                   onClick={() => {
                     resetGame();
+                    clearHostSession();
                     navigate('/host');
                   }}
                   className="w-full py-2.5 bg-electric-500 hover:bg-electric-400 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -220,7 +213,10 @@ export default function HostDashboard() {
                   New Game
                 </button>
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => {
+                    clearHostSession();
+                    navigate('/');
+                  }}
                   className="w-full py-2.5 bg-navy-600 hover:bg-navy-500 text-white font-semibold rounded-lg transition-colors text-sm"
                 >
                   Back to Home
@@ -400,6 +396,32 @@ export default function HostDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Seasonal Guidance */}
+              {roundConfig.seasonalGuidance && (
+                <div className="mt-6 bg-white/5 border border-white/10 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">
+                      {roundConfig.season === 'summer' ? '🔥' : roundConfig.season === 'winter' ? '❄️' : roundConfig.season === 'autumn' ? '🍂' : '🌱'}
+                    </span>
+                    <h3 className="text-sm font-semibold text-white">{roundConfig.seasonalGuidance.headline}</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                      <div className="text-xs font-semibold text-blue-300 mb-1">Demand</div>
+                      <p className="text-xs text-navy-300 leading-relaxed">{roundConfig.seasonalGuidance.demandContext}</p>
+                    </div>
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                      <div className="text-xs font-semibold text-amber-300 mb-1">Supply</div>
+                      <p className="text-xs text-navy-300 leading-relaxed">{roundConfig.seasonalGuidance.supplyContext}</p>
+                    </div>
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                      <div className="text-xs font-semibold text-green-300 mb-1">Bidding Strategy</div>
+                      <p className="text-xs text-navy-300 leading-relaxed">{roundConfig.seasonalGuidance.biddingAdvice}</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -635,164 +657,179 @@ export default function HostDashboard() {
           {/* Dispatch Overview View */}
           {activeView === 'dispatch' && lastResults && (
             <div className="animate-fade-in space-y-6">
-              <h2 className="text-2xl font-bold text-white mb-4">Dispatch Overview — Round {round}</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-1">Dispatch Overview — Round {round}</h2>
+                <p className="text-navy-400 text-sm">Full merit order for each period. Use the controls to replay the walkthrough.</p>
+              </div>
+              <MeritOrderWalkthrough periodResults={lastResults.periodResults} startAtEnd />
 
-              {/* Summary Table: rows = asset types, columns = periods */}
-              {(() => {
-                const allPeriods = lastResults.periodResults.map(pr => pr.timePeriod);
-                // Gather unique asset types across all dispatched bands
-                const assetTypesSet = new Set<AssetType>();
-                for (const pr of lastResults.periodResults) {
-                  for (const band of [...pr.meritOrderStack, ...pr.undispatchedBands]) {
-                    assetTypesSet.add(band.assetType);
-                  }
-                }
-                const assetTypes = Array.from(assetTypesSet).sort();
+              {/* Collapsible detailed tables */}
+              <button
+                onClick={() => setShowDispatchTables(prev => !prev)}
+                className="flex items-center gap-2 text-sm text-navy-300 hover:text-white transition-colors"
+              >
+                <svg
+                  className={`w-4 h-4 transition-transform ${showDispatchTables ? 'rotate-90' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                {showDispatchTables ? 'Hide Detailed Tables' : 'Show Detailed Tables'}
+              </button>
 
-                // Build summary: assetType -> period -> dispatched MW
-                const summary: Record<string, Record<string, number>> = {};
-                for (const at of assetTypes) {
-                  summary[at] = {};
-                  for (const p of allPeriods) {
-                    summary[at][p] = 0;
-                  }
-                }
-
-                for (const pr of lastResults.periodResults) {
-                  for (const band of pr.meritOrderStack) {
-                    if (band.dispatchedMW > 0) {
-                      summary[band.assetType][pr.timePeriod] = (summary[band.assetType][pr.timePeriod] || 0) + band.dispatchedMW;
+              {showDispatchTables && (
+                <div className="space-y-6">
+                  {/* Summary Table: rows = asset types, columns = periods */}
+                  {(() => {
+                    const allPeriods = lastResults.periodResults.map(pr => pr.timePeriod);
+                    const assetTypesSet = new Set<AssetType>();
+                    for (const pr of lastResults.periodResults) {
+                      for (const band of [...pr.meritOrderStack, ...pr.undispatchedBands]) {
+                        assetTypesSet.add(band.assetType);
+                      }
                     }
-                  }
-                }
+                    const assetTypes = Array.from(assetTypesSet).sort();
 
-                return (
-                  <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                    <div className="px-4 py-3 border-b border-white/10">
-                      <h3 className="text-sm font-semibold text-white">Total Dispatched MW by Asset Type</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-white/10">
-                            <th className="text-left text-xs text-navy-400 font-medium px-4 py-2">Asset Type</th>
-                            {allPeriods.map(p => (
-                              <th key={p} className="text-right text-xs text-navy-400 font-medium px-4 py-2">
-                                {TIME_PERIOD_SHORT_LABELS[p] || p}
-                              </th>
-                            ))}
-                            <th className="text-right text-xs text-navy-400 font-medium px-4 py-2">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {assetTypes.map(at => {
-                            const rowTotal = allPeriods.reduce((s, p) => s + (summary[at][p] || 0), 0);
-                            return (
-                              <tr key={at} className="border-b border-white/5 hover:bg-white/5">
-                                <td className="px-4 py-2 text-sm text-white flex items-center gap-2">
-                                  <span>{ASSET_ICONS[at] || '🏭'}</span>
-                                  {ASSET_TYPE_LABELS[at] || at}
-                                </td>
+                    const summary: Record<string, Record<string, number>> = {};
+                    for (const at of assetTypes) {
+                      summary[at] = {};
+                      for (const p of allPeriods) {
+                        summary[at][p] = 0;
+                      }
+                    }
+
+                    for (const pr of lastResults.periodResults) {
+                      for (const band of pr.meritOrderStack) {
+                        if (band.dispatchedMW > 0) {
+                          summary[band.assetType][pr.timePeriod] = (summary[band.assetType][pr.timePeriod] || 0) + band.dispatchedMW;
+                        }
+                      }
+                    }
+
+                    return (
+                      <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                        <div className="px-4 py-3 border-b border-white/10">
+                          <h3 className="text-sm font-semibold text-white">Total Dispatched MW by Asset Type</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-white/10">
+                                <th className="text-left text-xs text-navy-400 font-medium px-4 py-2">Asset Type</th>
                                 {allPeriods.map(p => (
-                                  <td key={p} className="px-4 py-2 text-right text-sm font-mono text-navy-200">
-                                    {summary[at][p] > 0 ? `${Math.round(summary[at][p])}` : <span className="text-navy-600">—</span>}
-                                  </td>
+                                  <th key={p} className="text-right text-xs text-navy-400 font-medium px-4 py-2">
+                                    {TIME_PERIOD_SHORT_LABELS[p] || p}
+                                  </th>
                                 ))}
-                                <td className="px-4 py-2 text-right text-sm font-mono font-bold text-electric-300">
-                                  {Math.round(rowTotal)}
-                                </td>
+                                <th className="text-right text-xs text-navy-400 font-medium px-4 py-2">Total</th>
                               </tr>
-                            );
-                          })}
-                          {/* Demand row */}
-                          <tr className="border-t-2 border-white/20 bg-white/5">
-                            <td className="px-4 py-2 text-sm font-semibold text-amber-300">📊 Demand</td>
-                            {allPeriods.map(p => {
-                              const pr = lastResults.periodResults.find(r => r.timePeriod === p);
-                              return (
-                                <td key={p} className="px-4 py-2 text-right text-sm font-mono font-bold text-amber-300">
-                                  {pr ? Math.round(pr.demandMW) : '—'}
-                                </td>
-                              );
-                            })}
-                            <td className="px-4 py-2 text-right text-sm font-mono font-bold text-amber-300">
-                              {Math.round(lastResults.periodResults.reduce((s, pr) => s + pr.demandMW, 0))}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Per-Team Breakdown */}
-              {(() => {
-                const allPeriods = lastResults.periodResults.map(pr => pr.timePeriod);
-
-                // Group dispatched bands by team
-                const teamDispatched = new Map<string, { teamName: string; assets: Map<string, Record<string, number>> }>();
-
-                for (const pr of lastResults.periodResults) {
-                  for (const band of pr.meritOrderStack) {
-                    if (band.dispatchedMW <= 0) continue;
-
-                    if (!teamDispatched.has(band.teamId)) {
-                      teamDispatched.set(band.teamId, { teamName: band.teamName, assets: new Map() });
-                    }
-                    const teamData = teamDispatched.get(band.teamId)!;
-
-                    if (!teamData.assets.has(band.assetName)) {
-                      teamData.assets.set(band.assetName, {});
-                    }
-                    const assetPeriods = teamData.assets.get(band.assetName)!;
-                    assetPeriods[pr.timePeriod] = (assetPeriods[pr.timePeriod] || 0) + band.dispatchedMW;
-                  }
-                }
-
-                return (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white">Per-Team Dispatch Breakdown</h3>
-                    {Array.from(teamDispatched.entries()).map(([teamId, teamData]) => {
-                      const team = teams.find(t => t.id === teamId);
-                      return (
-                        <div key={teamId} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                          <div className="px-4 py-2.5 border-b border-white/10 flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team?.color || '#888' }} />
-                            <span className="text-sm font-semibold text-white">{teamData.teamName}</span>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="border-b border-white/5">
-                                  <th className="text-left text-[11px] text-navy-400 font-medium px-4 py-1.5">Asset</th>
-                                  {allPeriods.map(p => (
-                                    <th key={p} className="text-right text-[11px] text-navy-400 font-medium px-4 py-1.5">
-                                      {TIME_PERIOD_SHORT_LABELS[p] || p}
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {Array.from(teamData.assets.entries()).map(([assetName, periods]) => (
-                                  <tr key={assetName} className="border-b border-white/5 hover:bg-white/5">
-                                    <td className="px-4 py-1.5 text-xs text-navy-200">{assetName}</td>
+                            </thead>
+                            <tbody>
+                              {assetTypes.map(at => {
+                                const rowTotal = allPeriods.reduce((s, p) => s + (summary[at][p] || 0), 0);
+                                return (
+                                  <tr key={at} className="border-b border-white/5 hover:bg-white/5">
+                                    <td className="px-4 py-2 text-sm text-white flex items-center gap-2">
+                                      <span>{ASSET_ICONS[at] || '🏭'}</span>
+                                      {ASSET_TYPE_LABELS[at] || at}
+                                    </td>
                                     {allPeriods.map(p => (
-                                      <td key={p} className="px-4 py-1.5 text-right text-xs font-mono text-navy-300">
-                                        {periods[p] ? `${Math.round(periods[p])} MW` : <span className="text-navy-600">—</span>}
+                                      <td key={p} className="px-4 py-2 text-right text-sm font-mono text-navy-200">
+                                        {summary[at][p] > 0 ? `${Math.round(summary[at][p])}` : <span className="text-navy-600">—</span>}
                                       </td>
                                     ))}
+                                    <td className="px-4 py-2 text-right text-sm font-mono font-bold text-electric-300">
+                                      {Math.round(rowTotal)}
+                                    </td>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                                );
+                              })}
+                              <tr className="border-t-2 border-white/20 bg-white/5">
+                                <td className="px-4 py-2 text-sm font-semibold text-amber-300">Demand</td>
+                                {allPeriods.map(p => {
+                                  const pr = lastResults.periodResults.find(r => r.timePeriod === p);
+                                  return (
+                                    <td key={p} className="px-4 py-2 text-right text-sm font-mono font-bold text-amber-300">
+                                      {pr ? Math.round(pr.demandMW) : '—'}
+                                    </td>
+                                  );
+                                })}
+                                <td className="px-4 py-2 text-right text-sm font-mono font-bold text-amber-300">
+                                  {Math.round(lastResults.periodResults.reduce((s, pr) => s + pr.demandMW, 0))}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Per-Team Breakdown */}
+                  {(() => {
+                    const allPeriods = lastResults.periodResults.map(pr => pr.timePeriod);
+                    const teamDispatched = new Map<string, { teamName: string; assets: Map<string, Record<string, number>> }>();
+
+                    for (const pr of lastResults.periodResults) {
+                      for (const band of pr.meritOrderStack) {
+                        if (band.dispatchedMW <= 0) continue;
+                        if (!teamDispatched.has(band.teamId)) {
+                          teamDispatched.set(band.teamId, { teamName: band.teamName, assets: new Map() });
+                        }
+                        const teamData = teamDispatched.get(band.teamId)!;
+                        if (!teamData.assets.has(band.assetName)) {
+                          teamData.assets.set(band.assetName, {});
+                        }
+                        const assetPeriods = teamData.assets.get(band.assetName)!;
+                        assetPeriods[pr.timePeriod] = (assetPeriods[pr.timePeriod] || 0) + band.dispatchedMW;
+                      }
+                    }
+
+                    return (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-white">Per-Team Dispatch Breakdown</h3>
+                        {Array.from(teamDispatched.entries()).map(([teamId, teamData]) => {
+                          const team = teams.find(t => t.id === teamId);
+                          return (
+                            <div key={teamId} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                              <div className="px-4 py-2.5 border-b border-white/10 flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team?.color || '#888' }} />
+                                <span className="text-sm font-semibold text-white">{teamData.teamName}</span>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full">
+                                  <thead>
+                                    <tr className="border-b border-white/5">
+                                      <th className="text-left text-[11px] text-navy-400 font-medium px-4 py-1.5">Asset</th>
+                                      {allPeriods.map(p => (
+                                        <th key={p} className="text-right text-[11px] text-navy-400 font-medium px-4 py-1.5">
+                                          {TIME_PERIOD_SHORT_LABELS[p] || p}
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {Array.from(teamData.assets.entries()).map(([assetName, periods]) => (
+                                      <tr key={assetName} className="border-b border-white/5 hover:bg-white/5">
+                                        <td className="px-4 py-1.5 text-xs text-navy-200">{assetName}</td>
+                                        {allPeriods.map(p => (
+                                          <td key={p} className="px-4 py-1.5 text-right text-xs font-mono text-navy-300">
+                                            {periods[p] ? `${Math.round(periods[p])} MW` : <span className="text-navy-600">—</span>}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           )}
 
@@ -1038,7 +1075,7 @@ export default function HostDashboard() {
                               </div>
                               <div className="text-[10px] text-navy-400">
                                 {formatMW(asset.currentAvailableMW)} available
-                                {assetDef && ` · SRMC $${assetDef.srmcPerMWh}`}
+                                {assetDef && ` · Marginal Cost $${assetDef.srmcPerMWh}`}
                                 {asset.isForceOutage && <span className="text-red-400 ml-1">OUTAGE</span>}
                               </div>
                             </div>
@@ -1182,6 +1219,7 @@ export default function HostDashboard() {
                 <button
                   onClick={() => {
                     resetGame();
+                    clearHostSession();
                     navigate('/host');
                   }}
                   className="px-6 py-3 bg-electric-500 hover:bg-electric-400 text-white font-semibold rounded-lg transition-colors"
@@ -1189,7 +1227,10 @@ export default function HostDashboard() {
                   New Game
                 </button>
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => {
+                    clearHostSession();
+                    navigate('/');
+                  }}
                   className="px-6 py-3 bg-navy-600 hover:bg-navy-500 text-white font-semibold rounded-lg transition-colors"
                 >
                   Back to Home

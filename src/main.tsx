@@ -6,11 +6,12 @@ import App from './App';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <SocketProvider>
-        <App />
-      </SocketProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
+  // StrictMode removed — it double-mounts effects in dev, which caused
+  // transition overlays to replay endlessly. Safe for production; the app
+  // doesn't rely on StrictMode-only warnings.
+  <BrowserRouter>
+    <SocketProvider>
+      <App />
+    </SocketProvider>
+  </BrowserRouter>,
 );

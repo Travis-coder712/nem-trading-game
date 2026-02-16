@@ -15,8 +15,8 @@ export const BIDDING_STRATEGIES: BiddingStrategy[] = [
   },
   {
     id: 'srmc_bidder',
-    name: 'SRMC Bidder',
-    description: 'Bid at your Short Run Marginal Cost (SRMC) - the actual cost of producing each MWh. This is the economically rational baseline strategy. You\'ll only be dispatched when the clearing price covers your costs, and you\'ll always make at least a small margin on dispatched energy.',
+    name: 'Marginal Cost Bidder',
+    description: 'Bid at your Short Run Marginal Cost - the actual cost of producing each MWh. This is the economically rational baseline strategy. You\'ll only be dispatched when the clearing price covers your costs, and you\'ll always make at least a small margin on dispatched energy.',
     shortDescription: 'Bid at marginal cost - economically rational baseline',
     generateBids: (assets, assetDefs, roundConfig) => {
       return generateStrategyBids(assets, assetDefs, roundConfig, (def, available) => [
@@ -27,7 +27,7 @@ export const BIDDING_STRATEGIES: BiddingStrategy[] = [
   {
     id: 'price_maker',
     name: 'Price Maker',
-    description: 'Bid a portion of your capacity high to try to set the clearing price. Put 60% at SRMC to ensure some dispatch, and bid the remaining 40% at $200-500/MWh. If supply is tight, your high bids may become the marginal unit. Risk: if supply is abundant, your high-priced capacity won\'t be dispatched.',
+    description: 'Bid a portion of your capacity high to try to set the clearing price. Put 60% at marginal cost to ensure some dispatch, and bid the remaining 40% at $200-500/MWh. If supply is tight, your high bids may become the marginal unit. Risk: if supply is abundant, your high-priced capacity won\'t be dispatched.',
     shortDescription: 'Bid high on some capacity to push up the clearing price',
     generateBids: (assets, assetDefs, roundConfig) => {
       return generateStrategyBids(assets, assetDefs, roundConfig, (def, available) => {
@@ -46,7 +46,7 @@ export const BIDDING_STRATEGIES: BiddingStrategy[] = [
   {
     id: 'portfolio_optimizer',
     name: 'Portfolio Optimizer',
-    description: 'Bid each asset type according to its optimal strategy: renewables at $0, coal at SRMC, gas mid-merit, peakers at $300+. This reflects how real gentailers manage diverse portfolios. Each asset plays its natural role in the merit order.',
+    description: 'Bid each asset type according to its optimal strategy: renewables at $0, coal at marginal cost, gas mid-merit, peakers at $300+. This reflects how real gentailers manage diverse portfolios. Each asset plays its natural role in the merit order.',
     shortDescription: 'Different strategies per asset type - like a real gentailer',
     generateBids: (assets, assetDefs, roundConfig) => {
       return generateStrategyBids(assets, assetDefs, roundConfig, (def, available) => {
@@ -76,7 +76,7 @@ export const BIDDING_STRATEGIES: BiddingStrategy[] = [
   {
     id: 'strategic_withdrawal',
     name: 'Strategic Withdrawal',
-    description: 'Withhold 30% of your thermal capacity by bidding it at the market cap ($20,000/MWh), effectively removing it from the market. This tightens supply and may push clearing prices higher. The remaining 70% is bid at SRMC. WARNING: if other teams also withdraw, you could trigger extreme prices.',
+    description: 'Withhold 30% of your thermal capacity by bidding it at the market cap ($20,000/MWh), effectively removing it from the market. This tightens supply and may push clearing prices higher. The remaining 70% is bid at marginal cost. WARNING: if other teams also withdraw, you could trigger extreme prices.',
     shortDescription: 'Withhold 30% capacity to tighten supply and raise prices',
     generateBids: (assets, assetDefs, roundConfig) => {
       return generateStrategyBids(assets, assetDefs, roundConfig, (def, available) => {
@@ -98,7 +98,7 @@ export const BIDDING_STRATEGIES: BiddingStrategy[] = [
   {
     id: 'battery_arbitrageur',
     name: 'Battery Arbitrageur',
-    description: 'Focus battery strategy on arbitrage: charge during cheap/negative periods, discharge at premium during peaks. Other assets bid at SRMC. Best when there\'s a large spread between off-peak and peak prices. Battery charging bids target $0 or below, discharge at $200+.',
+    description: 'Focus battery strategy on arbitrage: charge during cheap/negative periods, discharge at premium during peaks. Other assets bid at marginal cost. Best when there\'s a large spread between off-peak and peak prices. Battery charging bids target $0 or below, discharge at $200+.',
     shortDescription: 'Charge batteries cheap, discharge at peak premium',
     generateBids: (assets, assetDefs, roundConfig) => {
       return generateStrategyBids(assets, assetDefs, roundConfig, (def, available) => {

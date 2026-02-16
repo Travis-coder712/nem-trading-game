@@ -86,7 +86,7 @@ export const EDUCATION_SLIDES: LandingSlide[] = [
   {
     icon: '💲',
     heading: 'Understanding Costs',
-    body: "**SRMC (Short Run Marginal Cost)** is the cost to generate one additional MWh. It includes fuel and variable O&M but NOT capital costs. Bidding at SRMC covers your costs \u2014 anything above SRMC is profit. The game shows each asset\u2019s SRMC with a **coloured badge** so you always know your break-even price.",
+    body: "**Short Run Marginal Cost (SRMC)** is the cost to generate one additional MWh. It includes fuel and variable O&M but NOT capital costs. Bidding at marginal cost covers your costs \u2014 anything above marginal cost is profit. The game shows each asset\u2019s marginal cost with a **coloured badge** so you always know your break-even price.",
   },
   {
     icon: '🔄',
@@ -102,12 +102,12 @@ export const EDUCATION_SLIDES: LandingSlide[] = [
   {
     icon: '🎯',
     heading: 'Bidding Strategies',
-    body: "**Price Taker** \u2014 Bid $0, guarantee dispatch, accept the clearing price.\n**SRMC Bidder** \u2014 Bid at cost. Rational baseline, covers costs.\n**Price Maker** \u2014 Bid high to push up the clearing price for all your units.\n**Portfolio Optimizer** \u2014 Mix strategies across your different assets.\n**Strategic Withdrawal** \u2014 Withhold capacity to tighten supply and raise prices.\n**Battery Arbitrage** \u2014 Charge cheap, discharge expensive.",
+    body: "**Price Taker** \u2014 Bid $0, guarantee dispatch, accept the clearing price.\n**Marginal Cost Bidder** \u2014 Bid at cost. Rational baseline, covers costs.\n**Price Maker** \u2014 Bid high to push up the clearing price for all your units.\n**Portfolio Optimizer** \u2014 Mix strategies across your different assets.\n**Strategic Withdrawal** \u2014 Withhold capacity to tighten supply and raise prices.\n**Battery Arbitrage** \u2014 Charge cheap, discharge expensive.",
   },
   {
     icon: '🎮',
     heading: 'How This Game Works',
-    body: "You and your team own a **portfolio of power generation assets**. Each round represents a day in the NEM. You submit **price bids** for each asset across multiple time periods (overnight, morning, afternoon, evening). The game engine runs the **merit order dispatch** to determine which generators run and what price everyone receives. Your **profit = (Clearing Price \u2212 SRMC) \u00d7 MW \u00d7 Hours**.",
+    body: "You and your team own a **portfolio of power generation assets**. Each round represents a day in the NEM. You submit **price bids** for each asset across multiple time periods (overnight, morning, afternoon, evening). The game engine runs the **merit order dispatch** to determine which generators run and what price everyone receives. Your **profit = (Clearing Price \u2212 Marginal Cost) \u00d7 MW \u00d7 Hours**.",
   },
   {
     icon: '🕹️',
@@ -117,6 +117,6 @@ export const EDUCATION_SLIDES: LandingSlide[] = [
   {
     icon: '🚀',
     heading: "Let's Play!",
-    body: "**Tips for success:**\n\u2022 Watch the **SRMC badges** \u2014 always know your costs\n\u2022 Read the **period descriptions** \u2014 they tell you what\u2019s typically dispatched\n\u2022 Think about what **other teams** will bid \u2014 the clearing price depends on everyone\n\u2022 **Renewables** change everything \u2014 watch for negative price opportunities\n\u2022 **Batteries** are your secret weapon for volatile markets\n\nReady? The host will start the game. Good luck!",
+    body: "**Tips for success:**\n\u2022 Watch the **Marginal Cost badges** \u2014 always know your costs\n\u2022 Read the **period descriptions** \u2014 they tell you what\u2019s typically dispatched\n\u2022 Think about what **other teams** will bid \u2014 the clearing price depends on everyone\n\u2022 **Renewables** change everything \u2014 watch for negative price opportunities\n\u2022 **Batteries** are your secret weapon for volatile markets\n\nReady? The host will start the game. Good luck!",
   },
 ];

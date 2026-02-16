@@ -6,7 +6,7 @@ import { ASSET_ICONS, ASSET_COLORS } from '../../lib/colors';
 import type {
   AssetBid, AssetInfo, BidBand, TeamAssetInstance, TimePeriod,
   AssetType, TeamBidSubmission, WalkthroughSuggestedBid,
-  TeamAnalysis, RoundAnalysis, AssetPerformanceSummary, GamePhase,
+  TeamAnalysis, RoundAnalysis, AssetPerformanceSummary,
 } from '../../../shared/types';
 import {
   TIME_PERIOD_SHORT_LABELS, TIME_PERIOD_TIME_RANGES,
@@ -31,6 +31,7 @@ export default function TeamGame() {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('day_peak');
   const [bids, setBids] = useState<Map<string, AssetBid>>(new Map()); // key: assetId_period
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [showBidReview, setShowBidReview] = useState(false);
   const [showWalkthrough, setShowWalkthrough] = useState(false);
@@ -49,31 +50,33 @@ export default function TeamGame() {
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyId | ''>('');
   const [selectedIntensity, setSelectedIntensity] = useState<Intensity>('medium');
 
-  // Transition state
+  // Transition overlays — driven by watching gameState.phase changes.
+  // We track which phase+round combos we've already shown to prevent replays.
   const [showGameStart, setShowGameStart] = useState(false);
   const [showRoundStart, setShowRoundStart] = useState(false);
-  const prevPhaseRef = useRef<GamePhase | null>(null);
-  const prevRoundRef = useRef<number>(0);
+  const shownTransitionsRef = useRef<Set<string>>(new Set());
+  const prevPhaseRef = useRef<string | null>(null);
 
-  // Detect phase transitions and trigger animations
   useEffect(() => {
-    const currentPhase = gameState?.phase;
-    const currentRound = gameState?.currentRound || 0;
+    const phase = gameState?.phase;
+    const round = gameState?.currentRound ?? 0;
     const prevPhase = prevPhaseRef.current;
-    const prevRound = prevRoundRef.current;
+    prevPhaseRef.current = phase ?? null;
 
-    if (currentPhase && prevPhase) {
-      if (prevPhase === 'lobby' && currentPhase === 'briefing') {
-        setShowGameStart(true);
-      } else if (prevPhase === 'briefing' && currentPhase === 'bidding') {
-        setShowRoundStart(true);
-      } else if (prevPhase === 'results' && currentPhase === 'briefing' && currentRound !== prevRound) {
-        setShowRoundStart(true);
-      }
+    // Skip the very first render (no previous phase to compare)
+    if (!prevPhase || !phase || prevPhase === phase) return;
+
+    const key = `${prevPhase}->${phase}:r${round}`;
+    if (shownTransitionsRef.current.has(key)) return;
+    shownTransitionsRef.current.add(key);
+
+    if (prevPhase === 'lobby' && phase === 'briefing') {
+      setShowGameStart(true);
+    } else if (prevPhase === 'briefing' && phase === 'bidding') {
+      setShowRoundStart(true);
+    } else if (prevPhase === 'results' && phase === 'briefing') {
+      setShowRoundStart(true);
     }
-
-    prevPhaseRef.current = currentPhase || null;
-    prevRoundRef.current = currentRound;
   }, [gameState?.phase, gameState?.currentRound]);
 
   // Reset bids when new round starts
@@ -280,6 +283,7 @@ export default function TeamGame() {
 
   const handleSubmit = () => {
     if (!team || !roundConfig) return;
+    setSubmitError(null);
 
     // Collect all bids
     const allBids: AssetBid[] = [];
@@ -290,6 +294,55 @@ export default function TeamGame() {
         if (bid && bid.bands.some(b => b.quantityMW > 0)) {
           allBids.push(bid);
         }
+      }
+    }
+
+    // VALIDATION: Every non-battery asset in every period must have some generation offered.
+    // Batteries are excluded because they can legitimately sit idle in some periods.
+    const missingBids: string[] = [];
+    for (const period of roundConfig.timePeriods) {
+      for (const asset of assets) {
+        const def = assetDefs.find(d => d.id === asset.assetDefinitionId);
+        // Skip batteries — they can charge, discharge, or sit idle
+        if (def?.type === 'battery') continue;
+        const key = getBidKey(asset.assetDefinitionId, period as TimePeriod);
+        const bid = bids.get(key);
+        const totalOffered = bid ? bid.bands.reduce((sum, b) => sum + b.quantityMW, 0) : 0;
+        if (totalOffered <= 0) {
+          const periodLabel = period === 'night_offpeak' ? 'Overnight' : period === 'day_offpeak' ? 'Morning' : period === 'day_peak' ? 'Afternoon' : 'Evening';
+          missingBids.push(`${def?.name || asset.assetDefinitionId} (${periodLabel})`);
+        }
+      }
+    }
+
+    if (missingBids.length > 0) {
+      setSubmitError(`You must bid some generation for every asset in every period. Missing bids: ${missingBids.join(', ')}`);
+      return;
+    }
+
+    // GUARDRAIL: Warn if too much capacity bid at $0 (when enabled)
+    if (gameState?.biddingGuardrailEnabled) {
+      let totalCapacity = 0;
+      let totalAtZero = 0;
+      for (const bid of allBids) {
+        for (const band of bid.bands) {
+          if (band.quantityMW > 0) {
+            totalCapacity += band.quantityMW;
+            if (band.pricePerMWh <= 0) {
+              totalAtZero += band.quantityMW;
+            }
+          }
+        }
+      }
+      const zeroPercent = totalCapacity > 0 ? (totalAtZero / totalCapacity) * 100 : 0;
+      if (zeroPercent > 60) {
+        const proceed = window.confirm(
+          `Warning: ${Math.round(zeroPercent)}% of your capacity is bid at $0/MWh or less.\n\n` +
+          `If all teams do this, the clearing price will be $0 and nobody earns revenue.\n\n` +
+          `Consider bidding some capacity at higher prices to set a meaningful clearing price.\n\n` +
+          `Submit anyway?`
+        );
+        if (!proceed) return;
       }
     }
 
@@ -444,6 +497,32 @@ export default function TeamGame() {
               )}
             </div>
 
+            {/* Seasonal Guidance */}
+            {roundConfig.seasonalGuidance && (
+              <div className="bg-white rounded-xl shadow-sm p-5 mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">
+                    {roundConfig.season === 'summer' ? '🔥' : roundConfig.season === 'winter' ? '❄️' : roundConfig.season === 'autumn' ? '🍂' : '🌱'}
+                  </span>
+                  <h3 className="text-sm font-bold text-gray-800">{roundConfig.seasonalGuidance.headline}</h3>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="bg-blue-50 rounded-lg px-3 py-2">
+                    <div className="text-xs font-semibold text-blue-700 mb-0.5">Demand</div>
+                    <p className="text-xs text-blue-900">{roundConfig.seasonalGuidance.demandContext}</p>
+                  </div>
+                  <div className="bg-amber-50 rounded-lg px-3 py-2">
+                    <div className="text-xs font-semibold text-amber-700 mb-0.5">Supply</div>
+                    <p className="text-xs text-amber-900">{roundConfig.seasonalGuidance.supplyContext}</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg px-3 py-2">
+                    <div className="text-xs font-semibold text-green-700 mb-0.5">Bidding Strategy</div>
+                    <p className="text-xs text-green-900">{roundConfig.seasonalGuidance.biddingAdvice}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Assets Preview */}
             <div className="bg-white rounded-xl shadow-sm p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Your Assets</h3>
@@ -477,7 +556,7 @@ export default function TeamGame() {
                                 def.srmcPerMWh < 100 ? 'bg-amber-100 text-amber-800 border-amber-300' :
                                 'bg-red-100 text-red-800 border-red-300'
                               }`} title="Short Run Marginal Cost - your cost to generate each MWh">
-                                SRMC ${def.srmcPerMWh}/MWh
+                                Marginal Cost ${def.srmcPerMWh}/MWh
                               </span>
                             );
                           })()}
@@ -849,7 +928,7 @@ export default function TeamGame() {
                                 srmc < 100 ? 'bg-amber-100 text-amber-800 border-amber-300' :
                                 'bg-red-100 text-red-800 border-red-300'
                               }`} title="Short Run Marginal Cost - your cost to generate each MWh">
-                                SRMC ${srmc}/MWh
+                                Marginal Cost ${srmc}/MWh
                               </span>
                             );
                           })()}
@@ -866,13 +945,13 @@ export default function TeamGame() {
                       </div>
                     </div>
 
-                    {/* SRMC Cost Reminder */}
+                    {/* Marginal Cost Reminder */}
                     {(() => {
                       const def = getAssetDef(asset.assetDefinitionId);
                       if (!def) return null;
                       return (
                         <div className="px-4 py-1.5 bg-gray-50 text-[11px] text-gray-500 border-b border-gray-100">
-                          Your cost to generate: <strong className="text-gray-700">${def.srmcPerMWh}/MWh</strong> — bid above this to cover costs
+                          Your marginal cost to generate: <strong className="text-gray-700">${def.srmcPerMWh}/MWh</strong> — bid above this to cover costs
                         </div>
                       );
                     })()}
@@ -889,7 +968,7 @@ export default function TeamGame() {
                         onClick={() => applyQuickBid(asset.assetDefinitionId, selectedPeriod, 'srmc')}
                         className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs rounded border border-blue-200 hover:bg-blue-100 font-medium"
                       >
-                        Bid SRMC (${getAssetDef(asset.assetDefinitionId)?.srmcPerMWh ?? '?'})
+                        Bid Marginal Cost (${getAssetDef(asset.assetDefinitionId)?.srmcPerMWh ?? '?'})
                       </button>
                       <button
                         onClick={() => applyQuickBid(asset.assetDefinitionId, selectedPeriod, 'high')}
@@ -1256,8 +1335,13 @@ export default function TeamGame() {
       {/* Bottom Submit Bar (during bidding) */}
       {phase === 'bidding' && !submitted && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg px-4 py-3 z-50">
+          {submitError && (
+            <div className="mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs leading-snug">
+              {submitError}
+            </div>
+          )}
           <button
-            onClick={() => setShowBidReview(true)}
+            onClick={() => { setSubmitError(null); setShowBidReview(true); }}
             className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-base rounded-xl shadow-md active:scale-[0.98] transition-transform"
           >
             Review Bids

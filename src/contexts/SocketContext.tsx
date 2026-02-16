@@ -3,13 +3,21 @@ import { socket } from '../lib/socket';
 import type {
   GameStateSnapshot, GamePhase, RoundConfig, TeamAssetInstance,
   RoundDispatchResult, LeaderboardEntry, BalancingResult,
-  ScenarioEvent, TeamPublicInfo,
+  ScenarioEvent, TeamPublicInfo, AssetConfigOverrides,
 } from '../../shared/types';
 
 // SessionStorage keys for reconnection (sessionStorage is per-tab, so multiple tabs can join as different teams)
 const SS_TEAM_ID = 'nem_team_id';
 const SS_GAME_ID = 'nem_game_id';
 const SS_TEAM_NAME = 'nem_team_name';
+
+/** Describes a phase transition detected from a socket event. */
+export interface PhaseTransition {
+  from: GamePhase;
+  to: GamePhase;
+  id: number; // monotonically increasing — lets consumers detect new transitions
+  timestamp: number; // Date.now() when the transition was detected
+}
 
 interface SocketContextValue {
   connected: boolean;
@@ -22,9 +30,11 @@ interface SocketContextValue {
   bidStatus: Record<string, boolean>;
   allBidsIn: boolean;
   teamScreenData: GameStateSnapshot | null;
+  /** Set exactly once per `game:phase_changed` socket event */
+  lastPhaseTransition: PhaseTransition | null;
 
   // Host actions
-  createGame: (mode: string, teamCount: number, balancingEnabled: boolean) => void;
+  createGame: (mode: string, teamCount: number, balancingEnabled: boolean, biddingGuardrailEnabled: boolean, assetConfig?: AssetConfigOverrides, assetVariation?: boolean) => void;
   startRound: () => void;
   startBidding: () => void;
   endBidding: () => void;
@@ -34,6 +44,7 @@ interface SocketContextValue {
   setDemand: (demand: Record<string, number>) => void;
   resetGame: () => void;
   viewTeamScreen: (teamId: string) => void;
+  clearHostSession: () => void;
 
   // Team actions
   joinGame: (teamName: string, gameId: string) => void;
@@ -55,6 +66,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [bidStatus, setBidStatus] = useState<Record<string, boolean>>({});
   const [allBidsIn, setAllBidsIn] = useState(false);
   const [teamScreenData, setTeamScreenData] = useState<GameStateSnapshot | null>(null);
+  const [lastPhaseTransition, setLastPhaseTransition] = useState<PhaseTransition | null>(null);
+  const phaseTrackRef = useRef<{ currentPhase: GamePhase | null; nextId: number }>({ currentPhase: null, nextId: 1 });
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -87,6 +100,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socket.on('game:state_update', (state) => {
+      // Keep phase tracker in sync (but don't emit a transition — only phase_changed does that)
+      if (state.phase) phaseTrackRef.current.currentPhase = state.phase;
       setGameState(state);
       setBiddingTimeRemaining(state.biddingTimeRemaining);
       setBidStatus(state.bidStatus || {});
@@ -98,6 +113,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socket.on('game:phase_changed', (phase) => {
+      const from = phaseTrackRef.current.currentPhase;
+      phaseTrackRef.current.currentPhase = phase;
+      if (from && from !== phase) {
+        const id = phaseTrackRef.current.nextId++;
+        setLastPhaseTransition({ from, to: phase, id, timestamp: Date.now() });
+      }
       setGameState(prev => prev ? { ...prev, phase } : null);
       if (phase !== 'bidding') {
         setAllBidsIn(false);
@@ -169,8 +190,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const createGame = useCallback((mode: string, teamCount: number, balancingEnabled: boolean) => {
-    socket.emit('host:create_game', { mode: mode as any, teamCount, balancingEnabled });
+  const createGame = useCallback((mode: string, teamCount: number, balancingEnabled: boolean, biddingGuardrailEnabled: boolean = true, assetConfig?: AssetConfigOverrides, assetVariation?: boolean) => {
+    socket.emit('host:create_game', { mode: mode as any, teamCount, balancingEnabled, biddingGuardrailEnabled, assetConfig, assetVariation });
   }, []);
 
   const startRound = useCallback(() => socket.emit('host:start_round'), []);
@@ -182,7 +203,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const setDemand = useCallback((demand: Record<string, number>) => socket.emit('host:set_demand', demand), []);
   const resetGame = useCallback(() => {
     socket.emit('host:reset_game');
-    // Clear any saved team sessions since game is being reset
+  }, []);
+
+  const clearHostSession = useCallback(() => {
+    setGameState(null);
+    setRoundResults(null);
+    setBiddingTimeRemaining(0);
+    setBidStatus({});
+    setAllBidsIn(false);
+    setTeamScreenData(null);
   }, []);
 
   const viewTeamScreen = useCallback((teamId: string) => {
@@ -235,6 +264,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       bidStatus,
       allBidsIn,
       teamScreenData,
+      lastPhaseTransition,
       createGame,
       startRound,
       startBidding,
@@ -245,6 +275,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setDemand,
       resetGame,
       viewTeamScreen,
+      clearHostSession,
       joinGame,
       submitBids,
       requestState,

@@ -229,15 +229,15 @@ function buildAssetPerformance(
     if (!perf.wasDispatched) {
       perf.assessment = `Not dispatched this round. Your bids may have been too high, or this asset type wasn't needed.`;
     } else if (perf.profit < 0) {
-      perf.assessment = `Dispatched but lost money ($${Math.round(perf.profit)}). The clearing price was below your costs. Consider bidding above SRMC ($${def.srmcPerMWh}/MWh) to avoid losses.`;
+      perf.assessment = `Dispatched but lost money ($${Math.round(perf.profit)}). The clearing price was below your costs. Consider bidding above marginal cost ($${def.srmcPerMWh}/MWh) to avoid losses.`;
     } else if (perf.averageBidPrice <= 0 && perf.profit > 0) {
       perf.assessment = `Smart — bid low to guarantee dispatch and earned $${Math.round(perf.profit)} at the market clearing price. The classic "price taker" approach.`;
     } else if (perf.averageBidPrice > def.srmcPerMWh * 3) {
       perf.assessment = perf.wasDispatched
-        ? `Aggressive bidding at ~$${perf.averageBidPrice}/MWh (${(perf.averageBidPrice / def.srmcPerMWh).toFixed(1)}x SRMC) — and it worked! Profit: $${Math.round(perf.profit)}.`
+        ? `Aggressive bidding at ~$${perf.averageBidPrice}/MWh (${(perf.averageBidPrice / def.srmcPerMWh).toFixed(1)}x marginal cost) — and it worked! Profit: $${Math.round(perf.profit)}.`
         : `Bid very aggressively at ~$${perf.averageBidPrice}/MWh. Some capacity may not have been dispatched.`;
     } else {
-      perf.assessment = `Dispatched earning $${Math.round(perf.profit)} profit. Bid at ~$${perf.averageBidPrice}/MWh vs SRMC of $${def.srmcPerMWh}/MWh.`;
+      perf.assessment = `Dispatched earning $${Math.round(perf.profit)} profit. Bid at ~$${perf.averageBidPrice}/MWh vs marginal cost of $${def.srmcPerMWh}/MWh.`;
     }
   }
 
@@ -303,7 +303,7 @@ function identifyImprovements(
   // Check for loss-making assets
   const lossMakers = assetPerformance.filter(a => a.profit < 0);
   for (const asset of lossMakers) {
-    improvements.push(`${asset.assetName} lost $${Math.round(Math.abs(asset.profit))}. Consider bidding at or above SRMC to avoid dispatching at a loss.`);
+    improvements.push(`${asset.assetName} lost $${Math.round(Math.abs(asset.profit))}. Consider bidding at or above marginal cost to avoid dispatching at a loss.`);
   }
 
   // Check if they bid too high and weren't dispatched
@@ -350,7 +350,7 @@ function buildNextRoundAdvice(
   // Asset-specific advice
   const lossMakers = assetPerformance.filter(a => a.profit < 0);
   if (lossMakers.length > 0) {
-    parts.push(`Watch your ${lossMakers.map(a => a.assetName).join(' and ')} — they lost money. Bid above SRMC or withdraw capacity in low-demand periods.`);
+    parts.push(`Watch your ${lossMakers.map(a => a.assetName).join(' and ')} — they lost money. Bid above marginal cost or withdraw capacity in low-demand periods.`);
   }
 
   return parts.join(' ');
@@ -437,7 +437,7 @@ function buildCollectiveInsight(
   // Check for the "race to the bottom" — everyone bidding $0
   const allLowPrices = periodAnalyses.every(p => p.clearingPriceMWh < 10);
   if (allLowPrices) {
-    parts.push(`Collectively, teams competed prices down to very low levels. While this mimics a perfectly competitive market, it means nobody covered their costs well. In the real NEM, generators need margins above SRMC to recover fixed costs and stay financially viable.`);
+    parts.push(`Collectively, teams competed prices down to very low levels. While this mimics a perfectly competitive market, it means nobody covered their costs well. In the real NEM, generators need margins above marginal cost to recover fixed costs and stay financially viable.`);
   }
 
   // Check for high collective profit

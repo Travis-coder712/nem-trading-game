@@ -116,10 +116,10 @@ export function getPreReadHTML(): string {
 
   <h3>Your Profit</h3>
   <div class="key-concept">
-    <strong>Profit = (Clearing Price &minus; Your SRMC) &times; Dispatched MW &times; Hours</strong><br>
-    <small>SRMC = Short Run Marginal Cost (your cost to produce each MWh of electricity)</small>
+    <strong>Profit = (Clearing Price &minus; Your Marginal Cost) &times; Dispatched MW &times; Hours</strong><br>
+    <small>Marginal Cost = Short Run Marginal Cost (your cost to produce each MWh of electricity)</small>
   </div>
-  <p>Each asset type has a different SRMC. Wind and solar have <span class="stat">$0</span> SRMC.
+  <p>Each asset type has a different marginal cost. Wind and solar have <span class="stat">$0</span> marginal cost.
   Coal is around <span class="stat">$28&ndash;42</span>, gas CCGT <span class="stat">$68&ndash;82</span>, and peakers <span class="stat">$130&ndash;155</span>.</p>
 
   <h3>Round Structure</h3>
@@ -208,7 +208,7 @@ export function getPreReadHTML(): string {
     <h4>Policy Drivers</h4>
     <ul>
       <li><strong>Renewable Energy Target (RET):</strong> Mandatory target of 20% renewables by 2020, later set at 33,000 GWh by 2020. Created the Large-scale Generation Certificate (LGC) market that subsidised wind and solar investment</li>
-      <li><strong>Carbon Pricing:</strong> The Clean Energy Act 2011 introduced a carbon price (July 2012&ndash;July 2014) at <span class="stat">$23/tonne</span>. This directly increased coal SRMC by ~$20/MWh, making gas more competitive. The scheme was repealed in 2014</li>
+      <li><strong>Carbon Pricing:</strong> The Clean Energy Act 2011 introduced a carbon price (July 2012&ndash;July 2014) at <span class="stat">$23/tonne</span>. This directly increased coal marginal cost by ~$20/MWh, making gas more competitive. The scheme was repealed in 2014</li>
       <li><strong>State schemes:</strong> Various state-based feed-in tariffs and renewable auctions further accelerated deployment</li>
     </ul>
 
@@ -305,7 +305,7 @@ export function getPreReadHTML(): string {
       <p><em>Best when:</em> You want certainty, or supply is tight and you'll be dispatched anyway.</p>
     </div>
     <div class="card">
-      <h4>&#128200; SRMC Bidder</h4>
+      <h4>&#128200; Marginal Cost Bidder</h4>
       <p>Bid at your marginal cost. Classic economic theory says this is the "efficient" strategy in competitive markets.</p>
       <p><em>Best when:</em> You want a balance of risk and reward.</p>
     </div>
@@ -316,7 +316,7 @@ export function getPreReadHTML(): string {
     </div>
     <div class="card">
       <h4>&#128161; Portfolio Optimiser</h4>
-      <p>Different strategies for different assets. Bid renewables at $0, coal at SRMC, and peakers aggressively high.</p>
+      <p>Different strategies for different assets. Bid renewables at $0, coal at marginal cost, and peakers aggressively high.</p>
       <p><em>Best when:</em> You have diverse assets and want to maximise across the portfolio.</p>
     </div>
   </div>
@@ -340,7 +340,7 @@ export function getPreReadHTML(): string {
       <p><strong>Merit Order</strong> &mdash; Bids sorted cheapest to most expensive. AEMO dispatches up the stack.</p>
       <p><strong>MW</strong> &mdash; Megawatt. A measure of power (capacity). Your plant's size.</p>
       <p><strong>MWh</strong> &mdash; Megawatt-hour. A measure of energy (power &times; time). What you sell.</p>
-      <p><strong>SRMC</strong> &mdash; Short Run Marginal Cost. The cost to produce one additional MWh. Fuel + variable O&M.</p>
+      <p><strong>SRMC (Short Run Marginal Cost)</strong> &mdash; Also called marginal cost. The cost to produce one additional MWh. Fuel + variable O&M.</p>
       <p><strong>Reserve Margin</strong> &mdash; How much spare capacity exists above demand. Low margins = high prices.</p>
     </div>
   </div>

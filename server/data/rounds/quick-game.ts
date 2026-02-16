@@ -25,7 +25,7 @@ export const quickGameRounds: RoundConfig[] = [
       slides: [
         {
           heading: 'How the NEM Works',
-          body: 'In the **National Electricity Market**, generators (that\'s you!) bid their power into the market every 5 minutes.\n\nA **bid** has two parts:\n- **Price** ($/MWh): How much you want to be paid per megawatt-hour\n- **Quantity** (MW): How many megawatts you\'re offering\n\nYou own a coal power plant that can generate up to 800 MW. Each team\'s plant has a slightly different **SRMC** (Short Run Marginal Cost) — this is the cost of producing each MWh.',
+          body: 'In the **National Electricity Market**, generators (that\'s you!) bid their power into the market every 5 minutes.\n\nA **bid** has two parts:\n- **Price** ($/MWh): How much you want to be paid per megawatt-hour\n- **Quantity** (MW): How many megawatts you\'re offering\n\nYou own a coal power plant that can generate up to 800 MW. Each team\'s plant has a slightly different **Short Run Marginal Cost (SRMC)** — this is the cost of producing each MWh.',
         },
         {
           heading: 'The Merit Order & Clearing Price',
@@ -37,12 +37,12 @@ export const quickGameRounds: RoundConfig[] = [
         },
         {
           heading: 'Your First Bid',
-          body: 'We\'ll suggest bids for you. Each team has a coal plant with slightly different costs — check your **SRMC badge** to see your cost to generate.\n\nWe\'ll split your capacity across 2 bid bands:\n- **Band 1**: Bid most of your capacity at a low price to ensure dispatch\n- **Band 2**: Bid the rest higher to try to push up the clearing price\n\nAfter everyone submits, watch the merit order chart to see how all the bids stack up and where the clearing price lands.\n\n**Your profit = (Clearing Price - Your SRMC) × Dispatched MW × Hours**',
+          body: 'We\'ll suggest bids for you. Each team has a coal plant with slightly different costs — check your **Marginal Cost badge** to see your cost to generate.\n\nWe\'ll split your capacity across 2 bid bands:\n- **Band 1**: Bid most of your capacity at a low price to ensure dispatch\n- **Band 2**: Bid the rest higher to try to push up the clearing price\n\nAfter everyone submits, watch the merit order chart to see how all the bids stack up and where the clearing price lands.\n\n**Your profit = (Clearing Price - Your Marginal Cost) × Dispatched MW × Hours**',
         },
       ],
     },
     walkthrough: {
-      introText: 'This is a guided round! We\'ve pre-filled suggested bids for your coal plant. Check the SRMC badge on your asset to see your cost to generate. You can adjust bids or submit as-is.',
+      introText: 'This is a guided round! We\'ve pre-filled suggested bids for your coal plant. Check the Marginal Cost badge on your asset to see your cost to generate. You can adjust bids or submit as-is.',
       suggestedBids: [
         {
           assetType: 'coal',
@@ -103,7 +103,7 @@ export const quickGameRounds: RoundConfig[] = [
         },
         {
           heading: 'Bidding Strategies',
-          body: '1. **Price Taker**: Bid $0 to guarantee dispatch\n2. **SRMC Bidder**: Bid at your marginal cost (check your SRMC badge!)\n3. **Price Maker**: Bid high on some capacity to push up prices\n4. **Strategic Withdrawal**: Withhold capacity to tighten supply\n\nWith 5 bands, you can mix strategies across your capacity. Consider bidding differently per period!',
+          body: '1. **Price Taker**: Bid $0 to guarantee dispatch\n2. **Marginal Cost Bidder**: Bid at your marginal cost (check your Marginal Cost badge!)\n3. **Price Maker**: Bid high on some capacity to push up prices\n4. **Strategic Withdrawal**: Withhold capacity to tighten supply\n\nWith 5 bands, you can mix strategies across your capacity. Consider bidding differently per period!',
         },
       ],
     },
@@ -131,11 +131,11 @@ export const quickGameRounds: RoundConfig[] = [
       slides: [
         {
           heading: 'Two Types of Gas',
-          body: '**CCGT (Combined Cycle)**: 350 MW, moderate cost — efficient mid-merit plant\n**Peaker (Open Cycle)**: 150 MW, high cost — fast start, peak-only\n\nCheck the **SRMC badges** on each asset — gas costs much more than coal to run!\n\nGas fills the gap between cheap baseload coal and expensive peak periods. Peakers are very costly but earn their keep when prices spike.',
+          body: '**CCGT (Combined Cycle)**: 350 MW, moderate cost — efficient mid-merit plant\n**Peaker (Open Cycle)**: 150 MW, high cost — fast start, peak-only\n\nCheck the **Marginal Cost badges** on each asset — gas costs much more than coal to run!\n\nGas fills the gap between cheap baseload coal and expensive peak periods. Peakers are very costly but earn their keep when prices spike.',
         },
         {
           heading: 'When Does Gas Make Money?',
-          body: 'Your gas assets only profit when the **clearing price exceeds their SRMC**.\n\n🌙 **Overnight**: Gas typically OFF — demand too low, prices below gas SRMC\n🌅 **Morning**: Gas CCGT may be marginal if demand is moderate\n☀️ **Afternoon**: Gas CCGT likely dispatched. Peakers only if supply is tight\n🌆 **Evening**: Both gas types may be needed. Peakers can set very high prices\n\nKey question: should you bid gas at SRMC, or higher to try to capture scarcity pricing?',
+          body: 'Your gas assets only profit when the **clearing price exceeds their marginal cost**.\n\n🌙 **Overnight**: Gas typically OFF — demand too low, prices below gas marginal cost\n🌅 **Morning**: Gas CCGT may be marginal if demand is moderate\n☀️ **Afternoon**: Gas CCGT likely dispatched. Peakers only if supply is tight\n🌆 **Evening**: Both gas types may be needed. Peakers can set very high prices\n\nKey question: should you bid gas at marginal cost, or higher to try to capture scarcity pricing?',
         },
       ],
     },
@@ -150,6 +150,12 @@ export const quickGameRounds: RoundConfig[] = [
       'Manage hydro with limited water storage (opportunity cost)',
     ],
     season: 'spring',
+    seasonalGuidance: {
+      headline: 'Spring: Low demand + strong renewables = watch for oversupply!',
+      demandContext: 'Spring has the lowest demand of any season — no heating or cooling needed. All periods see reduced consumption compared to the autumn rounds you just played.',
+      supplyContext: 'Solar is strong with long, sunny days. Wind is moderate. Combined with your new zero-cost renewables, total supply now significantly exceeds demand, especially during the Afternoon.',
+      biddingAdvice: 'Expect lower prices than the autumn rounds. Renewables at $0 will push down clearing prices. The Afternoon solar peak may see very low prices — consider charging batteries or conserving hydro. Your best earning opportunity is the Evening when solar disappears. Save hydro water for the Evening!',
+    },
     timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
     periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
     baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
@@ -163,7 +169,7 @@ export const quickGameRounds: RoundConfig[] = [
       slides: [
         {
           heading: 'Zero Marginal Cost',
-          body: '**Wind**: 300 MW, $0 SRMC — output varies by time & season\n**Solar**: 200 MW, $0 SRMC — daytime only, zero output overnight\n**Hydro**: 250 MW / 1,000 MWh — limited water, $8/MWh SRMC\n\nRenewables bid at $0 and displace expensive thermal generation. But they\'re variable — check the available MW each period!',
+          body: '**Wind**: 300 MW, $0 marginal cost — output varies by time & season\n**Solar**: 200 MW, $0 marginal cost — daytime only, zero output overnight\n**Hydro**: 250 MW / 1,000 MWh — limited water, $8/MWh marginal cost\n\nRenewables bid at $0 and displace expensive thermal generation. But they\'re variable — check the available MW each period!',
         },
         {
           heading: 'How Renewables Change Each Period',
@@ -214,6 +220,12 @@ export const quickGameRounds: RoundConfig[] = [
       'Understand thermal derating in hot weather',
     ],
     season: 'summer',
+    seasonalGuidance: {
+      headline: 'Summer: Extreme demand from air conditioning, solar helps but evenings are brutal',
+      demandContext: 'Summer has the HIGHEST demand — air conditioning drives consumption 40% above normal during the Afternoon peak. Even overnight is elevated from AC running all night. The Evening "solar cliff" creates the most dangerous period.',
+      supplyContext: 'Solar is at peak output during the day, which helps. But coal is derated 10% (high cooling water temperatures) and wind is typically weakest in summer. When solar drops off in the Evening, you lose a massive amount of supply right when demand is still extreme.',
+      biddingAdvice: 'Bid aggressively across all periods — this is a high-price round. Charge batteries during the Morning when solar is ramping up. Discharge everything during the Evening crunch. Gas peakers will be dispatched and may set very high clearing prices. Every MW of capacity matters when the system is this tight.',
+    },
     timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
     periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
     baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
@@ -246,6 +258,12 @@ export const quickGameRounds: RoundConfig[] = [
       'Use batteries to profit from oversupply',
     ],
     season: 'spring',
+    seasonalGuidance: {
+      headline: 'Spring: Lowest demand + highest renewable output = negative prices!',
+      demandContext: 'Back to spring — the lowest demand season. No heating, no cooling. After the intense summer round, demand has dropped dramatically across all periods.',
+      supplyContext: 'Solar and wind are flooding the market with zero-cost energy. Total supply far exceeds what\'s needed, especially during the Afternoon. Coal can\'t easily shut down, creating a glut.',
+      biddingAdvice: 'Completely different strategy needed from the summer round! Afternoon prices may go NEGATIVE. Charge batteries during solar peak (you get paid to charge). Coal will likely lose money during the day. Focus all your expensive assets on the Evening when solar disappears and prices recover. The spread between Afternoon and Evening is where the money is.',
+    },
     timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
     periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
     baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
@@ -278,6 +296,12 @@ export const quickGameRounds: RoundConfig[] = [
       'Win the game!',
     ],
     season: 'summer',
+    seasonalGuidance: {
+      headline: 'Summer Crisis: Heatwave + plant outage = the NEM\'s toughest day',
+      demandContext: 'Back to summer — high demand across all periods, especially Afternoon and Evening. A plant outage makes an already tight system even more stressed.',
+      supplyContext: 'Solar helps during the day but disappears before the evening peak. The outage removes capacity when you need it most. Wind is weak. Every available MW matters.',
+      biddingAdvice: 'After navigating spring\'s oversupply, you\'re back to scarcity. Bid aggressively! Charge batteries in the Morning, discharge in the Evening. Gas peakers will likely be needed across multiple periods. The team that best manages the shift from solar-rich Afternoon to solar-free Evening will win.',
+    },
     timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
     periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
     baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },

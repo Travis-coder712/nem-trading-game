@@ -1,8 +1,11 @@
 import { Router } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 import { engine } from '../sockets/index.ts';
 import { generateQRCodeDataUrl } from '../utils/qrcode.ts';
 import { getServerUrl, hasPublicUrl } from '../utils/networkInfo.ts';
 import { getPreReadHTML } from '../pages/pre-read.ts';
+import { listConfigs, saveConfig, deleteConfig } from '../data/configs.ts';
+import type { AssetConfigPreset } from '../../shared/types.ts';
 
 export const apiRouter = Router();
 
@@ -67,6 +70,52 @@ apiRouter.get('/game/:gameId/export', (req, res) => {
 apiRouter.get('/pre-read', (req, res) => {
   res.setHeader('Content-Type', 'text/html');
   res.send(getPreReadHTML());
+});
+
+// ---- Asset Configuration Presets ----
+
+apiRouter.get('/asset-configs', (req, res) => {
+  try {
+    const configs = listConfigs();
+    res.json({ configs });
+  } catch (err) {
+    console.error('Error listing asset configs:', err);
+    res.json({ configs: [] });
+  }
+});
+
+apiRouter.post('/asset-configs', (req, res) => {
+  try {
+    const { name, assets, applyVariation } = req.body;
+    if (!name || !assets) {
+      return res.status(400).json({ error: 'Missing name or assets' });
+    }
+    const config: AssetConfigPreset = {
+      id: uuidv4().slice(0, 8),
+      name: name.trim(),
+      createdAt: new Date().toISOString(),
+      applyVariation: applyVariation ?? true,
+      assets,
+    };
+    saveConfig(config);
+    res.json(config);
+  } catch (err) {
+    console.error('Error saving asset config:', err);
+    res.status(500).json({ error: 'Failed to save config' });
+  }
+});
+
+apiRouter.delete('/asset-configs/:id', (req, res) => {
+  try {
+    const deleted = deleteConfig(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Config not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting asset config:', err);
+    res.status(500).json({ error: 'Failed to delete config' });
+  }
 });
 
 apiRouter.get('/games', (req, res) => {

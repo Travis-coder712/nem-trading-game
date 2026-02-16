@@ -6,6 +6,7 @@ import { formatMW } from '../../lib/formatters';
 interface Props {
   periodResults: TimePeriodDispatchResult[];
   initialPeriod?: TimePeriod;
+  startAtEnd?: boolean;
   onClose?: () => void;
 }
 
@@ -34,7 +35,7 @@ const CHART_HEIGHT = 400;
 const MARGIN = { top: 20, right: 30, bottom: 45, left: 60 };
 const MIN_BAR_HEIGHT_PX = 6; // minimum visible height for $0 bids
 
-export default function MeritOrderWalkthrough({ periodResults, initialPeriod, onClose }: Props) {
+export default function MeritOrderWalkthrough({ periodResults, initialPeriod, startAtEnd, onClose }: Props) {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(
     initialPeriod || (periodResults[0]?.timePeriod as TimePeriod) || 'day_peak'
   );
@@ -104,6 +105,16 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, on
 
   // Total steps: 0 (intro) + N bands + 1 (reveal clearing price)
   const totalSteps = allBands.length + 2;
+
+  // When startAtEnd is true, jump to the final step on initial mount
+  const startAtEndApplied = useRef(false);
+  useEffect(() => {
+    if (startAtEnd && !startAtEndApplied.current && totalSteps > 1) {
+      startAtEndApplied.current = true;
+      setCurrentStep(totalSteps - 1);
+    }
+  }, [startAtEnd, totalSteps]);
+
   const isIntroStep = currentStep === 0;
   const isFinalStep = currentStep >= totalSteps - 1;
   const visibleBandCount = isIntroStep ? 0 : Math.min(currentStep, allBands.length);
@@ -226,11 +237,11 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, on
     };
   }, [isPlaying, totalSteps]);
 
-  // Reset when period changes
+  // Reset when period changes — jump to end if startAtEnd, otherwise start from beginning
   useEffect(() => {
-    setCurrentStep(0);
+    setCurrentStep(startAtEnd ? allBands.length + 1 : 0);
     setIsPlaying(false);
-  }, [selectedPeriod]);
+  }, [selectedPeriod, startAtEnd, allBands.length]);
 
   const goNext = useCallback(() => {
     if (currentStep < totalSteps - 1) setCurrentStep(s => s + 1);
