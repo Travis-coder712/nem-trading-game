@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-50: #eef2f7;
+  --color-navy-100: #d4dce8;
+  --color-navy-200: #a9b9d1;
+  --color-navy-300: #7e96ba;
+  --color-navy-400: #5373a3;
+  --color-navy-500: #3a5a8c;
+  --color-navy-600: #2d4670;
+  --color-navy-700: #1f3254;
+  --color-navy-800: #1a365d;
+  --color-navy-900: #0f1f38;
+  --color-navy-950: #08101c;
+
+  --color-electric-50: #ebf5ff;
+  --color-electric-100: #d1e9ff;
+  --color-electric-200: #a3d3ff;
+  --color-electric-300: #75bdff;
+  --color-electric-400: #47a7ff;
+  --color-electric-500: #3182ce;
+  --color-electric-600: #2563a8;
+  --color-electric-700: #1a4482;
+
+  --color-profit: #38a169;
+  --color-loss: #e53e3e;
+  --color-warning: #d69e2e;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  min-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Number inputs without spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(49, 130, 206, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(49, 130, 206, 0); }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Landing page animations */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-scroll {
+  animation: ticker-scroll 60s linear infinite;
+}
+.ticker-scroll:hover {
+  animation-play-state: paused;
+}
+
+@keyframes glow-breathe {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(71, 167, 255, 0.4)) drop-shadow(0 0 20px rgba(71, 167, 255, 0.1)); }
+  50% { filter: drop-shadow(0 0 16px rgba(71, 167, 255, 0.7)) drop-shadow(0 0 40px rgba(71, 167, 255, 0.3)); }
+}
+
+.glow-pulse {
+  animation: glow-breathe 3s ease-in-out infinite;
+}
+
+/* Shimmer effect on buttons */
+.shimmer-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.06) 37%,
+    transparent 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* Print styles for game guide */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+}

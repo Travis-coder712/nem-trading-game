@@ -1,0 +1,299 @@
+import type { RoundConfig } from '../../../shared/types.ts';
+
+export const quickGameRounds: RoundConfig[] = [
+  {
+    roundNumber: 1,
+    name: 'Guided Walkthrough: Your First Bid',
+    description: 'This is a guided round to teach you the basics. You\'ll bid across two periods — Morning and Afternoon — to see how demand varies through the day. Follow the suggested bids, then watch the market clear!',
+    learningObjectives: [
+      'Understand what a bid is: a price and quantity you offer to generate',
+      'See how AEMO stacks bids into a merit order',
+      'Learn that the clearing price is set by the last (most expensive) unit dispatched',
+      'Understand that ALL dispatched generators receive the same clearing price',
+    ],
+    season: 'autumn',
+    timePeriods: ['day_offpeak', 'day_peak'],
+    periodDurations: { day_offpeak: 6, day_peak: 6 },
+    baseDemandMW: { day_offpeak: 0, day_peak: 0 },
+    demandVariability: 0.05,
+    newAssetsUnlocked: ['coal'],
+    activeScenarioEvents: [],
+    biddingTimeLimitSeconds: 300,
+    maxBidBandsPerAsset: 3,
+    educationalContent: {
+      title: 'Welcome to the NEM',
+      slides: [
+        {
+          heading: 'How the NEM Works',
+          body: 'In the **National Electricity Market**, generators (that\'s you!) bid their power into the market every 5 minutes.\n\nA **bid** has two parts:\n- **Price** ($/MWh): How much you want to be paid per megawatt-hour\n- **Quantity** (MW): How many megawatts you\'re offering\n\nYou own a coal power plant that can generate up to 800 MW. Each team\'s plant has a slightly different **SRMC** (Short Run Marginal Cost) — this is the cost of producing each MWh.',
+        },
+        {
+          heading: 'The Merit Order & Clearing Price',
+          body: 'AEMO (the market operator) collects ALL bids from ALL generators and sorts them **cheapest to most expensive** - this is the **merit order**.\n\nStarting from the cheapest bid, AEMO dispatches generators one by one until total supply meets demand.\n\nThe **clearing price** is set by the LAST generator dispatched (the most expensive one needed). Here\'s the key insight: **ALL dispatched generators receive this same price**, even if they bid lower!\n\nThis means: bidding low gets you dispatched, but you still earn the higher clearing price.',
+        },
+        {
+          heading: 'Two Time Periods',
+          body: 'This round you\'ll bid for two periods:\n\n🌅 **Morning (6am–12pm)**: Moderate demand as businesses open. Coal provides baseload generation.\n\n☀️ **Afternoon (12pm–6pm)**: Higher demand from commercial activity and cooling. With only coal in the fleet, supply gets tighter.\n\nYou can bid differently in each period — and you should! Higher demand in the afternoon means prices are likely to be higher.',
+        },
+        {
+          heading: 'Your First Bid',
+          body: 'We\'ll suggest bids for you. Each team has a coal plant with slightly different costs — check your **SRMC badge** to see your cost to generate.\n\nWe\'ll split your capacity across 2 bid bands:\n- **Band 1**: Bid most of your capacity at a low price to ensure dispatch\n- **Band 2**: Bid the rest higher to try to push up the clearing price\n\nAfter everyone submits, watch the merit order chart to see how all the bids stack up and where the clearing price lands.\n\n**Your profit = (Clearing Price - Your SRMC) × Dispatched MW × Hours**',
+        },
+      ],
+    },
+    walkthrough: {
+      introText: 'This is a guided round! We\'ve pre-filled suggested bids for your coal plant. Check the SRMC badge on your asset to see your cost to generate. You can adjust bids or submit as-is.',
+      suggestedBids: [
+        {
+          assetType: 'coal',
+          period: 'day_offpeak',
+          suggestedPrice: 0,
+          suggestedQuantityPercent: 70,
+          explanation: 'Bid 70% of your capacity at $0/MWh. This guarantees you\'ll be dispatched (you\'ll be at the bottom of the merit order). You still earn whatever the clearing price ends up being — NOT $0!',
+        },
+        {
+          assetType: 'coal',
+          period: 'day_offpeak',
+          suggestedPrice: 80,
+          suggestedQuantityPercent: 30,
+          explanation: 'Bid the remaining 30% at $80/MWh. If demand is high enough, this capacity will also be dispatched. If your bid sets the clearing price, everyone (including your cheap band) earns $80/MWh.',
+        },
+        {
+          assetType: 'coal',
+          period: 'day_peak',
+          suggestedPrice: 0,
+          suggestedQuantityPercent: 50,
+          explanation: 'During the Afternoon, bid 50% at $0 to ensure at least half your plant runs. Afternoon demand is higher, so there\'s more room for expensive bids to clear.',
+        },
+        {
+          assetType: 'coal',
+          period: 'day_peak',
+          suggestedPrice: 120,
+          suggestedQuantityPercent: 50,
+          explanation: 'Bid the other 50% at $120/MWh during Afternoon peak. With higher demand, prices are likely higher. If supply gets tight, this bid could set the clearing price — earning $120/MWh for ALL your dispatched capacity!',
+        },
+      ],
+      afterSubmitExplanation: 'Great! Now watch the merit order chart on the main screen. Your bids are stacked alongside other teams. The clearing price is where supply meets demand. Notice how teams that bid low get dispatched but still earn the high clearing price!',
+    },
+  },
+  {
+    roundNumber: 2,
+    name: 'Full Day Trading',
+    description: 'Now bidding across all 4 periods of the day. Each period has different demand patterns — overnight is quiet, mornings ramp up, afternoons peak, and evenings see residential demand surge. Use 5 bid bands to develop strategic approaches.',
+    learningObjectives: [
+      'Manage a full 24-hour bidding cycle across 4 periods',
+      'Understand how demand differs: overnight, morning, afternoon, evening',
+      'Experiment with bidding strategies',
+    ],
+    season: 'autumn',
+    timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
+    periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
+    baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
+    demandVariability: 0.08,
+    newAssetsUnlocked: [],
+    activeScenarioEvents: [],
+    biddingTimeLimitSeconds: 210,
+    maxBidBandsPerAsset: 5,
+    educationalContent: {
+      title: 'Strategic Bidding',
+      slides: [
+        {
+          heading: 'The Four Periods',
+          body: 'You now bid across a full 24-hour day, split into four 6-hour periods:\n\n🌙 **Overnight (12am–6am)**: Lowest demand. Coal runs at minimum stable load. Prices are typically low.\n\n🌅 **Morning (6am–12pm)**: Demand rises as businesses open. Coal ramps up. Moderate prices.\n\n☀️ **Afternoon (12pm–6pm)**: Peak commercial demand plus cooling. All coal needed. Highest prices.\n\n🌆 **Evening (6pm–12am)**: Residential peak as people return home. Second-highest demand period.\n\nWith only coal in the fleet, think about which periods are tightest for supply.',
+        },
+        {
+          heading: 'Bidding Strategies',
+          body: '1. **Price Taker**: Bid $0 to guarantee dispatch\n2. **SRMC Bidder**: Bid at your marginal cost (check your SRMC badge!)\n3. **Price Maker**: Bid high on some capacity to push up prices\n4. **Strategic Withdrawal**: Withhold capacity to tighten supply\n\nWith 5 bands, you can mix strategies across your capacity. Consider bidding differently per period!',
+        },
+      ],
+    },
+  },
+  {
+    roundNumber: 3,
+    name: 'Gas Power Enters',
+    description: 'Gas CCGT and peakers join your portfolio. They have higher costs but more flexibility. Gas CCGT is mid-merit; peakers are expensive but can capture high-price periods.',
+    learningObjectives: [
+      'Understand different cost structures across asset types',
+      'Learn when peakers are profitable vs loss-making',
+      'See gas as the price-setting technology during peak periods',
+    ],
+    season: 'autumn',
+    timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
+    periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
+    baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
+    demandVariability: 0.1,
+    newAssetsUnlocked: ['gas_ccgt', 'gas_peaker'],
+    activeScenarioEvents: [],
+    biddingTimeLimitSeconds: 240,
+    maxBidBandsPerAsset: 5,
+    educationalContent: {
+      title: 'Gas Generation',
+      slides: [
+        {
+          heading: 'Two Types of Gas',
+          body: '**CCGT (Combined Cycle)**: 350 MW, moderate cost — efficient mid-merit plant\n**Peaker (Open Cycle)**: 150 MW, high cost — fast start, peak-only\n\nCheck the **SRMC badges** on each asset — gas costs much more than coal to run!\n\nGas fills the gap between cheap baseload coal and expensive peak periods. Peakers are very costly but earn their keep when prices spike.',
+        },
+        {
+          heading: 'When Does Gas Make Money?',
+          body: 'Your gas assets only profit when the **clearing price exceeds their SRMC**.\n\n🌙 **Overnight**: Gas typically OFF — demand too low, prices below gas SRMC\n🌅 **Morning**: Gas CCGT may be marginal if demand is moderate\n☀️ **Afternoon**: Gas CCGT likely dispatched. Peakers only if supply is tight\n🌆 **Evening**: Both gas types may be needed. Peakers can set very high prices\n\nKey question: should you bid gas at SRMC, or higher to try to capture scarcity pricing?',
+        },
+      ],
+    },
+  },
+  {
+    roundNumber: 4,
+    name: 'Renewables + Hydro',
+    description: 'Wind, solar, and hydro join. Zero-cost renewables reshape the merit order — they push down prices but vary by period. Hydro has limited water, so choose when to generate wisely.',
+    learningObjectives: [
+      'See how zero-cost renewables push down clearing prices',
+      'Understand capacity factors: solar only works in daytime, wind varies',
+      'Manage hydro with limited water storage (opportunity cost)',
+    ],
+    season: 'spring',
+    timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
+    periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
+    baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
+    demandVariability: 0.1,
+    newAssetsUnlocked: ['wind', 'solar', 'hydro'],
+    activeScenarioEvents: [],
+    biddingTimeLimitSeconds: 270,
+    maxBidBandsPerAsset: 7,
+    educationalContent: {
+      title: 'The Renewable Revolution',
+      slides: [
+        {
+          heading: 'Zero Marginal Cost',
+          body: '**Wind**: 300 MW, $0 SRMC — output varies by time & season\n**Solar**: 200 MW, $0 SRMC — daytime only, zero output overnight\n**Hydro**: 250 MW / 1,000 MWh — limited water, $8/MWh SRMC\n\nRenewables bid at $0 and displace expensive thermal generation. But they\'re variable — check the available MW each period!',
+        },
+        {
+          heading: 'How Renewables Change Each Period',
+          body: '🌙 **Overnight**: Wind may be strong, NO solar. Cheap period with low demand — potential oversupply!\n🌅 **Morning**: Solar ramps up, wind variable. Increasing supply pushes down prices.\n☀️ **Afternoon**: Solar at peak. In spring this can flood the market — prices may go very low or NEGATIVE!\n🌆 **Evening**: Solar drops to zero (the "solar cliff"). Wind may help but this is when supply gets tight. Highest prices likely.\n\nHydro is your strategic weapon — save water for the highest-price period!',
+        },
+      ],
+    },
+  },
+  {
+    roundNumber: 5,
+    name: 'Battery Storage',
+    description: 'Batteries complete your portfolio. Charge cheap, discharge at premium. The ultimate arbitrage machine — buy low, sell high across the day.',
+    learningObjectives: [
+      'Understand energy arbitrage with batteries',
+      'Learn to charge during cheap/negative periods and discharge at peaks',
+      'Full portfolio optimization across 7 asset types',
+    ],
+    season: 'spring',
+    timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
+    periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
+    baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
+    demandVariability: 0.1,
+    newAssetsUnlocked: ['battery'],
+    activeScenarioEvents: [],
+    biddingTimeLimitSeconds: 300,
+    maxBidBandsPerAsset: 10,
+    educationalContent: {
+      title: 'Grid-Scale Batteries',
+      slides: [
+        {
+          heading: 'The Arbitrage Machine',
+          body: '**Battery**: 150 MW / 300 MWh, 85% round-trip efficiency\n\nCharge during low/negative prices, discharge at peaks. You need the spread to exceed the 15% efficiency loss to profit.\n\nYou now have your full portfolio: Coal, Gas CCGT, Peaker, Wind, Solar, Hydro, Battery.',
+        },
+        {
+          heading: 'Battery Strategy by Period',
+          body: '🌙 **Overnight**: CHARGE — prices lowest, fill up the battery\n🌅 **Morning**: May continue charging if solar is pushing prices down\n☀️ **Afternoon**: CHARGE during solar surplus (spring) or DISCHARGE in summer peaks\n🌆 **Evening**: DISCHARGE — this is prime time! Solar gone, demand high, prices peak\n\nWith 85% efficiency, if you charge at $20/MWh you need to discharge above $24/MWh to break even. The bigger the spread, the more profit.',
+        },
+      ],
+    },
+  },
+  {
+    roundNumber: 6,
+    name: 'Summer Heatwave',
+    description: 'Extreme heat, record demand, coal derating. All assets needed. The afternoon is scorching and the evening ramp will test every generator.',
+    learningObjectives: [
+      'Manage extreme demand scenarios across all periods',
+      'See scarcity pricing in action during tight supply',
+      'Understand thermal derating in hot weather',
+    ],
+    season: 'summer',
+    timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
+    periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
+    baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
+    demandVariability: 0.1,
+    newAssetsUnlocked: [],
+    activeScenarioEvents: ['heatwave_extreme'],
+    biddingTimeLimitSeconds: 240,
+    maxBidBandsPerAsset: 10,
+    educationalContent: {
+      title: 'Summer Extremes',
+      slides: [
+        {
+          heading: 'Heatwave Alert!',
+          body: '42°C+ temperatures. Demand surges +40% during the Afternoon peak from air conditioning. Coal derated 10%. Solar is strong but drops off before the true Evening demand peak.\n\nThis mirrors real events that have tested the NEM to its limits.',
+        },
+        {
+          heading: 'Summer Period Guide',
+          body: '🌙 **Overnight**: Even overnight demand elevated — hot night with AC running. Normally quiet period becomes tighter.\n🌅 **Morning**: Demand ramping as industry plus early cooling load. Solar starting to help.\n☀️ **Afternoon**: EXTREME demand. Solar helps but coal derated. Every MW counts. Scarcity pricing likely!\n🌆 **Evening**: The "solar cliff" — solar drops off but demand stays high. This is where blackouts happen in real life. Price cap territory.',
+        },
+      ],
+    },
+  },
+  {
+    roundNumber: 7,
+    name: 'Spring Oversupply',
+    description: 'Mild weather + abundant renewables = potential negative prices. Can you profit when there\'s too much supply? Batteries shine in this scenario.',
+    learningObjectives: [
+      'Navigate negative pricing when renewables flood the market',
+      'Understand curtailment economics',
+      'Use batteries to profit from oversupply',
+    ],
+    season: 'spring',
+    timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
+    periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
+    baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
+    demandVariability: 0.1,
+    newAssetsUnlocked: [],
+    activeScenarioEvents: ['negative_prices'],
+    biddingTimeLimitSeconds: 240,
+    maxBidBandsPerAsset: 10,
+    educationalContent: {
+      title: 'Negative Pricing',
+      slides: [
+        {
+          heading: 'When Supply Exceeds Demand',
+          body: 'Prices can go negative! Generators pay to produce. Why?\n- Coal: too expensive to shut down ($50K+ restart cost)\n- Renewables with PPAs: earn contract revenue regardless\n- Batteries: get paid to CHARGE!\n\nIn the real NEM, negative prices are now routine in spring midday periods.',
+        },
+        {
+          heading: 'Strategy by Period',
+          body: '🌙 **Overnight**: Low demand, moderate wind — mild oversupply possible\n🌅 **Morning**: Solar flooding in, prices dropping\n☀️ **Afternoon**: NEGATIVE PRICES LIKELY! Solar + wind crush demand. Charge batteries! Coal loses money.\n🌆 **Evening**: Solar gone — prices snap back up. Discharge batteries, run gas. Profit from the spread!\n\nThe teams that make money in this round will be those who manage the transition from oversupply to scarcity.',
+        },
+      ],
+    },
+  },
+  {
+    roundNumber: 8,
+    name: 'The Full NEM',
+    description: 'Final round: hot summer, plant outage, full complexity. Every period brings different challenges. Highest cumulative profit wins!',
+    learningObjectives: [
+      'Apply all strategies under pressure across all periods',
+      'Portfolio bidding across diverse asset types',
+      'Win the game!',
+    ],
+    season: 'summer',
+    timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
+    periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
+    baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
+    demandVariability: 0.12,
+    newAssetsUnlocked: [],
+    activeScenarioEvents: ['heatwave_moderate', 'plant_outage_random'],
+    biddingTimeLimitSeconds: 300,
+    maxBidBandsPerAsset: 10,
+    educationalContent: {
+      title: 'The Ultimate Challenge',
+      slides: [
+        {
+          heading: 'Final Round',
+          body: 'A hot summer day with a major plant outage. Everything you\'ve learned comes together.\n\n🌙 **Overnight**: Hot night means elevated baseload demand. Battery charging opportunity?\n🌅 **Morning**: Industry starting up, solar ramping. With an outage, supply is tighter.\n☀️ **Afternoon**: Peak summer demand. Solar helps but some capacity is out. Will prices spike?\n🌆 **Evening**: The crunch. Solar cliff + sustained heat + outage = maximum stress. Every MW earns premium.\n\nThe team with the highest cumulative profit across all 8 rounds wins!',
+        },
+      ],
+    },
+  },
+];
