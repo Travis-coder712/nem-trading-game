@@ -66,13 +66,31 @@ export default function HostDashboard() {
     setDemandEditMode(false);
   }, [demandEdits, setDemand]);
 
-  // Fetch QR code
+  // Fetch QR code — with retry and abort for robustness across game restarts
   useEffect(() => {
     if (gameState?.gameId) {
-      fetch(`/api/game/${gameState.gameId}/qr`)
-        .then(r => r.json())
-        .then(data => setQrData(data))
-        .catch(console.error);
+      const controller = new AbortController();
+      const fetchQR = (attempt = 0) => {
+        fetch(`/api/game/${gameState.gameId}/qr`, { signal: controller.signal })
+          .then(r => {
+            if (!r.ok) throw new Error(`QR fetch failed: ${r.status}`);
+            return r.json();
+          })
+          .then(data => setQrData(data))
+          .catch(err => {
+            if (err.name === 'AbortError') return;
+            // Retry up to 2 times with 1s delay (covers race where game not yet registered)
+            if (attempt < 2) {
+              setTimeout(() => fetchQR(attempt + 1), 1000);
+            } else {
+              console.error('QR fetch failed after retries:', err);
+            }
+          });
+      };
+      fetchQR();
+      return () => controller.abort();
+    } else {
+      setQrData(null);
     }
   }, [gameState?.gameId]);
 
@@ -300,6 +318,37 @@ export default function HostDashboard() {
 
         {/* Main Content */}
         <div className="flex-1 p-6 overflow-auto">
+          {/* Persistent Bidding Status Bar — visible in ALL views during bidding (except overview which has its own) */}
+          {phase === 'bidding' && activeView !== 'overview' && (
+            <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 animate-fade-in">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-white font-semibold text-sm">Bidding in Progress</span>
+                  <span className="text-navy-300 text-xs">
+                    {Object.values(bidStatus).filter(Boolean).length}/{teams.length} bids in
+                  </span>
+                </div>
+                <div className={`text-xl font-mono font-bold ${
+                  biddingTimeRemaining <= 30 ? 'text-red-400 animate-pulse' : 'text-electric-400'
+                }`}>
+                  {formatTime(biddingTimeRemaining)}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {teams.map(team => (
+                  <div key={team.id} className="flex items-center gap-1.5 text-xs">
+                    <div className={`w-2 h-2 rounded-full ${
+                      bidStatus[team.id] ? 'bg-green-400' : 'bg-amber-400 animate-pulse'
+                    }`} />
+                    <span className={bidStatus[team.id] ? 'text-green-300' : 'text-navy-400'}>
+                      {team.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Lobby View */}
           {phase === 'lobby' && activeView === 'overview' && (
             <div className="max-w-2xl mx-auto text-center animate-fade-in">
