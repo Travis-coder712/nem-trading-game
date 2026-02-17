@@ -144,7 +144,7 @@ export default function Landing() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.9, duration: 0.6 }}
-            className="flex items-center justify-center gap-3 mb-10"
+            className="flex items-center justify-center gap-3 flex-wrap mb-6"
           >
             <button
               onClick={() => setSlideDeckOpen(true)}
@@ -167,6 +167,31 @@ export default function Landing() {
               className="px-5 py-2.5 text-sm font-medium text-navy-300 border border-white/10 hover:border-white/30 hover:bg-white/5 rounded-xl transition-all"
             >
               📄 Download Guide
+            </a>
+          </motion.div>
+
+          {/* Development notes */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2.0, duration: 0.6 }}
+            className="flex items-center justify-center gap-3 mb-10"
+          >
+            <a
+              href="/api/notes/technical"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 text-xs font-medium text-purple-300 border border-purple-500/25 hover:border-purple-400 hover:bg-purple-500/10 rounded-lg transition-all"
+            >
+              🔧 Technical Notes (IT Teams)
+            </a>
+            <a
+              href="/api/notes/vibe-coding"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 text-xs font-medium text-purple-300 border border-purple-500/25 hover:border-purple-400 hover:bg-purple-500/10 rounded-lg transition-all"
+            >
+              ✨ How This Was Built (Vibe Coding)
             </a>
           </motion.div>
 

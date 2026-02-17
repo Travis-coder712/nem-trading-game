@@ -4,6 +4,8 @@ import { engine } from '../sockets/index.ts';
 import { generateQRCodeDataUrl } from '../utils/qrcode.ts';
 import { getServerUrl, hasPublicUrl } from '../utils/networkInfo.ts';
 import { getPreReadHTML } from '../pages/pre-read.ts';
+import { getTechnicalNotesHTML } from '../pages/technical-notes.ts';
+import { getVibeCodingNotesHTML } from '../pages/vibe-coding-notes.ts';
 import { listConfigs, saveConfig, deleteConfig } from '../data/configs.ts';
 import type { AssetConfigPreset } from '../../shared/types.ts';
 
@@ -70,6 +72,18 @@ apiRouter.get('/game/:gameId/export', (req, res) => {
 apiRouter.get('/pre-read', (req, res) => {
   res.setHeader('Content-Type', 'text/html');
   res.send(getPreReadHTML());
+});
+
+// ---- Development Notes ----
+
+apiRouter.get('/notes/technical', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getTechnicalNotesHTML());
+});
+
+apiRouter.get('/notes/vibe-coding', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getVibeCodingNotesHTML());
 });
 
 // ---- Asset Configuration Presets ----
