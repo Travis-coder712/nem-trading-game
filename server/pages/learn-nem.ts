@@ -65,7 +65,12 @@ const slides: Slide[] = [
   {
     icon: '🕹️',
     heading: 'Game Modes',
-    body: '<strong>Quick Game (8 rounds, ~60&ndash;90 min)</strong> &mdash; Fast-paced introduction. Start with coal, progressively add gas, renewables, hydro, and batteries. Perfect for workshops.<br><br><strong>Full Game (15 rounds, ~2.5&ndash;3.5 hours)</strong> &mdash; Deep dive. Includes seasonal scenarios (heatwaves, droughts, dunkelflaute), carbon pricing, and advanced strategy.<br><br><strong>Experienced Replay (4 rounds, ~30&ndash;45 min)</strong> &mdash; Full portfolio from the start. One round per season. For teams who&rsquo;ve played before.',
+    body: '<strong>Beginner Intro (1 round, ~15 min)</strong> &mdash; Single guided round with 2 assets. Perfect for first-timers.<br><br><strong>Progressive Learning (10 rounds, ~90&ndash;120 min)</strong> &mdash; Builds complexity gradually from 1 asset to a full portfolio. Host teaching prompts included. Best for 2-hour sessions.<br><br><strong>Quick Game (8 rounds, ~60&ndash;90 min)</strong> &mdash; Fast-paced introduction covering all technologies. Perfect for workshops.<br><br><strong>Full Game (15 rounds, ~2.5&ndash;3.5 hours)</strong> &mdash; Deep dive with seasonal scenarios, carbon pricing, and advanced strategy.<br><br><strong>Experienced Replay (4 rounds, ~30&ndash;45 min)</strong> &mdash; Full portfolio from the start. One round per season.',
+  },
+  {
+    icon: '🎮',
+    heading: 'Game Features',
+    body: 'The game includes several features to help you learn:<br><strong>Progressive Learning</strong> &mdash; Start with 1 asset and build to a full portfolio over 10 rounds.<br><strong>Sound Effects</strong> &mdash; Audio cues for countdowns, bid confirmations, and results (mute with 🔊).<br><strong>Dark Mode</strong> &mdash; Toggle with 🌙 for dimly-lit rooms.<br><strong>Quick Recaps</strong> &mdash; See your last round results at the start of each new round.<br><strong>Bid Presets</strong> &mdash; One-click strategies like Price Taker, Cost Recovery, and Aggressive bidding.<br><strong>Price History</strong> &mdash; Track clearing price trends across all rounds.',
   },
   {
     icon: '🚀',
@@ -153,7 +158,7 @@ export function getLearnNemHTML(): string {
 ${slideHTML}
 
   <div class="footer">
-    <p>NEM Merit Order Training Game &mdash; Learn the NEM Guide</p>
+    <p>NEM Merit Order Training Game &mdash; Learn the NEM Guide &middot; 5 game modes &middot; 7 asset types</p>
   </div>
 </div>
 

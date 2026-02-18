@@ -90,10 +90,19 @@ export function getTechnicalNotesHTML(): string {
       <li>Up to 15 teams play simultaneously from their phones/laptops</li>
       <li>A host controls the game from a dashboard (typically projected onto a large screen)</li>
       <li>Real-time synchronisation via WebSockets&mdash;all players see results at the same time</li>
-      <li>4 game modes: Beginner (10 min), Quick (60&ndash;90 min), Full (2.5&ndash;3.5 hrs), Experienced Replay (30&ndash;45 min)</li>
+      <li>5 game modes: Beginner (10 min), Quick (60&ndash;90 min), Full (2.5&ndash;3.5 hrs), Experienced Replay (30&ndash;45 min), Progressive Learning (90&ndash;120 min)</li>
       <li>7 asset types modelling real NEM generators: coal, gas CCGT, gas peaker, hydro, wind, solar, battery</li>
       <li>Scenario events: heatwave, drought, carbon price, plant outage, negative prices, and more</li>
       <li>Educational features: animated merit order walkthrough, bid review warnings, pre-read document</li>
+      <li>Sound effects via Web Audio API (countdown beeps, bid confirmation, results fanfare&mdash;no audio files)</li>
+      <li>Dark mode toggle with localStorage persistence</li>
+      <li>WiFi QR code sharing for easy venue setup</li>
+      <li>Auto-advance when all team bids are submitted</li>
+      <li>Spectator mode for read-only game observation</li>
+      <li>Post-game printable report with round-by-round analysis</li>
+      <li>Duplicate team name prevention</li>
+      <li>Host teaching notes per round</li>
+      <li>Historical clearing price tracking across rounds</li>
     </ul>
   </div>
 
@@ -134,12 +143,18 @@ export function getTechnicalNotesHTML(): string {
       <tr><td>TypeScript</td><td>5.7</td><td>Type-safe JavaScript</td></tr>
       <tr><td>Vite</td><td>6.0</td><td>Build tool and dev server</td></tr>
       <tr><td>React Router DOM</td><td>7.1</td><td>Client-side page routing</td></tr>
+      <tr><td>React.lazy() + Suspense</td><td>React 19.x</td><td>Route-level code splitting for bundle optimisation</td></tr>
       <tr><td>Framer Motion</td><td>12.x</td><td>Animations and transitions</td></tr>
       <tr><td>Recharts</td><td>2.15</td><td>Data visualisation (charts, graphs)</td></tr>
       <tr><td>TailwindCSS</td><td>4.x</td><td>Utility-first CSS styling</td></tr>
       <tr><td>Socket.IO Client</td><td>4.8.1</td><td>WebSocket communication with server</td></tr>
       <tr><td>Web Audio API</td><td>Browser-native</td><td>Procedural sound effects (no audio files needed)</td></tr>
+      <tr><td>ThemeContext</td><td>Custom</td><td>Dark mode support with localStorage persistence</td></tr>
     </table>
+
+    <div class="highlight">
+      <strong>Bundle optimisation:</strong> Route-level code splitting via <code>React.lazy()</code> reduced the main bundle from ~1180 KB to ~432 KB. Each route (host, team, spectator, report) is loaded on demand, improving initial page load times significantly.
+    </div>
   </div>
 
   <h3>Backend Stack</h3>
@@ -152,9 +167,26 @@ export function getTechnicalNotesHTML(): string {
       <tr><td>TypeScript</td><td>5.7</td><td>Type-safe server code</td></tr>
       <tr><td>tsx</td><td>4.19</td><td>Run TypeScript directly without separate compile step</td></tr>
       <tr><td>UUID</td><td>10.x</td><td>Generate unique game &amp; team identifiers</td></tr>
-      <tr><td>QRCode</td><td>1.5.4</td><td>Generate QR codes for team joining</td></tr>
+      <tr><td>QRCode</td><td>1.5.4</td><td>Generate QR codes for team joining and WiFi sharing (standard <code>WIFI:</code> format)</td></tr>
       <tr><td>CORS</td><td>2.x</td><td>Cross-origin request handling</td></tr>
       <tr><td>ngrok</td><td>5.0-beta</td><td>Optional public tunnel for remote access</td></tr>
+    </table>
+  </div>
+
+  <h3>Routes &amp; API Endpoints</h3>
+  <div class="card">
+    <table>
+      <tr><th>Route</th><th>Method</th><th>Purpose</th></tr>
+      <tr><td><code>/</code></td><td>GET</td><td>Landing page</td></tr>
+      <tr><td><code>/host</code></td><td>GET</td><td>Host dashboard (game control)</td></tr>
+      <tr><td><code>/team/:code</code></td><td>GET</td><td>Team game interface</td></tr>
+      <tr><td><code>/spectate</code></td><td>GET</td><td>Spectator mode (read-only game observation)</td></tr>
+      <tr><td><code>/report</code></td><td>GET</td><td>Post-game printable report</td></tr>
+      <tr><td><code>/api/notes/pre-read</code></td><td>GET</td><td>Pre-read educational document</td></tr>
+      <tr><td><code>/api/notes/technical</code></td><td>GET</td><td>This technical notes page</td></tr>
+      <tr><td><code>/api/wifi</code></td><td>GET</td><td>Get saved WiFi configuration + QR code</td></tr>
+      <tr><td><code>/api/wifi</code></td><td>POST</td><td>Save WiFi configuration</td></tr>
+      <tr><td><code>/api/wifi</code></td><td>DELETE</td><td>Delete WiFi configuration</td></tr>
     </table>
   </div>
 
@@ -167,7 +199,7 @@ export function getTechnicalNotesHTML(): string {
       <tr><th>Software</th><th>Required?</th><th>Notes</th></tr>
       <tr><td><strong>Node.js</strong> (v18+ LTS)</td><td>Yes</td><td>JavaScript runtime. Download from nodejs.org</td></tr>
       <tr><td><strong>npm</strong> (bundled with Node)</td><td>Yes</td><td>Package manager for installing dependencies</td></tr>
-      <tr><td><strong>Modern web browser</strong></td><td>Yes</td><td>Chrome, Edge, Firefox, or Safari. Host uses desktop browser, teams use phone browsers.</td></tr>
+      <tr><td><strong>Modern web browser</strong></td><td>Yes</td><td>Chrome, Edge, Firefox, or Safari. Host uses desktop browser, teams use phone browsers. Web Audio API required for sound effects.</td></tr>
     </table>
 
     <h3>Development Tools (used to build the game)</h3>
@@ -347,6 +379,23 @@ npm start</code></pre>
     </ul>
   </div>
 
+  <div class="card">
+    <h3>Commit 6 &mdash; 19 Feb 2026</h3>
+    <p><strong>"Add spectator mode, dark mode, WiFi QR sharing, progressive learning mode, post-game report, and code splitting"</strong></p>
+    <ul>
+      <li><strong>Spectator mode</strong>&mdash;read-only game observation at <code>/spectate</code></li>
+      <li><strong>Dark mode</strong> with ThemeContext and localStorage persistence</li>
+      <li><strong>WiFi QR code sharing</strong> for venue setup (standard <code>WIFI:</code> format, <code>/api/wifi</code> endpoints)</li>
+      <li><strong>Progressive Learning mode</strong>&mdash;10 rounds, 90&ndash;120 min, builds complexity from 1 asset to full portfolio</li>
+      <li><strong>Post-game printable report</strong> at <code>/report</code></li>
+      <li><strong>Route-level code splitting</strong> via <code>React.lazy()</code>&mdash;main bundle reduced from ~1180 KB to ~432 KB</li>
+      <li>Auto-advance when all team bids are submitted</li>
+      <li>Duplicate team name prevention</li>
+      <li>Host teaching notes per round</li>
+      <li>Historical clearing price tracking across rounds</li>
+    </ul>
+  </div>
+
   <h2 id="risks">7. Risk Assessment</h2>
 
   <h3>Security Risks</h3>
@@ -432,6 +481,7 @@ npm start</code></pre>
       <li>Run directly on a laptop with <code>npm start</code></li>
       <li>Ensure all devices are on the same WiFi network</li>
       <li>Use the QR code feature for easy team joining</li>
+      <li>Use WiFi QR code sharing (<code>/api/wifi</code>) to help participants connect to the venue network</li>
       <li>For remote participants, use <code>npm run tunnel</code> for ngrok public access</li>
     </ol>
 

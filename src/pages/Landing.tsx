@@ -238,7 +238,7 @@ export default function Landing() {
             transition={{ delay: 2.6, duration: 0.8 }}
             className="mt-10 text-navy-500 text-xs"
           >
-            Up to 15 teams &bull; 3 game modes &bull; Real NEM scenarios &bull; Coal to batteries
+            Up to 15 teams &bull; 5 game modes &bull; Real NEM scenarios &bull; Coal to batteries &bull; Sound effects &bull; Dark mode
           </motion.p>
         </div>
       </div>

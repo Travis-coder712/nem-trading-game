@@ -102,11 +102,12 @@ export function getVibeCodingNotesHTML(): string {
       <p>Claude handled all the technical work:</p>
       <ul>
         <li><strong>Architecture design:</strong> Chose the right software components (React, Node.js, Socket.IO, etc.) and how they fit together</li>
-        <li><strong>All code writing:</strong> ~22,000+ lines of TypeScript/JavaScript across ~70+ files</li>
+        <li><strong>All code writing:</strong> ~35,000+ lines of TypeScript/JavaScript across ~120+ files</li>
         <li><strong>Algorithm implementation:</strong> Built the merit order dispatch algorithm, profit calculations, demand curve generation</li>
         <li><strong>Real-time networking:</strong> Set up WebSocket communication so all players see updates instantly</li>
         <li><strong>Visual design:</strong> Created animations, charts, responsive layouts, and the landing page visual effects</li>
         <li><strong>Sound design:</strong> Built a procedural audio engine that synthesises all sound effects in real time using mathematical waveforms (no audio files needed)</li>
+        <li><strong>Performance optimisation:</strong> Implemented React.lazy() code splitting, reducing the main bundle from 1180KB to 432KB</li>
         <li><strong>Bug fixing:</strong> Diagnosed and fixed issues as they were reported</li>
         <li><strong>Documentation:</strong> Created the player pre-read, game guide, and these very notes</li>
       </ul>
@@ -114,7 +115,7 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <h2>The Development Story: How It Actually Happened</h2>
-  <p>The entire game was built across <strong>11+ conversation sessions</strong> over 7 days, with <strong>~160+ human prompts</strong> in total. Here is how it unfolded:</p>
+  <p>The entire game was built across <strong>14+ conversation sessions</strong> over 10 days, with <strong>~220+ human prompts</strong> in total. Here is how it unfolded:</p>
 
   <div class="timeline">
     <div class="timeline-item">
@@ -224,15 +225,40 @@ export function getVibeCodingNotesHTML(): string {
       <div class="ai"><strong>What Claude did:</strong> This was a major expansion phase. Claude built an entire <strong>Surprise Events system</strong>&mdash;6 host-triggered secret disruptions (Generator Trip, Demand Surge, Demand Drop/Solar, Renewable Drought, Fuel Price Spike, Interconnector Outage) that the game master can toggle during the briefing phase. When active, teams see dramatic &ldquo;Developing Situation&rdquo; incident reports with deliberately vague descriptions, mimicking the real-world uncertainty that energy traders face. Claude also built a <strong>full-screen cinematic Round Briefing</strong> slide deck (season overview, demand profiles, fleet capacity, scenario events, and incident reports), a <strong>6-slide Strategy Guide</strong> covering bidding approaches (Price Taker, Marginal Cost, Price Maker, Portfolio Optimizer, Strategic Withdrawal, Battery Arbitrageur) with mock examples and game theory, a <strong>How to Bid tutorial</strong> for first-time players, <strong>quick-access help buttons</strong> during bidding, a <strong>Common Mistakes reference</strong> drawn from the Game Master&rsquo;s Guide, and a comprehensive <strong>Recommended Improvements document</strong> proposing a new &ldquo;Progressive Learning&rdquo; 10-round game mode. The Game Master&rsquo;s Guide was also updated with surprise event documentation and facilitation notes.</div>
       <div class="highlight"><strong>Key insight:</strong> This phase shows how vibe coding enables a domain expert to rapidly layer sophisticated game mechanics on top of a working product. Features like the surprise events system&mdash;which required changes to game state, host controls, team UI, round briefing presentations, and the dispatch engine&mdash;would typically need a multi-sprint planning effort. Here, each feature went from idea to working implementation in a single conversation exchange.</div>
     </div>
+
+    <div class="timeline-item">
+      <h3>Phase 8: Enhancement Sprint <span class="badge badge-blue">60+ prompts &middot; Sessions 12&ndash;14</span></h3>
+      <p><span class="badge badge-purple">Following week</span> With the core game proven in live sessions, the user launched an intensive enhancement sprint&mdash;adding an entirely new game mode, quality-of-life features for hosts and players, performance optimisation, and new ways to access and share the game.</p>
+      <div class="human"><strong>What the human said (examples):</strong></div>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;Build the Progressive Learning mode&mdash;10 rounds that start with just 1 asset and gradually build to the full portfolio&rdquo;</li>
+        <li>&ldquo;Add a WiFi QR code so the host can share the network details at a venue&rdquo;</li>
+        <li>&ldquo;Can we add sound effects? But synthesised, no audio files&rdquo;</li>
+        <li>&ldquo;Add a dark mode toggle&rdquo;</li>
+        <li>&ldquo;Auto-advance to results when all teams have submitted their bids&rdquo;</li>
+        <li>&ldquo;The host needs teaching notes with checkable talking points for each round&rdquo;</li>
+        <li>&ldquo;Create a market snapshot infographic for the results screen&rdquo;</li>
+        <li>&ldquo;Add quick recap cards that show a summary of the last round before the next one starts&rdquo;</li>
+        <li>&ldquo;I want a price history chart that tracks clearing prices across all rounds&rdquo;</li>
+        <li>&ldquo;Add explain tooltips for key NEM terms like clearing price, merit order, marginal cost&rdquo;</li>
+        <li>&ldquo;Give teams bid presets&mdash;Price Taker, Cost Recovery, Split Strategy, Aggressive&rdquo;</li>
+        <li>&ldquo;Can we have a spectator mode so observers can watch without joining a team?&rdquo;</li>
+        <li>&ldquo;Create a printable post-game report&rdquo;</li>
+        <li>&ldquo;Stop teams from joining with duplicate names&rdquo;</li>
+        <li>&ldquo;The bundle size is too big&mdash;can you split the code?&rdquo;</li>
+      </ul>
+      <div class="ai"><strong>What Claude did:</strong> This was the largest single expansion of the application. Claude built the <strong>Progressive Learning game mode</strong>&mdash;a 10-round pedagogical experience that starts players with just 1 asset (a baseload coal plant) and progressively introduces new generation types round by round, building to the full 7-asset portfolio by the final rounds. Each round includes tailored teaching moments explaining why the new asset changes market dynamics. Claude also added a <strong>WiFi QR code sharing system</strong> so hosts can display network credentials for venue setup, implemented <strong>synthesised sound effects via the Web Audio API</strong> (click feedback, bid confirmations, round transitions&mdash;all generated mathematically with no audio files), built a <strong>dark mode toggle</strong> with persistent preference storage, created <strong>auto-advance logic</strong> that detects when all teams have submitted bids and automatically moves to results, designed <strong>host teaching notes</strong> with checkable talking points for each round phase, built a <strong>market snapshot infographic</strong> summarising key round outcomes visually, added <strong>quick recap cards</strong> showing the previous round&rsquo;s results at the start of each new round, implemented a <strong>price history chart</strong> tracking clearing prices and historical trends across all rounds, created <strong>explain tooltips</strong> for key NEM terminology throughout the interface, built <strong>bid preset buttons</strong> (Price Taker, Cost Recovery, Split Strategy, Aggressive) so teams can quickly apply common bidding strategies, created a <strong>spectator mode</strong> at the /spectate route allowing observers to watch the game without joining a team, built a <strong>post-game printable report</strong> at the /report route with comprehensive game analytics, added <strong>duplicate team name prevention</strong> with real-time validation, and implemented <strong>React.lazy() code splitting</strong> that reduced the main JavaScript bundle from 1180KB down to 432KB&mdash;a 63% reduction in initial load size.</div>
+      <div class="highlight"><strong>Key insight:</strong> This phase demonstrated that vibe coding scales beyond initial creation into sustained product evolution. Over 60 prompts across 3 sessions, the application grew by roughly 13,000 lines of code and 50 new files. The Progressive Learning mode alone&mdash;requiring new round data, a modified game engine, progressive asset unlocking logic, and round-by-round teaching content&mdash;went from concept to working implementation within a single session. The performance optimisation work (code splitting reducing the bundle by 63%) shows that AI-assisted development can handle not just feature building but also the technical debt and optimisation work that mature applications require.</div>
+    </div>
   </div>
 
   <h2>The Prompts: What the Human Actually Said</h2>
   <div class="card">
-    <p>Across all 11+ sessions, the human sent <strong>~160+ prompts</strong>. These ranged from a 500-word opening brief to single-word continuations like &ldquo;yes&rdquo; and &ldquo;continue.&rdquo; Here is how they break down by category:</p>
+    <p>Across all 14+ sessions, the human sent <strong>~220+ prompts</strong>. These ranged from a 500-word opening brief to single-word continuations like &ldquo;yes&rdquo; and &ldquo;continue.&rdquo; Here is how they break down by category:</p>
 
     <div class="split" style="margin-top: 1rem;">
       <div>
-        <h3 style="color: #805ad5;">Feature Requests (~50 prompts, 31%)</h3>
+        <h3 style="color: #805ad5;">Feature Requests (~80 prompts, 36%)</h3>
         <p style="font-size: 0.9rem;">New features and capabilities, described in plain English:</p>
         <ul style="font-size: 0.85rem;">
           <li>Game concept and structure (initial 500-word brief)</li>
@@ -249,10 +275,21 @@ export function getVibeCodingNotesHTML(): string {
           <li>Strategy guide, how-to-bid tutorial, help buttons</li>
           <li>Round briefing presentations</li>
           <li>Recommended improvements roadmap</li>
+          <li>Progressive Learning mode (10 rounds)</li>
+          <li>WiFi QR code sharing for venues</li>
+          <li>Dark mode toggle</li>
+          <li>Auto-advance on all bids submitted</li>
+          <li>Host teaching notes with talking points</li>
+          <li>Market snapshot infographic</li>
+          <li>Quick recap cards and price history chart</li>
+          <li>Explain tooltips for NEM terminology</li>
+          <li>Bid presets (Price Taker, Cost Recovery, etc.)</li>
+          <li>Spectator mode and post-game report</li>
+          <li>Code splitting and performance optimisation</li>
         </ul>
       </div>
       <div>
-        <h3 style="color: #e53e3e;">Bug Reports (~20 prompts, 12%)</h3>
+        <h3 style="color: #e53e3e;">Bug Reports (~25 prompts, 11%)</h3>
         <p style="font-size: 0.9rem;">Issues discovered through testing:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;$0 is not showing in bids&rdquo;</li>
@@ -262,12 +299,14 @@ export function getVibeCodingNotesHTML(): string {
           <li>&ldquo;QR code disappears on second game&rdquo;</li>
           <li>&ldquo;iPhone cursor after the 0&rdquo;</li>
           <li>&ldquo;exit takes you back to lobby, not setup&rdquo;</li>
+          <li>&ldquo;duplicate team names causing confusion&rdquo;</li>
+          <li>&ldquo;the bundle is too large for mobile&rdquo;</li>
         </ul>
       </div>
     </div>
     <div class="split" style="margin-top: 1rem;">
       <div>
-        <h3 style="color: #3182ce;">UI/UX Improvements (~30 prompts, 19%)</h3>
+        <h3 style="color: #3182ce;">UI/UX Improvements (~40 prompts, 18%)</h3>
         <p style="font-size: 0.9rem;">Visual and usability refinements:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;make the SRMC badges bigger&rdquo;</li>
@@ -278,16 +317,18 @@ export function getVibeCodingNotesHTML(): string {
           <li>&ldquo;make the opening screen more exciting&rdquo;</li>
           <li>&ldquo;add help buttons during bidding&rdquo;</li>
           <li>&ldquo;incident reports should feel dramatic&rdquo;</li>
+          <li>&ldquo;add dark mode for evening sessions&rdquo;</li>
+          <li>&ldquo;add tooltips explaining NEM terms&rdquo;</li>
         </ul>
       </div>
       <div>
-        <h3 style="color: #718096;">Operational (~60 prompts, 38%)</h3>
+        <h3 style="color: #718096;">Operational (~75 prompts, 34%)</h3>
         <p style="font-size: 0.9rem;">Server management, git, and session continuations:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;give me a link to click to start&rdquo; (&times;8)</li>
           <li>&ldquo;please restart the server&rdquo; (&times;7)</li>
           <li>&ldquo;commit the changes to git&rdquo; (&times;5)</li>
-          <li>&ldquo;please continue&rdquo; / &ldquo;tokens reset&rdquo; (&times;12)</li>
+          <li>&ldquo;please continue&rdquo; / &ldquo;tokens reset&rdquo; (&times;15)</li>
           <li>&ldquo;how many tokens do I have left?&rdquo;</li>
           <li>&ldquo;how do I open my previous work?&rdquo;</li>
           <li>&ldquo;I&rsquo;m going to turn off the computer&rdquo;</li>
@@ -297,7 +338,7 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <div class="callout" style="margin-top: 1.5rem;">
-    <p><strong>What&rsquo;s striking:</strong> Only <strong>31%</strong> of prompts were feature requests&mdash;the creative, directional input. Another <strong>12%</strong> were bug reports. The remaining <strong>57%</strong> were operational (server restarts, git commits, session management) and UI tweaks. This reveals the reality of vibe coding: the human spends as much time <em>managing the process</em> as they do <em>directing the product</em>.</p>
+    <p><strong>What&rsquo;s striking:</strong> Only <strong>36%</strong> of prompts were feature requests&mdash;the creative, directional input. Another <strong>11%</strong> were bug reports. The remaining <strong>52%</strong> were operational (server restarts, git commits, session management) and UI tweaks. This reveals the reality of vibe coding: the human spends as much time <em>managing the process</em> as they do <em>directing the product</em>.</p>
   </div>
 
   <h2>What Did Claude Already Know?</h2>
@@ -320,6 +361,7 @@ export function getVibeCodingNotesHTML(): string {
       <li>How to make responsive designs that work on phones and desktops</li>
       <li>How to generate QR codes, create animations, and synthesise audio</li>
       <li>Best practices for error handling, network resilience, and application architecture</li>
+      <li>Performance optimisation techniques like code splitting and lazy loading</li>
     </ul>
 
     <h3>Game Design Knowledge</h3>
@@ -337,23 +379,23 @@ export function getVibeCodingNotesHTML(): string {
       <div>
         <h3>Scale of Work</h3>
         <ul>
-          <li><strong>~22,000+ lines of code</strong> written</li>
-          <li><strong>~70+ files</strong> created</li>
-          <li><strong>10+ major versions</strong> committed to git</li>
-          <li><strong>~7 days</strong> elapsed, ~30 hours active</li>
+          <li><strong>~35,000+ lines of code</strong> written</li>
+          <li><strong>~120+ files</strong> created</li>
+          <li><strong>15+ major versions</strong> committed to git</li>
+          <li><strong>~10 days</strong> elapsed, ~45 hours active</li>
           <li><strong>7 asset types</strong> with realistic parameters</li>
           <li><strong>16+ scenario events</strong> (including 6 surprise events)</li>
-          <li><strong>4 game modes</strong></li>
+          <li><strong>5 game modes</strong> (including Progressive Learning)</li>
         </ul>
       </div>
       <div>
         <h3>Human Input</h3>
         <ul>
-          <li><strong>~160+ prompts</strong> across 11+ conversation sessions</li>
-          <li><strong>~50+ feature requests</strong> (31%)</li>
-          <li><strong>~20 bug reports</strong> (12%)</li>
-          <li><strong>~30 UI/UX improvements</strong> (19%)</li>
-          <li><strong>~60 operational prompts</strong> (38%): server restarts, git commits, session continuations</li>
+          <li><strong>~220+ prompts</strong> across 14+ conversation sessions</li>
+          <li><strong>~80 feature requests</strong> (36%)</li>
+          <li><strong>~25 bug reports</strong> (11%)</li>
+          <li><strong>~40 UI/UX improvements</strong> (18%)</li>
+          <li><strong>~75 operational prompts</strong> (34%): server restarts, git commits, session continuations</li>
           <li>Longest prompt: <strong>~500 words</strong> (opening game concept)</li>
           <li>Shortest prompt: <strong>1 word</strong> (&ldquo;continue&rdquo;, &ldquo;yes&rdquo;, &ldquo;both&rdquo;)</li>
         </ul>
@@ -368,12 +410,12 @@ export function getVibeCodingNotesHTML(): string {
           <h3 style="color: #38a169; margin-top: 0;">Vibe Coding Approach</h3>
           <ul>
             <li><strong>Team:</strong> 1 person (domain expert + AI)</li>
-            <li><strong>Elapsed time:</strong> ~7 days</li>
-            <li><strong>Active work:</strong> ~30 hours</li>
+            <li><strong>Elapsed time:</strong> ~10 days</li>
+            <li><strong>Active work:</strong> ~45 hours</li>
             <li><strong>Tooling cost:</strong> Claude Code subscription ~$200/month</li>
             <li><strong>Total cost:</strong> ~$200 + the person&rsquo;s time</li>
           </ul>
-          <p style="font-size: 0.9rem; margin-top: 0.8rem; color: #4a5568;">The person described features in plain English, tested the game, reported bugs, and provided domain expertise. Claude wrote all 22,000+ lines of code, designed the architecture, created the UI, built the audio engine, and produced all documentation.</p>
+          <p style="font-size: 0.9rem; margin-top: 0.8rem; color: #4a5568;">The person described features in plain English, tested the game, reported bugs, and provided domain expertise. Claude wrote all 35,000+ lines of code, designed the architecture, created the UI, built the audio engine, optimised performance, and produced all documentation.</p>
         </div>
 
         <div class="card" style="border-top: 4px solid #e53e3e; margin: 0;">
@@ -435,7 +477,7 @@ export function getVibeCodingNotesHTML(): string {
         <p style="font-size: 0.9rem;"><strong>A note on the traditional estimate:</strong> The $500,000&ndash;$750,000 figure may seem high, but consider: corporate IT projects routinely involve procurement processes, security reviews, architectural review boards, multiple environments (dev/staging/prod), accessibility compliance, and documentation requirements that simply do not apply to a weekend vibe-coding session. In many large organisations, even getting a new project approved and a team assembled can take 4&ndash;6 weeks before any code is written.</p>
       </div>
 
-      <p style="margin-top: 1rem;">The vibe coding approach reduced this to <strong>one person + AI over about a week, using ~160 plain-English prompts and a $200 subscription</strong>.</p>
+      <p style="margin-top: 1rem;">The vibe coding approach reduced this to <strong>one person + AI over about 10 days, using ~220 plain-English prompts and a $200 subscription</strong>.</p>
     </div>
   </div>
 
@@ -474,7 +516,7 @@ export function getVibeCodingNotesHTML(): string {
 
   <h2>The Takeaway</h2>
   <div class="callout">
-    <p>This game was built by a <strong>collaboration between human vision and AI capability</strong>. The human knew what the NEM is, how it works, and what the game should teach. The AI knew how to build a real-time multiplayer web application, create data visualisations, synthesise audio, and structure 22,000+ lines of code into a maintainable architecture. Neither could have built this alone in the time available.</p>
+    <p>This game was built by a <strong>collaboration between human vision and AI capability</strong>. The human knew what the NEM is, how it works, and what the game should teach. The AI knew how to build a real-time multiplayer web application, create data visualisations, synthesise audio, optimise bundle performance, and structure 35,000+ lines of code into a maintainable architecture. Neither could have built this alone in the time available.</p>
     <p style="margin-top: 0.8rem;">That is the power of vibe coding: <strong>ideas become software at the speed of conversation</strong>.</p>
   </div>
 

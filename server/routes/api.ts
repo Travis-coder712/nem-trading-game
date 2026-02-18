@@ -10,6 +10,7 @@ import { getVibeCodingNotesHTML } from '../pages/vibe-coding-notes.ts';
 import { getGameMasterGuideHTML } from '../pages/game-master-guide.ts';
 import { getRecommendedImprovementsHTML } from '../pages/recommended-improvements.ts';
 import { listConfigs, saveConfig, deleteConfig } from '../data/configs.ts';
+import { getWifiConfig, saveWifiConfig, deleteWifiConfig, generateWifiQRString, type WifiConfig } from '../data/wifi.ts';
 import type { AssetConfigPreset } from '../../shared/types.ts';
 
 export const apiRouter = Router();
@@ -151,6 +152,53 @@ apiRouter.delete('/asset-configs/:id', (req, res) => {
     console.error('Error deleting asset config:', err);
     res.status(500).json({ error: 'Failed to delete config' });
   }
+});
+
+// ---- WiFi Configuration (persisted across restarts) ----
+
+apiRouter.get('/wifi', (req, res) => {
+  const config = getWifiConfig();
+  if (!config) return res.json({ wifi: null });
+
+  // Generate WiFi QR code for auto-connect
+  const wifiQRString = generateWifiQRString(config);
+  generateQRCodeDataUrl(wifiQRString).then(qrDataUrl => {
+    res.json({ wifi: config, qrDataUrl });
+  }).catch(() => {
+    res.json({ wifi: config, qrDataUrl: null });
+  });
+});
+
+apiRouter.post('/wifi', (req, res) => {
+  try {
+    const { networkName, password, encryption } = req.body;
+    if (!networkName) {
+      return res.status(400).json({ error: 'Network name is required' });
+    }
+    const config: WifiConfig = {
+      networkName: networkName.trim(),
+      password: password || '',
+      encryption: encryption || 'WPA',
+      updatedAt: new Date().toISOString(),
+    };
+    saveWifiConfig(config);
+
+    // Generate QR code
+    const wifiQRString = generateWifiQRString(config);
+    generateQRCodeDataUrl(wifiQRString).then(qrDataUrl => {
+      res.json({ wifi: config, qrDataUrl });
+    }).catch(() => {
+      res.json({ wifi: config, qrDataUrl: null });
+    });
+  } catch (err) {
+    console.error('Error saving WiFi config:', err);
+    res.status(500).json({ error: 'Failed to save WiFi config' });
+  }
+});
+
+apiRouter.delete('/wifi', (req, res) => {
+  deleteWifiConfig();
+  res.json({ success: true });
 });
 
 apiRouter.get('/games', (req, res) => {

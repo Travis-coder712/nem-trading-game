@@ -5,7 +5,7 @@ import { useSocket } from '../../contexts/SocketContext';
 export default function TeamJoin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { joinGame, gameState, connected, reconnecting, clearSession } = useSocket();
+  const { joinGame, gameState, connected, reconnecting, clearSession, lastError, clearLastError } = useSocket();
   const [teamName, setTeamName] = useState('');
   const [gameId, setGameId] = useState(searchParams.get('game') || '');
   const [error, setError] = useState('');
@@ -39,6 +39,15 @@ export default function TeamJoin() {
       navigate('/team/game');
     }
   }, [gameState, navigate]);
+
+  // Show socket errors (e.g., duplicate team name)
+  useEffect(() => {
+    if (lastError) {
+      setError(lastError);
+      setJoining(false);
+      clearLastError();
+    }
+  }, [lastError, clearLastError]);
 
   const handleJoin = () => {
     if (!teamName.trim()) {

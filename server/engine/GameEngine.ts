@@ -21,6 +21,7 @@ import { fullGameRounds } from '../data/rounds/full-game.ts';
 import { quickGameRounds } from '../data/rounds/quick-game.ts';
 import { experiencedReplayRounds } from '../data/rounds/experienced-replay.ts';
 import { beginnerRounds } from '../data/rounds/beginner.ts';
+import { progressiveLearningRounds } from '../data/rounds/progressive-learning.ts';
 
 /**
  * Generate a dramatic, vague incident report for teams.
@@ -135,11 +136,17 @@ export class GameEngine {
     return undefined;
   }
 
-  addTeam(gameId: string, teamName: string, socketId: string): Team | null {
+  addTeam(gameId: string, teamName: string, socketId: string): Team | { error: string } | null {
     const game = this.games.get(gameId);
     if (!game) return null;
     if (game.teams.length >= game.config.teamCount) return null;
     if (game.phase !== 'lobby') return null;
+
+    // Check for duplicate team names (case-insensitive)
+    const nameLower = teamName.trim().toLowerCase();
+    if (game.teams.some(t => t.name.trim().toLowerCase() === nameLower)) {
+      return { error: 'Team name already taken. Please choose a different name.' };
+    }
 
     const teamIndex = game.teams.length;
     const team: Team = {
@@ -546,6 +553,14 @@ export class GameEngine {
       surpriseIncidents: game.surpriseIncidents.length > 0
         ? game.surpriseIncidents
         : undefined,
+      // Historical clearing prices from all completed rounds
+      historicalClearingPrices: game.roundResults.map((rr, idx) => ({
+        roundNumber: rr.roundNumber,
+        roundName: game.config.rounds[idx]?.name || `Round ${rr.roundNumber}`,
+        prices: Object.fromEntries(
+          rr.periodResults.map(pr => [pr.timePeriod, pr.clearingPriceMWh])
+        ),
+      })),
     };
   }
 
@@ -767,6 +782,7 @@ export class GameEngine {
       case 'quick': return quickGameRounds;
       case 'full': return fullGameRounds;
       case 'experienced': return experiencedReplayRounds;
+      case 'progressive': return progressiveLearningRounds;
     }
   }
 

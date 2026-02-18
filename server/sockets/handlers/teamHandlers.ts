@@ -21,11 +21,17 @@ export function registerTeamHandlers(
   socket.on('team:join', safe((data) => {
     const { teamName, gameId } = data;
 
-    const team = engine.addTeam(gameId, teamName, socket.id);
-    if (!team) {
+    const result = engine.addTeam(gameId, teamName, socket.id);
+    if (!result) {
       socket.emit('error', 'Could not join game. Game may be full or already started.');
       return;
     }
+    // Check for duplicate team name error
+    if (typeof result === 'object' && 'error' in result) {
+      socket.emit('error', result.error);
+      return;
+    }
+    const team = result;
 
     socket.join(`game:${gameId}`);
     socket.join(`game:${gameId}:team:${team.id}`);

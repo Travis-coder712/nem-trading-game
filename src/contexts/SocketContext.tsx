@@ -32,6 +32,10 @@ interface SocketContextValue {
   teamScreenData: GameStateSnapshot | null;
   /** Set exactly once per `game:phase_changed` socket event */
   lastPhaseTransition: PhaseTransition | null;
+  /** Last error message received from the server */
+  lastError: string | null;
+  /** Clear the last error */
+  clearLastError: () => void;
 
   // Host actions
   createGame: (mode: string, teamCount: number, balancingEnabled: boolean, biddingGuardrailEnabled: boolean, assetConfig?: AssetConfigOverrides, assetVariation?: boolean) => void;
@@ -68,6 +72,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [allBidsIn, setAllBidsIn] = useState(false);
   const [teamScreenData, setTeamScreenData] = useState<GameStateSnapshot | null>(null);
   const [lastPhaseTransition, setLastPhaseTransition] = useState<PhaseTransition | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
   const phaseTrackRef = useRef<{ currentPhase: GamePhase | null; nextId: number }>({ currentPhase: null, nextId: 1 });
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -169,6 +174,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     socket.on('error', (msg) => {
       console.error('Socket error:', msg);
+      setLastError(msg);
       setReconnecting(false);
     });
 
@@ -206,6 +212,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const resetGame = useCallback(() => {
     socket.emit('host:reset_game');
   }, []);
+
+  const clearLastError = useCallback(() => setLastError(null), []);
 
   const clearHostSession = useCallback(() => {
     setGameState(null);
@@ -271,6 +279,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       allBidsIn,
       teamScreenData,
       lastPhaseTransition,
+      lastError,
+      clearLastError,
       createGame,
       startRound,
       startBidding,

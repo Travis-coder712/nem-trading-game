@@ -93,6 +93,7 @@ export function getPreReadHTML(): string {
       <li>Teams of 2&ndash;4 people work best</li>
       <li>Read this document to understand the basics</li>
       <li>Session runs approximately 90&ndash;120 minutes</li>
+      <li>Your host may display a WiFi QR code &mdash; scan it with your phone camera to connect to the venue WiFi automatically, then scan the game QR code to join</li>
     </ul>
   </div>
 </div>
@@ -163,6 +164,18 @@ export function getPreReadHTML(): string {
     <li><strong>Rounds 4:</strong> Renewables &amp; hydro &mdash; zero-cost generation reshapes the market</li>
     <li><strong>Rounds 5:</strong> Batteries &mdash; buy low, sell high arbitrage</li>
     <li><strong>Rounds 6&ndash;8:</strong> Scenarios &mdash; heatwaves, oversupply, plant outages</li>
+  </ul>
+
+  <div class="highlight">
+    <strong>&#128200; Progressive Learning (10 rounds, 90&ndash;120 min)</strong> &mdash; Builds from 1 asset to full portfolio gradually. Best for 2-hour sessions.
+  </div>
+
+  <h3>During the Game</h3>
+  <ul>
+    <li><strong>Sound Effects:</strong> You&rsquo;ll hear countdown beeps and result chimes (mute with &#128266; button)</li>
+    <li><strong>Dark Mode:</strong> Toggle with &#127769; button if the room lighting is dim</li>
+    <li><strong>Quick Recap:</strong> Each round starts with a summary of your last round results</li>
+    <li><strong>Bid Presets:</strong> Use one-click strategy presets (Price Taker, Cost Recovery, etc.) if you&rsquo;re unsure what to bid</li>
   </ul>
 
   <h3>What You'll Learn</h3>
@@ -358,7 +371,7 @@ export function getPreReadHTML(): string {
   </div>
 
   <div class="footer" style="margin-top:2rem">
-    <p>NEM Merit Order Game &mdash; Player Pre-Read Document</p>
+    <p>NEM Merit Order Game &mdash; Player Pre-Read Document &middot; 5 game modes &middot; 7 asset types</p>
     <p>Bring your device charged. No installation required. See you at the session!</p>
   </div>
 </div>

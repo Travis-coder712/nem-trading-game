@@ -317,7 +317,7 @@ export default function RoundBriefing({
         )}
 
         {/* Bar chart */}
-        <div className="flex-1 flex items-end justify-center gap-6 md:gap-10 w-full max-w-4xl min-h-0">
+        <div className="flex-1 flex items-end justify-center gap-6 md:gap-10 w-full max-w-4xl min-h-0 pb-2">
           {bars.map((bar, i) => {
             const demandH = (bar.demandMW / maxFleet) * chartHeight;
             const fleetH = (bar.fleetMW / maxFleet) * chartHeight;
@@ -333,19 +333,6 @@ export default function RoundBriefing({
 
             return (
               <div key={bar.period} className="flex flex-col items-center flex-1 max-w-36">
-                {/* Labels above bar — Demand (large) and Fleet Capacity (smaller) */}
-                <motion.div
-                  className="text-center mb-2"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + i * 0.12 }}
-                >
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-navy-500 mb-0.5">Demand</div>
-                  <div className="text-xl md:text-2xl font-bold font-mono text-white leading-none">
-                    {formatNumber(bar.demandMW)} <span className="text-sm text-navy-400 font-normal">MW</span>
-                  </div>
-                </motion.div>
-
                 {/* Bar container */}
                 <div
                   className="w-full relative flex flex-col items-stretch justify-end"
@@ -359,29 +346,23 @@ export default function RoundBriefing({
                       borderColor: 'rgba(255,255,255,0.2)',
                     }}
                   >
-                    {/* Fleet capacity MW label at the top of the dashed outline */}
-                    <div
-                      className="absolute left-0 right-0 flex flex-col items-center"
-                      style={{ top: -2, transform: 'translateY(-100%)' }}
+                    {/* Fleet capacity MW label — inside top of dashed box */}
+                    <motion.div
+                      className="absolute left-0 right-0 flex items-center justify-center pt-1.5"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 + i * 0.12 }}
                     >
-                      <motion.div
-                        className="text-center"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 + i * 0.12 }}
-                      >
-                        <div className="text-[9px] font-semibold uppercase tracking-wider text-navy-600">Fleet</div>
-                        <div className="text-xs font-bold font-mono text-navy-400">
-                          {formatNumber(bar.fleetMW)} MW
-                        </div>
-                      </motion.div>
-                    </div>
+                      <span className="text-[10px] font-mono text-navy-500">
+                        {formatNumber(bar.fleetMW)} MW fleet
+                      </span>
+                    </motion.div>
 
-                    {/* Reserve margin label inside the gap */}
-                    {reserveH > 30 && (
+                    {/* Reserve margin label — between fleet top and demand top */}
+                    {reserveH > 50 && (
                       <div
                         className="absolute left-0 right-0 flex items-center justify-center text-[10px] text-navy-500 font-mono"
-                        style={{ top: 6 }}
+                        style={{ bottom: demandH + (reserveH - demandH > 0 ? Math.min(reserveH / 2, 30) : 8) }}
                       >
                         {Math.round(100 - tightness)}% reserve
                       </div>
@@ -396,10 +377,13 @@ export default function RoundBriefing({
                     animate={{ height: demandH }}
                     transition={{ duration: 0.6, delay: 0.4 + i * 0.12, ease: 'easeOut' }}
                   >
-                    {/* Tightness label inside bar */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-sm font-bold text-white/90 font-mono">
-                        {bar.pct}%
+                    {/* Demand MW label inside bar */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-lg md:text-xl font-bold font-mono text-white leading-none">
+                        {formatNumber(bar.demandMW)}
+                      </span>
+                      <span className="text-[10px] font-mono text-white/70 mt-0.5">
+                        MW
                       </span>
                     </div>
                   </motion.div>
@@ -423,22 +407,18 @@ export default function RoundBriefing({
 
         {/* Legend */}
         <motion.div
-          className="flex items-center gap-6 mt-4 text-xs text-navy-400"
+          className="flex items-center gap-6 mt-3 text-xs text-navy-400"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.0 }}
         >
           <div className="flex items-center gap-2">
             <div className="w-4 h-3 rounded" style={{ backgroundColor: seasonCfg.color }} />
-            <span>Demand (MW)</span>
+            <span>Demand</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-3 rounded border-2 border-dashed border-white/20 bg-transparent" />
-            <span>Fleet Capacity (MW)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="font-mono font-bold text-white/60">%</span>
-            <span>Demand as % of Fleet</span>
+            <span>Fleet Capacity</span>
           </div>
         </motion.div>
       </div>

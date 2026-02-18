@@ -13,6 +13,8 @@ import RoundSummary from '../../components/host/RoundSummary';
 import RoundBriefing from '../../components/host/RoundBriefing';
 import HowToBidTutorial from '../../components/game/HowToBidTutorial';
 import StrategyGuide from '../../components/game/StrategyGuide';
+import TeachingPromptCard from '../../components/host/TeachingPromptCard';
+import MarketSnapshotCard from '../../components/host/MarketSnapshotCard';
 import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 
@@ -41,10 +43,48 @@ export default function HostDashboard() {
   const [showHowToBid, setShowHowToBid] = useState(false);
   const [showStrategyGuide, setShowStrategyGuide] = useState(false);
 
+  // WiFi config for display in lobby
+  const [wifiConfig, setWifiConfig] = useState<{ networkName: string; password: string; qrDataUrl: string | null } | null>(null);
+  const [showWifiOnScreen, setShowWifiOnScreen] = useState(false);
+
   // Surprise events toggles (host-only, subtle, at bottom of sidebar)
   const [activeSurprises, setActiveSurprises] = useState<Set<string>>(new Set());
   const [surprisesExpanded, setSurprisesExpanded] = useState(false);
   const [surprisesApplied, setSurprisesApplied] = useState(false);
+
+  // Auto-advance: show banner and countdown when all bids submitted (4.8)
+  const [autoAdvanceCountdown, setAutoAdvanceCountdown] = useState<number | null>(null);
+  const autoAdvanceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (allBidsIn && phase === 'bidding' && autoAdvanceCountdown === null) {
+      // Start 5-second countdown
+      setAutoAdvanceCountdown(5);
+      autoAdvanceTimerRef.current = setInterval(() => {
+        setAutoAdvanceCountdown(prev => {
+          if (prev === null || prev <= 1) {
+            // Auto-advance
+            clearInterval(autoAdvanceTimerRef.current!);
+            autoAdvanceTimerRef.current = null;
+            endBidding();
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    // Reset if bids are no longer all in or phase changes
+    if ((!allBidsIn || phase !== 'bidding') && autoAdvanceTimerRef.current) {
+      clearInterval(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+      setAutoAdvanceCountdown(null);
+    }
+    return () => {
+      if (autoAdvanceTimerRef.current) {
+        clearInterval(autoAdvanceTimerRef.current);
+      }
+    };
+  }, [allBidsIn, phase, endBidding]);
 
   // Wrapped handlers that show the transition, then call the socket action
   const handleStartRound = useCallback(() => {
@@ -143,6 +183,22 @@ export default function HostDashboard() {
       setQrData(null);
     }
   }, [gameState?.gameId]);
+
+  // Fetch WiFi config for lobby display
+  useEffect(() => {
+    fetch('/api/wifi')
+      .then(r => r.json())
+      .then(data => {
+        if (data.wifi) {
+          setWifiConfig({
+            networkName: data.wifi.networkName,
+            password: data.wifi.password,
+            qrDataUrl: data.qrDataUrl || null,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (!gameState) {
     return (
@@ -591,6 +647,50 @@ export default function HostDashboard() {
                 ))}
               </div>
 
+              {/* WiFi Display for projection */}
+              {wifiConfig && (
+                <div className="mb-6">
+                  <button
+                    onClick={() => setShowWifiOnScreen(!showWifiOnScreen)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors mb-3 ${
+                      showWifiOnScreen
+                        ? 'bg-electric-500 text-white'
+                        : 'bg-white/10 text-navy-300 hover:bg-white/20'
+                    }`}
+                  >
+                    📶 {showWifiOnScreen ? 'Hide WiFi Details' : 'Show WiFi for Room'}
+                  </button>
+
+                  {showWifiOnScreen && (
+                    <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl p-8 shadow-2xl mb-4 text-center animate-fade-in">
+                      <div className="text-5xl mb-3">📶</div>
+                      <h3 className="text-white text-2xl font-bold mb-6">Connect to WiFi</h3>
+                      <div className="flex items-center justify-center gap-8">
+                        {/* WiFi QR Code */}
+                        {wifiConfig.qrDataUrl && (
+                          <div className="bg-white rounded-xl p-3">
+                            <img src={wifiConfig.qrDataUrl} alt="WiFi QR" className="w-48 h-48" />
+                            <p className="text-gray-500 text-xs mt-1">Scan to connect</p>
+                          </div>
+                        )}
+                        {/* WiFi Details */}
+                        <div className="text-left">
+                          <div className="mb-4">
+                            <div className="text-blue-200 text-sm font-medium">Network</div>
+                            <div className="text-white text-3xl font-bold font-mono">{wifiConfig.networkName}</div>
+                          </div>
+                          <div>
+                            <div className="text-blue-200 text-sm font-medium">Password</div>
+                            <div className="text-white text-3xl font-bold font-mono tracking-wider">{wifiConfig.password || '(no password)'}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-blue-200 text-sm mt-6">📱 Point your phone camera at the QR code to connect instantly</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {qrData && (
                 <div className="bg-white rounded-2xl p-6 inline-block mb-6 shadow-xl">
                   <img src={qrData.qrDataUrl} alt="QR Code" className="w-64 h-64" />
@@ -622,6 +722,17 @@ export default function HostDashboard() {
                 <h2 className="text-3xl font-bold text-white">{roundConfig.name}</h2>
                 <p className="text-navy-300 mt-2">{roundConfig.description}</p>
               </div>
+
+              {/* Teaching Prompt Card (3.1) — host-only talking points */}
+              {roundConfig.hostTeachingNotes && roundConfig.hostTeachingNotes.length > 0 && (
+                <div className="mb-6">
+                  <TeachingPromptCard
+                    notes={roundConfig.hostTeachingNotes}
+                    roundNumber={round}
+                    roundName={roundConfig.name}
+                  />
+                </div>
+              )}
 
               {roundConfig.educationalContent && (
                 <div className="space-y-4">
@@ -816,6 +927,34 @@ export default function HostDashboard() {
           {phase === 'bidding' && activeView === 'overview' && (
             <div className="max-w-3xl mx-auto animate-fade-in">
               <h2 className="text-2xl font-bold text-white mb-4">Bidding in Progress</h2>
+
+              {/* Auto-advance banner when all bids are in */}
+              {allBidsIn && autoAdvanceCountdown !== null && (
+                <div className="mb-4 bg-green-500/10 border border-green-500/30 rounded-xl p-4 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">✅</span>
+                      <div>
+                        <div className="text-sm font-semibold text-green-300">All bids submitted!</div>
+                        <div className="text-xs text-navy-300">Auto-advancing in {autoAdvanceCountdown}s...</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (autoAdvanceTimerRef.current) {
+                          clearInterval(autoAdvanceTimerRef.current);
+                          autoAdvanceTimerRef.current = null;
+                        }
+                        setAutoAdvanceCountdown(null);
+                        endBidding();
+                      }}
+                      className="px-4 py-2 bg-green-500 hover:bg-green-400 text-white font-semibold rounded-lg transition-colors text-sm"
+                    >
+                      Skip → Show Results
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {teams.map(team => (
                   <div
@@ -1158,6 +1297,13 @@ export default function HostDashboard() {
                   </div>
                 ))}
               </div>
+
+              {/* Market Snapshot Infographic (4.3) */}
+              <MarketSnapshotCard
+                roundResults={lastResults}
+                roundNumber={round}
+                roundName={roundConfig?.name || `Round ${round}`}
+              />
 
               {/* Team Results Table */}
               <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">

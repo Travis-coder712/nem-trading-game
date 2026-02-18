@@ -24,6 +24,13 @@ import CommonMistakes from '../../components/game/CommonMistakes';
 import RoundBriefing from '../../components/host/RoundBriefing';
 import GameStartTransition from '../../components/transitions/GameStartTransition';
 import RoundStartTransition from '../../components/transitions/RoundStartTransition';
+import GuidedBiddingView from '../../components/game/GuidedBiddingView';
+import QuickRecapCard from '../../components/game/QuickRecapCard';
+import PriceHistoryChart from '../../components/game/PriceHistoryChart';
+import NextRoundPreview from '../../components/game/NextRoundPreview';
+import SoundToggle from '../../components/game/SoundToggle';
+import DarkModeToggle from '../../components/game/DarkModeToggle';
+import AudioManager from '../../lib/AudioManager';
 
 export default function TeamGame() {
   const navigate = useNavigate();
@@ -43,6 +50,7 @@ export default function TeamGame() {
   const [showHowToBid, setShowHowToBid] = useState(false);
   const [showRoundBriefing, setShowRoundBriefing] = useState(false);
   const [showCommonMistakes, setShowCommonMistakes] = useState(false);
+  const [useGuidedView, setUseGuidedView] = useState(true); // default to guided step-by-step view
 
   useEffect(() => {
     // Only redirect to join if we don't have a team AND we're not reconnecting
@@ -88,6 +96,24 @@ export default function TeamGame() {
       setShowRoundStart(true);
     }
   }, [gameState?.phase, gameState?.currentRound]);
+
+  // Audio: countdown beeps during last 10 seconds
+  const prevTimeRef = useRef<number>(0);
+  useEffect(() => {
+    if (phase === 'bidding' && biddingTimeRemaining <= 10 && biddingTimeRemaining > 0) {
+      if (biddingTimeRemaining !== prevTimeRef.current) {
+        AudioManager.countdownBeep(biddingTimeRemaining);
+        prevTimeRef.current = biddingTimeRemaining;
+      }
+    }
+  }, [biddingTimeRemaining, phase]);
+
+  // Audio: phase change sounds
+  useEffect(() => {
+    if (phase === 'bidding') AudioManager.roundStart();
+    else if (phase === 'results') AudioManager.clearingPriceReveal();
+    else if (phase === 'final') AudioManager.gameOver();
+  }, [phase]);
 
   // Reset bids when new round starts
   useEffect(() => {
@@ -380,6 +406,7 @@ export default function TeamGame() {
 
     submitBids(submission);
     setSubmitted(true);
+    AudioManager.bidSubmitted();
   };
 
   // Show reconnecting state
@@ -483,6 +510,8 @@ export default function TeamGame() {
             <div className="text-white/70 text-xs font-mono">
               {formatCurrency(team.cumulativeProfitDollars)}
             </div>
+            <SoundToggle />
+            <DarkModeToggle />
           </div>
         </div>
       </div>
@@ -521,6 +550,13 @@ export default function TeamGame() {
                 </div>
               )}
             </div>
+
+            {/* Quick Recap of Last Round (4.6) */}
+            {gameState && gameState.lastRoundResults && (
+              <div className="mb-4">
+                <QuickRecapCard gameState={gameState} teamId={team.id} />
+              </div>
+            )}
 
             {/* Seasonal Guidance */}
             {roundConfig.seasonalGuidance && (
@@ -646,8 +682,52 @@ export default function TeamGame() {
         )}
 
         {/* Bidding Interface */}
-        {phase === 'bidding' && roundConfig && !submitted && (
+        {phase === 'bidding' && roundConfig && !submitted && useGuidedView && (
+          <>
+            {/* View Toggle */}
+            <div className="px-3 pt-3 pb-0 flex justify-end">
+              <button
+                onClick={() => setUseGuidedView(false)}
+                className="text-[10px] text-gray-400 hover:text-gray-600 underline transition-colors"
+              >
+                Switch to classic view
+              </button>
+            </div>
+            <GuidedBiddingView
+              roundConfig={roundConfig}
+              gameState={gameState!}
+              assets={assets}
+              assetDefs={assetDefs}
+              walkthrough={walkthrough}
+              bids={bids}
+              selectedPeriod={selectedPeriod}
+              onPeriodChange={setSelectedPeriod}
+              onUpdateBand={updateBand}
+              onAddBand={addBand}
+              onQuickBid={applyQuickBid}
+              onApplyStrategy={applyStrategy}
+              onShowHowToBid={() => setShowHowToBid(true)}
+              onShowRoundBriefing={() => setShowRoundBriefing(true)}
+              onShowStrategyGuide={() => setShowStrategyGuide(true)}
+              onShowCommonMistakes={() => setShowCommonMistakes(true)}
+              getAssetDef={getAssetDef}
+              getBidBands={getBidBands}
+            />
+          </>
+        )}
+
+        {/* Original Bidding Interface (classic view) */}
+        {phase === 'bidding' && roundConfig && !submitted && !useGuidedView && (
           <div className="p-3">
+            {/* View Toggle */}
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setUseGuidedView(true)}
+                className="text-[10px] text-gray-400 hover:text-gray-600 underline transition-colors"
+              >
+                Switch to guided view
+              </button>
+            </div>
             {/* Walkthrough Banner */}
             {walkthrough && (
               <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl px-4 py-3 mb-3">
@@ -1317,6 +1397,22 @@ export default function TeamGame() {
                 ))}
               </div>
             </div>
+
+            {/* Price History Chart (4.5) */}
+            {gameState?.historicalClearingPrices && gameState.historicalClearingPrices.length > 1 && (
+              <PriceHistoryChart historicalPrices={gameState.historicalClearingPrices} />
+            )}
+
+            {/* Next Round Preview (3.5) */}
+            {gameState?.roundConfig && gameState?.currentRound && gameState.totalRounds &&
+             gameState.currentRound < gameState.totalRounds && (() => {
+              // We need the next round config — it's not directly available, but we can
+              // show a simple "next round coming" message based on available data
+              const nextRoundNum = gameState.currentRound! + 1;
+              // The next round config isn't in gameState during results, so we'll show this
+              // only if the game provides it (it will be shown during briefing via RoundBriefing)
+              return null;
+            })()}
 
             {/* Team-Specific Round Analysis */}
             {gameState?.lastRoundAnalysis && (() => {

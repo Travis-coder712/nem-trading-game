@@ -170,6 +170,29 @@ export default function GameGuide() {
           </p>
         </Section>
 
+        {/* Game Modes */}
+        <Section title="Game Modes">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 print:gap-2">
+            <StrategyCard name="🎓 Beginner Intro (1 round, 10-15 min)" desc="One guided round with 2 assets (coal + gas). Perfect for first-timers who've never seen an electricity market." />
+            <StrategyCard name="📈 Progressive Learning (10 rounds, 90-120 min)" desc="Builds complexity gradually: 1 asset → full portfolio over 10 rounds. Best for a single 2-hour session with new learners." />
+            <StrategyCard name="⚡ Quick Game (8 rounds, 60-90 min)" desc="Compressed version covering all key concepts. Great for time-limited workshops." />
+            <StrategyCard name="🏆 Full Game (15 rounds, 2.5-3.5 hours)" desc="Complete learning journey from coal basics to full NEM simulation with all scenarios." />
+            <StrategyCard name="🔄 Experienced Replay (4 rounds, 30-45 min)" desc="One round per season with full portfolio. For participants who want to try different strategies." />
+          </div>
+        </Section>
+
+        {/* Tips & Features */}
+        <Section title="Tips & Features">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 print:gap-2">
+            <RefCard label="🔊 Sound Effects" value="Countdown beeps, bid chimes, results fanfare. Mute with 🔊 button." />
+            <RefCard label="🌙 Dark Mode" value="Toggle with 🌙 button for dimly-lit rooms." />
+            <RefCard label="📋 Quick Recap" value="See last round profit & prices at the start of each new round." />
+            <RefCard label="🎯 Bid Presets" value="One-click strategies: Price Taker, Cost Recovery, Split, Aggressive." />
+            <RefCard label="📈 Price History" value="Track clearing price trends across all rounds." />
+            <RefCard label="👁️ Spectator Mode" value="Observers can watch at /spectate without taking a team slot." />
+          </div>
+        </Section>
+
         {/* Quick Reference */}
         <Section title="Quick Reference">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
@@ -185,7 +208,7 @@ export default function GameGuide() {
         {/* Footer */}
         <div className="text-center mt-10 pt-6 border-t border-white/10 print:border-gray-300">
           <p className="text-navy-400 print:text-gray-500 text-xs">
-            NEM Merit Order Training Game — Built for energy industry training
+            NEM Merit Order Training Game — 5 game modes, 7 asset types, sound effects, dark mode, spectator mode & more
           </p>
         </div>
       </div>

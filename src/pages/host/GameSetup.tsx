@@ -13,6 +13,14 @@ const GAME_MODES = [
     icon: '🎓',
   },
   {
+    id: 'progressive',
+    name: 'Progressive Learning',
+    rounds: 10,
+    duration: '90-120 min',
+    description: 'Builds complexity gradually: 1 asset → full portfolio over 10 rounds. Best for a single 2-hour session with new learners.',
+    icon: '📈',
+  },
+  {
     id: 'quick',
     name: 'Quick Game',
     rounds: 8,
@@ -77,6 +85,15 @@ export default function GameSetup() {
   const [configName, setConfigName] = useState('');
   const [saveFeedback, setSaveFeedback] = useState('');
 
+  // WiFi configuration (persisted to server)
+  const [showWifiConfig, setShowWifiConfig] = useState(false);
+  const [wifiName, setWifiName] = useState('');
+  const [wifiPassword, setWifiPassword] = useState('');
+  const [wifiSaved, setWifiSaved] = useState(false);
+  const [wifiQrUrl, setWifiQrUrl] = useState<string | null>(null);
+  const [wifiLoading, setWifiLoading] = useState(false);
+  const [showWifiPassword, setShowWifiPassword] = useState(false);
+
   // Track whether WE created the game in this session.
   const createdByUs = useRef(false);
 
@@ -91,6 +108,21 @@ export default function GameSetup() {
     fetch('/api/asset-configs')
       .then(r => r.json())
       .then(data => setSavedConfigs(data.configs || []))
+      .catch(() => {});
+  }, []);
+
+  // Fetch saved WiFi config on mount
+  useEffect(() => {
+    fetch('/api/wifi')
+      .then(r => r.json())
+      .then(data => {
+        if (data.wifi) {
+          setWifiName(data.wifi.networkName);
+          setWifiPassword(data.wifi.password);
+          setWifiSaved(true);
+          setWifiQrUrl(data.qrDataUrl || null);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -145,6 +177,32 @@ export default function GameSetup() {
     try {
       await fetch(`/api/asset-configs/${id}`, { method: 'DELETE' });
       setSavedConfigs(prev => prev.filter(c => c.id !== id));
+    } catch {}
+  };
+
+  const handleSaveWifi = async () => {
+    if (!wifiName.trim()) return;
+    setWifiLoading(true);
+    try {
+      const resp = await fetch('/api/wifi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ networkName: wifiName.trim(), password: wifiPassword }),
+      });
+      const data = await resp.json();
+      setWifiSaved(true);
+      setWifiQrUrl(data.qrDataUrl || null);
+    } catch {}
+    setWifiLoading(false);
+  };
+
+  const handleDeleteWifi = async () => {
+    try {
+      await fetch('/api/wifi', { method: 'DELETE' });
+      setWifiName('');
+      setWifiPassword('');
+      setWifiSaved(false);
+      setWifiQrUrl(null);
     } catch {}
   };
 
@@ -268,6 +326,110 @@ export default function GameSetup() {
               }`} />
             </button>
           </div>
+        </div>
+
+        {/* WiFi Configuration — Collapsible (persisted across restarts) */}
+        <div className="mb-4 bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+          <button
+            onClick={() => setShowWifiConfig(!showWifiConfig)}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
+          >
+            <div className="text-left flex items-center gap-3">
+              <span className="text-xl">📶</span>
+              <div>
+                <div className="text-sm font-medium text-navy-200">
+                  WiFi for Teams
+                  {wifiSaved && (
+                    <span className="ml-2 text-xs text-green-400 font-normal">✓ Saved</span>
+                  )}
+                </div>
+                <div className="text-xs text-navy-400 mt-0.5">
+                  {wifiSaved ? `Network: ${wifiName}` : 'Set WiFi details so teams can connect before joining'}
+                </div>
+              </div>
+            </div>
+            <svg
+              className={`w-5 h-5 text-navy-400 transition-transform ${showWifiConfig ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showWifiConfig && (
+            <div className="px-5 pb-5 border-t border-white/10">
+              <div className="pt-4 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-navy-300 mb-1">Network Name (SSID)</label>
+                  <input
+                    type="text"
+                    value={wifiName}
+                    onChange={(e) => { setWifiName(e.target.value); setWifiSaved(false); }}
+                    placeholder="e.g. Workshop-WiFi"
+                    className="w-full bg-navy-700 border border-navy-600 rounded-lg px-3 py-2 text-sm text-white focus:border-electric-500 focus:outline-none placeholder-navy-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-navy-300 mb-1">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showWifiPassword ? 'text' : 'password'}
+                      value={wifiPassword}
+                      onChange={(e) => { setWifiPassword(e.target.value); setWifiSaved(false); }}
+                      placeholder="WiFi password"
+                      className="w-full bg-navy-700 border border-navy-600 rounded-lg px-3 py-2 pr-16 text-sm text-white focus:border-electric-500 focus:outline-none placeholder-navy-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowWifiPassword(!showWifiPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-navy-400 hover:text-white transition-colors px-1.5 py-0.5"
+                    >
+                      {showWifiPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={handleSaveWifi}
+                    disabled={!wifiName.trim() || wifiLoading}
+                    className="px-4 py-2 text-sm bg-electric-500/20 text-electric-300 hover:bg-electric-500/30 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed font-medium"
+                  >
+                    {wifiLoading ? 'Saving...' : wifiSaved ? '✓ Saved' : 'Save WiFi'}
+                  </button>
+                  {wifiSaved && (
+                    <button
+                      onClick={handleDeleteWifi}
+                      className="px-4 py-2 text-sm bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors font-medium"
+                    >
+                      🗑️ Delete All
+                    </button>
+                  )}
+                </div>
+
+                {/* WiFi QR Code for auto-connect */}
+                {wifiSaved && wifiQrUrl && (
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="text-xs text-navy-300 mb-2 font-medium">📱 Scan to connect to WiFi</div>
+                    <div className="flex items-start gap-4">
+                      <div className="bg-white rounded-xl p-2 flex-shrink-0">
+                        <img src={wifiQrUrl} alt="WiFi QR Code" className="w-32 h-32" />
+                      </div>
+                      <div className="text-xs text-navy-400 space-y-2">
+                        <p className="text-navy-200 font-medium">How it works:</p>
+                        <ul className="space-y-1 list-disc list-inside">
+                          <li><strong>iPhones / iPads:</strong> Open Camera app → point at QR code → tap the notification to join WiFi</li>
+                          <li><strong>Android:</strong> Open Camera or Google Lens → scan QR code → tap Connect</li>
+                          <li><strong>Laptops:</strong> Show this QR to the room, or share the network name and password verbally</li>
+                        </ul>
+                        <p className="text-navy-500 italic">This QR code uses the standard WIFI: format that phones recognise natively — no app needed.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Asset Configuration — Collapsible */}

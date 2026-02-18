@@ -84,6 +84,8 @@ export function getGameMasterGuideHTML(): string {
       <li><a href="#full-rounds">Full Game &mdash; Round-by-Round Guide</a></li>
       <li><a href="#experienced-rounds">Experienced Replay &mdash; Round-by-Round Guide</a></li>
       <li><a href="#beginner-round">Beginner Mode</a></li>
+      <li><a href="#progressive-rounds">Progressive Learning &mdash; Round-by-Round Guide</a></li>
+      <li><a href="#features">Game Features (WiFi, Sound, Dark Mode, Spectator, etc.)</a></li>
       <li><a href="#assets">Asset Reference</a></li>
       <li><a href="#scenarios">Scenario Events Reference</a></li>
       <li><a href="#surprise-events">Surprise Events</a></li>
@@ -110,6 +112,7 @@ export function getGameMasterGuideHTML(): string {
     <li>Start the server: <code>cd ~/nem-merit-order-game && npm run dev &amp; npm run server</code></li>
     <li>Open the landing page in a browser on the <strong>main screen / projector</strong></li>
     <li>Ensure the main screen is visible to all participants</li>
+    <li><strong>Set up WiFi sharing:</strong> In Game Setup, enter the WiFi network name and password. This generates a QR code that phones can scan to auto-connect (persists across restarts)</li>
     <li>Have the <strong>&ldquo;Learn the NEM&rdquo;</strong> slides ready as a reference (can print as PDF from landing page)</li>
     <li>Brief facilitators on the round progression (use this guide!)</li>
   </ul>
@@ -123,12 +126,15 @@ export function getGameMasterGuideHTML(): string {
     <tr><th>Item</th><th>Status</th></tr>
     <tr><td>Server running and accessible</td><td>&#9744;</td></tr>
     <tr><td>Main screen / projector connected</td><td>&#9744;</td></tr>
-    <tr><td>WiFi / hotspot working (tested QR code join)</td><td>&#9744;</td></tr>
+    <tr><td>WiFi configured in Game Setup (WiFi QR code for auto-connect)</td><td>&#9744;</td></tr>
     <tr><td>Pre-read sent to participants</td><td>&#9744;</td></tr>
     <tr><td>Game mode decided</td><td>&#9744;</td></tr>
     <tr><td>Printed quick reference guides (optional)</td><td>&#9744;</td></tr>
     <tr><td>Timer / pace plan for the session</td><td>&#9744;</td></tr>
   </table>
+  <ul>
+    <li><strong>WiFi details:</strong> Enter your venue WiFi network name and password in Game Setup. The game will generate a QR code that teams can scan to connect instantly.</li>
+  </ul>
 
   <!-- Section 2: Setup -->
   <h2 id="setup">2. Game Setup &amp; Configuration</h2>
@@ -147,6 +153,10 @@ export function getGameMasterGuideHTML(): string {
     <li>Optionally customise <strong>asset configurations</strong> (names, costs, capacities)</li>
     <li>Click <strong>Create Game</strong></li>
   </ol>
+
+  <div class="tip">
+    <strong>&#128246; WiFi for Teams:</strong> You can now enter your venue WiFi details in Game Setup. This generates a QR code that iPhones and Android phones can scan to auto-connect. Click &ldquo;Show WiFi for Room&rdquo; in the lobby to display it on the projector. WiFi details are saved across server restarts.
+  </div>
 
   <h3>Getting Teams Connected</h3>
   <ol>
@@ -202,6 +212,12 @@ export function getGameMasterGuideHTML(): string {
       <td>Deep-dive training. 4 phases: Fundamentals, Technology Mix, Seasons &amp; Scenarios, Advanced. Includes carbon pricing, dunkelflaute, drought, and plant outages.</td>
     </tr>
     <tr>
+      <td><strong>Progressive Learning</strong></td>
+      <td>10</td>
+      <td>90&ndash;120 min</td>
+      <td>Builds complexity gradually: starts with 1 asset and 1 period, adds new assets and concepts each round. Best for a single 2-hour session with new learners. Includes teaching prompts for the host.</td>
+    </tr>
+    <tr>
       <td><strong>Experienced Replay</strong></td>
       <td>4</td>
       <td>30&ndash;45 min</td>
@@ -209,8 +225,21 @@ export function getGameMasterGuideHTML(): string {
     </tr>
   </table>
 
+  <div class="card">
+    <h4>&#128200; Progressive Learning (10 rounds, 90&ndash;120 min)</h4>
+    <p>The recommended mode for a single 2-hour session with new learners. Builds complexity gradually from 1 asset and 1 period to a full portfolio with crises. Each round introduces new concepts with host teaching notes and educational content.</p>
+    <ul>
+      <li>Rounds 1&ndash;3: Coal only, increasing from 1 to 4 periods</li>
+      <li>Rounds 4: Gas enters (CCGT + Peaker)</li>
+      <li>Rounds 5&ndash;6: Renewables, hydro, and batteries</li>
+      <li>Rounds 7: Full portfolio strategy practice</li>
+      <li>Rounds 8&ndash;10: Crisis scenarios (heatwave, negative prices, outage)</li>
+    </ul>
+    <p><strong>Ideal for:</strong> University tutorials, corporate training, workshop days</p>
+  </div>
+
   <div class="tip">
-    <strong>&#128161; Recommendation:</strong> For a half-day workshop (3&ndash;4 hours), start with <strong>Beginner</strong> mode as an ice-breaker (15 min), then run the <strong>Quick Game</strong> (75 min), with a break in between. If time permits, finish with the <strong>Experienced Replay</strong> (40 min) so teams can apply what they&rsquo;ve learned.
+    <strong>&#128161; Recommendation:</strong> For a half-day workshop (3&ndash;4 hours), start with <strong>Beginner</strong> mode as an ice-breaker (15 min), then run the <strong>Quick Game</strong> (75 min), with a break in between. If time permits, finish with the <strong>Experienced Replay</strong> (40 min) so teams can apply what they&rsquo;ve learned. For a single 2-hour session with new learners, use <strong>Progressive Learning</strong> &mdash; it gradually introduces concepts and assets over 10 rounds with built-in teaching prompts.
   </div>
 
   <!-- Section 4: Quick Game Rounds -->
@@ -595,8 +624,99 @@ export function getGameMasterGuideHTML(): string {
     <div class="tip"><strong>GM tip:</strong> Use this as a 15-minute warm-up before the main game. After results, walk through the merit order step by step on the main screen. Make sure every team understands clearing price before moving to Quick or Full mode.</div>
   </div>
 
-  <!-- Section 8: Assets -->
-  <h2 id="assets">8. Asset Reference</h2>
+  <h2 id="progressive-rounds">Progressive Learning &mdash; Round-by-Round Guide</h2>
+  <p>The Progressive Learning mode builds complexity over 10 rounds. Each round includes <strong>host teaching notes</strong> (displayed in a purple card during briefing) and <strong>educational content slides</strong> for teams.</p>
+
+  <div class="round-card">
+    <h4>Round 1: Your First Bid</h4>
+    <div class="round-meta"><span class="tag-season">Autumn</span><span class="tag-assets">Coal only</span><span class="tag-time">1 period</span></div>
+    <p>Guided walkthrough. Teams see pre-filled bids. Explain: bid = price + quantity, merit order stacking, clearing price concept. Key insight: all dispatched generators earn the same clearing price.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Rounds 2&ndash;3: Multiple Periods</h4>
+    <div class="round-meta"><span class="tag-season">Autumn</span><span class="tag-assets">Coal only</span><span class="tag-time">2&rarr;4 periods</span></div>
+    <p>Teams bid independently. Introduce demand variation across periods. By round 3, teams manage all 4 periods with 5 bid bands and can explore strategic bidding.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Round 4: Gas Power Enters</h4>
+    <div class="round-meta"><span class="tag-season">Autumn</span><span class="tag-assets">+ Gas CCGT, Peaker</span><span class="tag-time">4 periods</span></div>
+    <p>Gas CCGT and peakers unlock. Discuss cost differences: coal ~$35, gas CCGT ~$75, peaker ~$145. Gas only profits when the clearing price exceeds its marginal cost.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Rounds 5&ndash;6: Renewables &amp; Battery</h4>
+    <div class="round-meta"><span class="tag-season">Spring</span><span class="tag-assets">+ Wind, Solar, Hydro, Battery</span><span class="tag-time">4 periods</span></div>
+    <p>Zero-cost renewables reshape the merit order. Hydro has limited water (opportunity cost). Battery completes the portfolio &mdash; charge cheap, discharge at premium. Spring brings low demand + strong renewables = potential oversupply.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Round 7: Advanced Strategies</h4>
+    <div class="round-meta"><span class="tag-season">Autumn</span><span class="tag-assets">Full portfolio</span><span class="tag-time">4 periods</span></div>
+    <p>No new assets. Focus on price making, portfolio optimisation, and competitive dynamics. Game theory angle: &ldquo;If everyone bids high, prices spike but nobody gets dispatched.&rdquo;</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Rounds 8&ndash;10: Crisis Scenarios</h4>
+    <div class="round-meta"><span class="tag-scenario">Heatwave</span><span class="tag-scenario">Negative Prices</span><span class="tag-scenario">Plant Outage</span></div>
+    <p>Summer heatwave (+40% demand, coal derated), spring negative prices (oversupply), then the ultimate test: heatwave + outage. Highest cumulative profit across all 10 rounds wins!</p>
+  </div>
+
+  <!-- Section 9: Game Features -->
+  <h2 id="features">9. Game Features</h2>
+
+  <h3>WiFi Sharing</h3>
+  <div class="card">
+    <p>In the <strong>Game Setup</strong> screen, you can enter your WiFi network name and password. The game generates a <strong>WiFi QR code</strong> that, when scanned by a phone, automatically connects to the network &mdash; no need to manually type passwords. In the lobby, click <strong>&ldquo;&#128246; Show WiFi for Room&rdquo;</strong> to display the WiFi credentials and QR code on the projector so all participants can connect easily.</p>
+    <p>WiFi settings persist across server restarts, so you only need to set them up once.</p>
+  </div>
+
+  <h3>Sound Effects</h3>
+  <div class="card">
+    <p>The game includes procedural sound effects synthesised using the Web Audio API (no audio files needed). Sounds include:</p>
+    <ul>
+      <li><strong>Countdown beeps</strong> in the final 30 seconds of bidding</li>
+      <li><strong>Bid submission</strong> confirmation chime</li>
+      <li><strong>All bids in</strong> notification</li>
+      <li><strong>Results reveal</strong> &mdash; positive profit fanfare or loss sound</li>
+      <li><strong>Clearing price reveal</strong> dramatic sound</li>
+    </ul>
+    <p>Sound can be muted/unmuted with the &#128266; button in the top bar.</p>
+  </div>
+
+  <h3>Dark Mode</h3>
+  <div class="card">
+    <p>Team screens support <strong>dark mode</strong>, toggled with the &#127769; button. Useful for dimly-lit presentation rooms or evening sessions. The preference is saved to localStorage so it persists across page refreshes.</p>
+  </div>
+
+  <h3>Spectator Mode</h3>
+  <div class="card">
+    <p>Observers can watch the game at <code>/spectate?game=XXXX</code> without taking a team slot. This provides a read-only view of the game state, merit order, and leaderboard. Useful for facilitators, executives, or late arrivals who want to follow along.</p>
+  </div>
+
+  <h3>Between-Round Features</h3>
+  <div class="card">
+    <ul>
+      <li><strong>Quick Recap Card:</strong> At the start of each bidding phase, teams see a dismissible card showing last round&rsquo;s clearing prices and a preview of the current round&rsquo;s concept</li>
+      <li><strong>Price History Chart:</strong> A line chart tracking clearing prices across all completed rounds, helping teams spot trends</li>
+      <li><strong>Market Snapshot:</strong> After results, the host sees a summary infographic with clearing prices per period, the price-setting generator, and market insights</li>
+      <li><strong>Teaching Prompts (Progressive mode):</strong> Talking points, discussion questions, and next-round previews for the host</li>
+    </ul>
+  </div>
+
+  <h3>Bid Presets</h3>
+  <div class="card">
+    <p>Teams can use <strong>one-tap bid presets</strong> to quickly fill in bids: &ldquo;Play Safe&rdquo; (bid at marginal cost), &ldquo;Go Aggressive&rdquo; (bid high to set prices), or &ldquo;Sit Out&rdquo; (bid at price cap to avoid dispatch). These are especially useful in early rounds when teams are still learning the interface.</p>
+  </div>
+
+  <h3>Auto-Advance</h3>
+  <div class="card">
+    <p>When all teams have submitted their bids, the host dashboard shows a banner: <strong>&ldquo;All bids received &mdash; End Bidding Now?&rdquo;</strong> with a 10-second countdown. This keeps the pace up without the host needing to watch for completions manually. The host can dismiss the banner to keep bidding open longer.</p>
+  </div>
+
+  <!-- Section 10: Assets -->
+  <h2 id="assets">10. Asset Reference</h2>
 
   <table>
     <tr>
@@ -691,8 +811,8 @@ export function getGameMasterGuideHTML(): string {
     </div>
   </div>
 
-  <!-- Section 9: Scenarios -->
-  <h2 id="scenarios">9. Scenario Events Reference</h2>
+  <!-- Section 11: Scenarios -->
+  <h2 id="scenarios">11. Scenario Events Reference</h2>
 
   <table>
     <tr><th>Scenario</th><th>Effect</th><th>Teaching Point</th></tr>
@@ -748,8 +868,8 @@ export function getGameMasterGuideHTML(): string {
     </tr>
   </table>
 
-  <!-- Section 10: Surprise Events -->
-  <h2 id="surprise-events">10. Surprise Events</h2>
+  <!-- Section 12: Surprise Events -->
+  <h2 id="surprise-events">12. Surprise Events</h2>
 
   <p>Surprise events are secret modifications the Game Master can toggle ON during the <strong>briefing phase</strong>, before bidding opens. Teams see the effects (changed demand, outages) but <strong>NOT</strong> the reason. The toggles are found at the bottom of the host sidebar under <strong>&ldquo;&#127922; Game Mechanics&rdquo;</strong>.</p>
 
@@ -829,8 +949,8 @@ export function getGameMasterGuideHTML(): string {
     <strong>&#128161; Pro tip:</strong> Use surprise events sparingly in early rounds when teams are still learning. Save them for mid-to-late game when teams are confident and need a new challenge. Announce &ldquo;Something unexpected may happen this round...&rdquo; to build anticipation without revealing the details.
   </div>
 
-  <!-- Section 11: Bidding Strategy Reference -->
-  <h2 id="strategies">11. Bidding Strategy Reference</h2>
+  <!-- Section 13: Bidding Strategy Reference -->
+  <h2 id="strategies">13. Bidding Strategy Reference</h2>
 
   <p>These are the six core bidding strategies available in the game. Teams can access the full Strategy Guide from the &ldquo;&#129504; Strategies&rdquo; help button during bidding. Below is a concise reference for the Game Master.</p>
 
@@ -880,8 +1000,8 @@ export function getGameMasterGuideHTML(): string {
     <strong>&#128161; Facilitation note:</strong> Encourage teams to try different strategies across rounds rather than sticking with one approach. The game is designed so that no single strategy dominates every scenario &mdash; the best teams adapt to conditions.
   </div>
 
-  <!-- Section 12: Guardrails -->
-  <h2 id="guardrails">12. Bidding Guardrails</h2>
+  <!-- Section 14: Guardrails -->
+  <h2 id="guardrails">14. Bidding Guardrails</h2>
 
   <table>
     <tr><th>Restriction</th><th>Guardrails ON</th><th>Guardrails OFF</th></tr>
@@ -915,8 +1035,8 @@ export function getGameMasterGuideHTML(): string {
 
   <div class="tip"><strong>Recommendation:</strong> Use guardrails ON for teams new to the NEM. Switch to OFF for experienced players or the Experienced Replay mode, where strategic withdrawal is a legitimate advanced strategy.</div>
 
-  <!-- Section 13: Tips -->
-  <h2 id="tips">13. Tips, Tricks &amp; Facilitation Notes</h2>
+  <!-- Section 15: Tips -->
+  <h2 id="tips">15. Tips, Tricks &amp; Facilitation Notes</h2>
 
   <h3>Pacing the Session</h3>
   <div class="card">
@@ -932,6 +1052,18 @@ export function getGameMasterGuideHTML(): string {
   <h3>Team Help Buttons</h3>
   <div class="tip">
     <strong>&#128161; Teams have built-in help:</strong> During bidding, teams can access four help resources from the top of their bidding screen: <strong>&ldquo;&#128214; How to Bid&rdquo;</strong> (interface walkthrough), <strong>&ldquo;&#128202; Round Overview&rdquo;</strong> (current round conditions and demand), <strong>&ldquo;&#129504; Strategies&rdquo;</strong> (the full six-strategy guide), and <strong>&ldquo;&#9888;&#65039; Common Mistakes&rdquo;</strong> (pitfalls to avoid). Remind teams these exist at the start of the session &mdash; they reduce the number of questions you need to field and help slower teams catch up without slowing down the group.
+  </div>
+
+  <div class="tip">
+    <strong>New Features:</strong>
+    <ul>
+      <li><strong>Sound effects:</strong> Teams hear countdown beeps, bid confirmation chimes, and results fanfares. They can mute with the &#128266; button.</li>
+      <li><strong>Dark mode:</strong> Teams can toggle dark mode with the &#127769; button for dimly-lit rooms.</li>
+      <li><strong>Auto-advance:</strong> When all teams submit bids, the host sees a banner with a 5-second countdown before auto-advancing to results.</li>
+      <li><strong>Quick Recap Cards:</strong> At the start of each round, teams see a summary of their last round profit and clearing prices.</li>
+      <li><strong>Spectator Mode:</strong> Observers can watch at <code>/spectate</code> without taking a team slot.</li>
+      <li><strong>Post-Game Report:</strong> After the game, navigate to <code>/report</code> for a printable summary of all standings and clearing prices.</li>
+    </ul>
   </div>
 
   <h3>What to Say Between Rounds</h3>
@@ -1035,8 +1167,8 @@ export function getGameMasterGuideHTML(): string {
     </ol>
   </div>
 
-  <!-- Section 14: Troubleshooting -->
-  <h2 id="troubleshooting">14. Troubleshooting</h2>
+  <!-- Section 16: Troubleshooting -->
+  <h2 id="troubleshooting">16. Troubleshooting</h2>
 
   <div class="card">
     <table>
@@ -1086,6 +1218,7 @@ export function getGameMasterGuideHTML(): string {
 
   <div style="margin-top: 3rem; padding: 1.5rem; text-align: center; color: #718096; font-size: 0.85rem; border-top: 1px solid #e2e8f0;">
     <p>NEM Merit Order Training Game &mdash; Game Master&rsquo;s Guide</p>
+    <p>5 game modes &middot; 7 asset types &middot; sound effects &middot; dark mode &middot; WiFi sharing &middot; spectator mode</p>
     <p>Keep this guide handy during sessions. Good luck and have fun!</p>
   </div>
 </div>

@@ -42,6 +42,46 @@ body {
   min-height: 100vh;
 }
 
+/* Dark mode overrides for team screens */
+html.dark body {
+  background: linear-gradient(135deg, #0f1f38 0%, #1a365d 100%);
+  color: #e2e8f0;
+}
+
+html.dark .bg-gray-50 { background-color: #1a2744 !important; }
+html.dark .bg-white { background-color: #1f3254 !important; }
+html.dark .text-gray-800 { color: #e2e8f0 !important; }
+html.dark .text-gray-700 { color: #cbd5e0 !important; }
+html.dark .text-gray-600 { color: #a0aec0 !important; }
+html.dark .text-gray-500 { color: #718096 !important; }
+html.dark .text-gray-400 { color: #718096 !important; }
+html.dark .border-gray-200 { border-color: #2d4670 !important; }
+html.dark .border-gray-100 { border-color: #2d4670 !important; }
+html.dark .bg-gray-100 { background-color: #2d4670 !important; }
+html.dark .bg-gray-50 { background-color: #1f3254 !important; }
+html.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important; }
+html.dark .shadow-md { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4) !important; }
+
+/* Dark mode form inputs */
+html.dark input[type="number"],
+html.dark select {
+  background-color: #1a2744 !important;
+  color: #e2e8f0 !important;
+  border-color: #3a5a8c !important;
+}
+html.dark input[type="number"]::placeholder,
+html.dark select::placeholder {
+  color: #5373a3 !important;
+}
+
+/* Dark mode utility overrides for common patterns */
+html.dark .bg-blue-50 { background-color: rgba(49, 130, 206, 0.1) !important; }
+html.dark .bg-green-50 { background-color: rgba(56, 161, 105, 0.1) !important; }
+html.dark .bg-amber-50 { background-color: rgba(214, 158, 46, 0.1) !important; }
+html.dark .bg-red-50 { background-color: rgba(229, 62, 62, 0.1) !important; }
+html.dark .bg-purple-50 { background-color: rgba(128, 90, 213, 0.1) !important; }
+html.dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.1) !important; }
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 12px;

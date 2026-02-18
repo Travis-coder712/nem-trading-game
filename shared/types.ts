@@ -4,7 +4,7 @@
 
 // ---- Enumerations ----
 
-export type GameMode = 'beginner' | 'quick' | 'full' | 'experienced';
+export type GameMode = 'beginner' | 'quick' | 'full' | 'experienced' | 'progressive';
 
 export type GamePhase =
   | 'lobby'
@@ -419,6 +419,10 @@ export interface RoundConfig {
     slides: EducationalSlide[];
   };
   walkthrough?: WalkthroughConfig;
+  /** Host teaching notes — talking points for the game master to explain before/after the round */
+  hostTeachingNotes?: string[];
+  /** UI complexity level for progressive learning mode */
+  uiComplexity?: 'minimal' | 'standard' | 'full';
   /** Optional seasonal context shown during briefing to explain how this season affects demand, supply, and bidding */
   seasonalGuidance?: {
     headline: string;     // e.g. "Summer: High demand, strong solar, evening crunch"
@@ -556,6 +560,12 @@ export interface GameStateSnapshot {
   preSurpriseDemandMW?: Record<string, number>;
   /** Dramatic incident reports for teams (vague descriptions, not event names) */
   surpriseIncidents?: SurpriseIncident[];
+  /** Historical clearing prices from previous rounds (for price trend chart) */
+  historicalClearingPrices?: Array<{
+    roundNumber: number;
+    roundName: string;
+    prices: Record<string, number>;  // period -> clearing price
+  }>;
 }
 
 export interface BiddingStrategy {
