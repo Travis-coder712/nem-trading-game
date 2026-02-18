@@ -19,6 +19,13 @@ export function registerHostHandlers(
   engine: GameEngine,
 ) {
   socket.on('host:create_game', safe((config) => {
+    // Leave any existing game rooms before creating a new game
+    const oldGameId = (socket as any).gameId;
+    if (oldGameId) {
+      socket.leave(`game:${oldGameId}`);
+      socket.leave(`game:${oldGameId}:host`);
+    }
+
     const game = engine.createGame(
       config.mode,
       config.teamCount,
@@ -198,6 +205,13 @@ export function registerHostHandlers(
     const gameId = (socket as any).gameId;
     if (!gameId) return;
     engine.resetGame(gameId);
+
+    // Leave rooms so the broadcast doesn't re-populate the host's cleared state
+    socket.leave(`game:${gameId}`);
+    socket.leave(`game:${gameId}:host`);
+    (socket as any).gameId = null;
+
+    // Still broadcast to remaining clients (teams) so they know the game was reset
     broadcastSnapshot(io, engine, gameId);
   }));
 

@@ -146,12 +146,14 @@ export default function Landing() {
             transition={{ delay: 1.9, duration: 0.6 }}
             className="flex items-center justify-center gap-3 flex-wrap mb-6"
           >
-            <button
-              onClick={() => setSlideDeckOpen(true)}
+            <a
+              href="/api/learn-nem"
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-5 py-2.5 text-sm font-medium text-electric-300 border border-electric-500/30 hover:border-electric-400 hover:bg-electric-500/10 rounded-xl transition-all"
             >
               📚 Learn the NEM
-            </button>
+            </a>
             <a
               href="/api/pre-read"
               target="_blank"

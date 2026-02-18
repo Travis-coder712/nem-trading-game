@@ -997,6 +997,7 @@ export default function TeamGame() {
                                     type="number"
                                     value={band.pricePerMWh ?? ''}
                                     onChange={e => updateBand(asset.assetDefinitionId, selectedPeriod, i, 'pricePerMWh', parseFloat(e.target.value) || 0)}
+                                    onFocus={e => e.target.select()}
                                     placeholder="Price"
                                     className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
                                       walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
@@ -1011,6 +1012,7 @@ export default function TeamGame() {
                                     type="number"
                                     value={band.quantityMW ?? ''}
                                     onChange={e => updateBand(asset.assetDefinitionId, selectedPeriod, i, 'quantityMW', parseFloat(e.target.value) || 0)}
+                                    onFocus={e => e.target.select()}
                                     placeholder="MW"
                                     className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
                                       walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'

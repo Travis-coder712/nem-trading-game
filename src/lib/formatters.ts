@@ -1,11 +1,8 @@
 export function formatCurrency(value: number): string {
-  if (Math.abs(value) >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(2)}M`;
-  }
-  if (Math.abs(value) >= 1_000) {
-    return `$${(value / 1_000).toFixed(1)}K`;
-  }
-  return `$${value.toFixed(0)}`;
+  const rounded = Math.round(value);
+  return rounded < 0
+    ? `-$${Math.abs(rounded).toLocaleString('en-AU')}`
+    : `$${rounded.toLocaleString('en-AU')}`;
 }
 
 export function formatCurrencyFull(value: number): string {
@@ -29,10 +26,11 @@ export function formatMWh(value: number): string {
 }
 
 export function formatPrice(value: number): string {
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(1)}K`;
-  }
-  return `$${value.toFixed(0)}/MWh`;
+  const rounded = Math.round(value);
+  const formatted = rounded < 0
+    ? `-$${Math.abs(rounded).toLocaleString('en-AU')}`
+    : `$${rounded.toLocaleString('en-AU')}`;
+  return `${formatted}/MWh`;
 }
 
 export function formatPercent(value: number): string {

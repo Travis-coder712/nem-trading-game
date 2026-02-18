@@ -130,6 +130,7 @@ export default function HostDashboard() {
             onClick={() => {
               if (window.confirm('Exit game? This will leave the current session.')) {
                 clearHostSession();
+                setQrData(null);
                 navigate('/');
               }
             }}
@@ -224,6 +225,7 @@ export default function HostDashboard() {
                   onClick={() => {
                     resetGame();
                     clearHostSession();
+                    setQrData(null);
                     navigate('/host');
                   }}
                   className="w-full py-2.5 bg-electric-500 hover:bg-electric-400 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -233,6 +235,7 @@ export default function HostDashboard() {
                 <button
                   onClick={() => {
                     clearHostSession();
+                    setQrData(null);
                     navigate('/');
                   }}
                   className="w-full py-2.5 bg-navy-600 hover:bg-navy-500 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -656,6 +659,51 @@ export default function HostDashboard() {
                 </div>
                 <p className="text-navy-400 text-sm mt-1">Time Remaining</p>
               </div>
+
+              {/* Condensed Round Overview */}
+              {roundConfig && (
+                <div className="mt-8 border-t border-white/10 pt-6">
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-electric-400 font-medium">Round {round}</span>
+                      <span className="text-xs text-navy-500">|</span>
+                      <span className="text-xs text-navy-400 capitalize">
+                        {roundConfig.season === 'summer' ? '🔥' : roundConfig.season === 'winter' ? '❄️' : roundConfig.season === 'autumn' ? '🍂' : '🌱'}
+                        {' '}{roundConfig.season}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">{roundConfig.name}</h3>
+                    <p className="text-sm text-navy-400 mt-1">{roundConfig.description}</p>
+                  </div>
+
+                  {roundConfig.seasonalGuidance && (
+                    <div className="mb-4">
+                      <div className="text-xs font-medium text-navy-300 mb-2">{roundConfig.seasonalGuidance.headline}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2.5">
+                          <div className="text-[10px] font-semibold text-blue-300 mb-0.5">Demand</div>
+                          <p className="text-[11px] text-navy-300 leading-relaxed">{roundConfig.seasonalGuidance.demandContext}</p>
+                        </div>
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5">
+                          <div className="text-[10px] font-semibold text-amber-300 mb-0.5">Supply</div>
+                          <p className="text-[11px] text-navy-300 leading-relaxed">{roundConfig.seasonalGuidance.supplyContext}</p>
+                        </div>
+                        <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2.5">
+                          <div className="text-[10px] font-semibold text-green-300 mb-0.5">Bidding Strategy</div>
+                          <p className="text-[11px] text-navy-300 leading-relaxed">{roundConfig.seasonalGuidance.biddingAdvice}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {roundConfig.activeScenarioEvents.length > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                      <div className="text-xs font-semibold text-amber-300 mb-1">⚠️ Active Scenarios</div>
+                      <p className="text-xs text-navy-300">{roundConfig.activeScenarioEvents.join(', ')}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1269,6 +1317,7 @@ export default function HostDashboard() {
                   onClick={() => {
                     resetGame();
                     clearHostSession();
+                    setQrData(null);
                     navigate('/host');
                   }}
                   className="px-6 py-3 bg-electric-500 hover:bg-electric-400 text-white font-semibold rounded-lg transition-colors"
@@ -1278,6 +1327,7 @@ export default function HostDashboard() {
                 <button
                   onClick={() => {
                     clearHostSession();
+                    setQrData(null);
                     navigate('/');
                   }}
                   className="px-6 py-3 bg-navy-600 hover:bg-navy-500 text-white font-semibold rounded-lg transition-colors"

@@ -4,6 +4,7 @@ import { engine } from '../sockets/index.ts';
 import { generateQRCodeDataUrl } from '../utils/qrcode.ts';
 import { getServerUrl, hasPublicUrl } from '../utils/networkInfo.ts';
 import { getPreReadHTML } from '../pages/pre-read.ts';
+import { getLearnNemHTML } from '../pages/learn-nem.ts';
 import { getTechnicalNotesHTML } from '../pages/technical-notes.ts';
 import { getVibeCodingNotesHTML } from '../pages/vibe-coding-notes.ts';
 import { listConfigs, saveConfig, deleteConfig } from '../data/configs.ts';
@@ -72,6 +73,12 @@ apiRouter.get('/game/:gameId/export', (req, res) => {
 apiRouter.get('/pre-read', (req, res) => {
   res.setHeader('Content-Type', 'text/html');
   res.send(getPreReadHTML());
+});
+
+// Learn the NEM printable page (File > Print > Save as PDF)
+apiRouter.get('/learn-nem', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getLearnNemHTML());
 });
 
 // ---- Development Notes ----

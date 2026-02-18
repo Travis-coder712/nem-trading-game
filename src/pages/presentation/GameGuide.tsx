@@ -1,4 +1,12 @@
+import { useEffect } from 'react';
+
 export default function GameGuide() {
+  // Auto-trigger print dialog for PDF download
+  useEffect(() => {
+    const timer = setTimeout(() => window.print(), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="min-h-screen bg-navy-950 text-white print:bg-white print:text-black">
       {/* Print button - hidden when printing */}

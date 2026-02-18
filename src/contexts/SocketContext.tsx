@@ -212,6 +212,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     setBidStatus({});
     setAllBidsIn(false);
     setTeamScreenData(null);
+    setLastPhaseTransition(null);
+    setLastEvent(null);
+    setLastBalancing(null);
+    phaseTrackRef.current = { currentPhase: null, nextId: 1 };
   }, []);
 
   const viewTeamScreen = useCallback((teamId: string) => {
