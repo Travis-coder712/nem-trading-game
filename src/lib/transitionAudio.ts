@@ -10,7 +10,11 @@
 
 let sharedCtx: AudioContext | null = null;
 
+// Suppress all audio when loaded inside an iframe (e.g. trailer screenshots)
+const _inIframe = typeof window !== 'undefined' && window.self !== window.top;
+
 function getCtx(): AudioContext | null {
+  if (_inIframe) return null;
   try {
     if (!sharedCtx || sharedCtx.state === 'closed') {
       sharedCtx = new AudioContext();

@@ -130,6 +130,18 @@ export const AudioManager = {
     setTimeout(() => playTone(200, 0.15, 'sawtooth', 0.1), 200);
   },
 
+  /** Team disconnected — soft alert for host */
+  teamDisconnected() {
+    playTone(440, 0.15, 'sine', 0.12);
+    setTimeout(() => playTone(349, 0.25, 'sine', 0.12), 180);
+  },
+
+  /** Team reconnected — gentle positive */
+  teamReconnected() {
+    playTone(523, 0.1, 'sine', 0.1);
+    setTimeout(() => playTone(659, 0.15, 'sine', 0.1), 120);
+  },
+
   /** Initialize audio context on user interaction */
   init() {
     getCtx();

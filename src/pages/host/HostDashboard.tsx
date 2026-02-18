@@ -15,8 +15,9 @@ import HowToBidTutorial from '../../components/game/HowToBidTutorial';
 import StrategyGuide from '../../components/game/StrategyGuide';
 import TeachingPromptCard from '../../components/host/TeachingPromptCard';
 import MarketSnapshotCard from '../../components/host/MarketSnapshotCard';
-import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand } from '../../../shared/types';
+import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand, TeamPublicInfo } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
+import AudioManager from '../../lib/AudioManager';
 
 export default function HostDashboard() {
   const navigate = useNavigate();
@@ -56,6 +57,11 @@ export default function HostDashboard() {
   const [autoAdvanceCountdown, setAutoAdvanceCountdown] = useState<number | null>(null);
   const autoAdvanceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Disconnect alert: track teams that have been disconnected for 30+ seconds
+  const [disconnectedAlerts, setDisconnectedAlerts] = useState<Map<string, { name: string; color: string; since: number }>>(new Map());
+  const disconnectTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const prevTeamStatusRef = useRef<Map<string, boolean>>(new Map()); // teamId -> wasConnected
+
   useEffect(() => {
     if (allBidsIn && phase === 'bidding' && autoAdvanceCountdown === null) {
       // Start 5-second countdown
@@ -85,6 +91,65 @@ export default function HostDashboard() {
       }
     };
   }, [allBidsIn, phase, endBidding]);
+
+  // Track team disconnect/reconnect with 30-second grace period before alerting
+  useEffect(() => {
+    const teams: TeamPublicInfo[] = gameState?.teams || [];
+    const currentStatus = new Map(teams.map(t => [t.id, t.isConnected]));
+    const prevStatus = prevTeamStatusRef.current;
+
+    for (const team of teams) {
+      const wasConnected = prevStatus.get(team.id);
+      const isNowConnected = team.isConnected;
+
+      // Team just disconnected
+      if (wasConnected === true && isNowConnected === false) {
+        // Start 30-second timer before showing alert
+        const timer = setTimeout(() => {
+          setDisconnectedAlerts(prev => {
+            const next = new Map(prev);
+            next.set(team.id, { name: team.name, color: team.color, since: Date.now() });
+            return next;
+          });
+          AudioManager.teamDisconnected();
+        }, 30000);
+        disconnectTimersRef.current.set(team.id, timer);
+      }
+
+      // Team reconnected — cancel any pending timer and clear alert
+      if (wasConnected === false && isNowConnected === true) {
+        const timer = disconnectTimersRef.current.get(team.id);
+        if (timer) {
+          clearTimeout(timer);
+          disconnectTimersRef.current.delete(team.id);
+        }
+        setDisconnectedAlerts(prev => {
+          if (!prev.has(team.id)) return prev;
+          const next = new Map(prev);
+          next.delete(team.id);
+          AudioManager.teamReconnected();
+          return next;
+        });
+      }
+    }
+
+    // Update previous status
+    prevTeamStatusRef.current = currentStatus;
+
+    // Cleanup timers on unmount
+    return () => {
+      disconnectTimersRef.current.forEach(timer => clearTimeout(timer));
+    };
+  }, [gameState?.teams]);
+
+  // Dismiss a single disconnect alert
+  const dismissDisconnectAlert = useCallback((teamId: string) => {
+    setDisconnectedAlerts(prev => {
+      const next = new Map(prev);
+      next.delete(teamId);
+      return next;
+    });
+  }, []);
 
   // Wrapped handlers that show the transition, then call the socket action
   const handleStartRound = useCallback(() => {
@@ -267,6 +332,49 @@ export default function HostDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Disconnect Alert Banner */}
+      {disconnectedAlerts.size > 0 && (
+        <div className="bg-red-500/15 border-b border-red-500/30 px-4 py-2.5">
+          <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-red-300 text-sm font-medium flex-shrink-0">
+              <span className="animate-pulse">⚠️</span>
+              <span>Team{disconnectedAlerts.size > 1 ? 's' : ''} disconnected:</span>
+            </div>
+            {[...disconnectedAlerts.entries()].map(([teamId, info]) => (
+              <div key={teamId} className="flex items-center gap-1.5 px-3 py-1 bg-red-500/20 rounded-full text-sm">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: info.color }} />
+                <span className="text-red-200 font-medium">{info.name}</span>
+                <span className="text-red-400/70 text-xs ml-1">
+                  {Math.floor((Date.now() - info.since) / 60000)}m ago
+                </span>
+                <button
+                  onClick={() => dismissDisconnectAlert(teamId)}
+                  className="ml-1 text-red-400/50 hover:text-red-300 transition-colors"
+                  title="Dismiss"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {qrData && (
+              <div className="ml-auto flex items-center gap-2 text-xs text-red-300/70 flex-shrink-0">
+                <span>Show QR to rejoin →</span>
+                <button
+                  onClick={() => {
+                    // Scroll to QR section or show it
+                    const el = document.getElementById('lobby-qr');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-red-200 rounded-lg transition-colors font-medium"
+                >
+                  📱 QR Code
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex">
         {/* Sidebar */}
@@ -692,7 +800,7 @@ export default function HostDashboard() {
               )}
 
               {qrData && (
-                <div className="bg-white rounded-2xl p-6 inline-block mb-6 shadow-xl">
+                <div id="lobby-qr" className="bg-white rounded-2xl p-6 inline-block mb-6 shadow-xl">
                   <img src={qrData.qrDataUrl} alt="QR Code" className="w-64 h-64" />
                   <p className="text-navy-700 text-sm font-mono mt-2 break-all">{qrData.joinUrl}</p>
                   {qrData.joinUrl.startsWith('https://') && (

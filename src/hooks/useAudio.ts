@@ -10,6 +10,8 @@ import { useRef, useState, useCallback, useEffect } from 'react';
  * a user gesture, so this is the earliest we can start.
  */
 export function useAudio(mp3Src?: string, autoStart = false) {
+  // Don't play audio when loaded inside an iframe (e.g. trailer screenshots)
+  const inIframe = typeof window !== 'undefined' && window.self !== window.top;
   const contextRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const nodesRef = useRef<OscillatorNode[]>([]);
@@ -145,6 +147,7 @@ export function useAudio(mp3Src?: string, autoStart = false) {
   }, []);
 
   const toggle = useCallback(() => {
+    if (inIframe) return; // No audio in iframes
     if (isPlaying) {
       if (modeRef.current === 'mp3' && audioRef.current) {
         stopMp3();
@@ -164,7 +167,7 @@ export function useAudio(mp3Src?: string, autoStart = false) {
 
   // Auto-start on first user gesture (click / touch / key)
   useEffect(() => {
-    if (!autoStart || autoStartedRef.current) return;
+    if (!autoStart || autoStartedRef.current || inIframe) return;
 
     const start = () => {
       if (autoStartedRef.current) return;

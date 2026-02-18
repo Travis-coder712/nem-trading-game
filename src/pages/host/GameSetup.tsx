@@ -3,37 +3,40 @@ import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../contexts/SocketContext';
 import type { AssetConfigOverrides, AssetConfigPreset, AssetType } from '../../../shared/types';
 
+const FEATURED_MODE = {
+  id: 'progressive',
+  name: 'Progressive Learning',
+  rounds: 10,
+  duration: '90-120 min',
+  description: 'Builds complexity gradually: 1 asset → full portfolio over 10 rounds. Best for a single 2-hour session with new learners.',
+  detail: 'Coal → Gas → Renewables → Battery → Crisis scenarios. Includes host teaching prompts.',
+  icon: '📈',
+  tag: 'Recommended',
+};
+
 const GAME_MODES = [
   {
     id: 'beginner',
     name: 'Beginner Intro',
     rounds: 1,
     duration: '10-15 min',
-    description: 'One guided round with 2 assets (coal + gas). Perfect for first-timers who\'ve never seen an electricity market.',
+    description: 'One guided round with 2 assets. Perfect for first-timers.',
     icon: '🎓',
-  },
-  {
-    id: 'progressive',
-    name: 'Progressive Learning',
-    rounds: 10,
-    duration: '90-120 min',
-    description: 'Builds complexity gradually: 1 asset → full portfolio over 10 rounds. Best for a single 2-hour session with new learners.',
-    icon: '📈',
   },
   {
     id: 'quick',
     name: 'Quick Game',
     rounds: 8,
     duration: '60-90 min',
-    description: 'Compressed version covering all key concepts. Great for time-limited workshops.',
+    description: 'All key concepts in 8 fast-paced rounds. Great for workshops.',
     icon: '⚡',
   },
   {
     id: 'full',
     name: 'Full Game',
     rounds: 15,
-    duration: '2.5-3.5 hours',
-    description: 'Complete learning journey from coal basics to full NEM simulation with all scenarios.',
+    duration: '2.5-3.5 hrs',
+    description: 'Deep-dive with seasonal scenarios, carbon pricing & advanced strategy.',
     icon: '🏆',
   },
   {
@@ -41,7 +44,7 @@ const GAME_MODES = [
     name: 'Experienced Replay',
     rounds: 4,
     duration: '30-45 min',
-    description: 'One round per season with full portfolio. For participants who want to try different strategies.',
+    description: 'Full portfolio from round 1. One round per season for returning players.',
     icon: '🔄',
   },
 ];
@@ -238,7 +241,41 @@ export default function GameSetup() {
         {/* Game Mode Selection */}
         <div className="mb-8">
           <label className="block text-sm font-medium text-navy-200 mb-3">Game Mode</label>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+
+          {/* Featured Mode — full width */}
+          <button
+            onClick={() => setSelectedMode(FEATURED_MODE.id)}
+            className={`relative w-full text-left rounded-xl p-5 border-2 transition-all duration-200 mb-3 ${
+              selectedMode === FEATURED_MODE.id
+                ? 'border-electric-400 bg-electric-500/10 shadow-lg shadow-electric-500/10'
+                : 'border-white/10 bg-white/5 hover:border-white/30'
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <div className="text-3xl mt-0.5">{FEATURED_MODE.icon}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-white">{FEATURED_MODE.name}</span>
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-electric-500/25 text-electric-300 rounded-full">
+                    {FEATURED_MODE.tag}
+                  </span>
+                </div>
+                <div className="text-xs text-electric-300 mt-0.5">{FEATURED_MODE.rounds} rounds &bull; {FEATURED_MODE.duration}</div>
+                <div className="text-xs text-navy-300 mt-1">{FEATURED_MODE.description}</div>
+                <div className="text-[11px] text-navy-500 mt-1">{FEATURED_MODE.detail}</div>
+              </div>
+            </div>
+            {selectedMode === FEATURED_MODE.id && (
+              <div className="absolute top-3 right-3 w-5 h-5 bg-electric-500 rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
+          </button>
+
+          {/* Other 4 modes — balanced 2×2 grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {GAME_MODES.map(mode => (
               <button
                 key={mode.id}
@@ -252,7 +289,7 @@ export default function GameSetup() {
                 <div className="text-2xl mb-2">{mode.icon}</div>
                 <div className="font-semibold text-white text-sm">{mode.name}</div>
                 <div className="text-xs text-electric-300 mb-1">{mode.rounds} rounds &bull; {mode.duration}</div>
-                <div className="text-xs text-navy-400">{mode.description}</div>
+                <div className="text-xs text-navy-400 leading-snug">{mode.description}</div>
                 {selectedMode === mode.id && (
                   <div className="absolute top-2 right-2 w-5 h-5 bg-electric-500 rounded-full flex items-center justify-center">
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">

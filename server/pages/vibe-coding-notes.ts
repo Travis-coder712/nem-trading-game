@@ -322,8 +322,8 @@ export function getVibeCodingNotesHTML(): string {
         </ul>
       </div>
       <div>
-        <h3 style="color: #718096;">Operational (~75 prompts, 34%)</h3>
-        <p style="font-size: 0.9rem;">Server management, git, and session continuations:</p>
+        <h3 style="color: #718096;">Tooling Delegation (~75 prompts, 34%)</h3>
+        <p style="font-size: 0.9rem;">Tasks a developer would do themselves, delegated to the AI:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;give me a link to click to start&rdquo; (&times;8)</li>
           <li>&ldquo;please restart the server&rdquo; (&times;7)</li>
@@ -338,7 +338,7 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <div class="callout" style="margin-top: 1.5rem;">
-    <p><strong>What&rsquo;s striking:</strong> Only <strong>36%</strong> of prompts were feature requests&mdash;the creative, directional input. Another <strong>11%</strong> were bug reports. The remaining <strong>52%</strong> were operational (server restarts, git commits, session management) and UI tweaks. This reveals the reality of vibe coding: the human spends as much time <em>managing the process</em> as they do <em>directing the product</em>.</p>
+    <p><strong>What&rsquo;s striking:</strong> Only <strong>36%</strong> of prompts were feature requests&mdash;the creative, directional input. Another <strong>11%</strong> were bug reports and <strong>18%</strong> were UI/UX refinements. The remaining <strong>34%</strong> were what we call <strong>&ldquo;tooling delegation&rdquo;</strong>&mdash;tasks like starting the server, committing to git, generating a clickable link, or managing conversation sessions. A professional developer would do these things themselves without thinking; they&rsquo;re not really &ldquo;operational&rdquo; prompts so much as a non-coder <em>delegating the mechanics of software development</em> to the AI. This is a distinctive feature of vibe coding by non-developers: the AI isn&rsquo;t just writing the code, it&rsquo;s also handling all the tooling around it.</p>
   </div>
 
   <h2>What Did Claude Already Know?</h2>
@@ -395,7 +395,7 @@ export function getVibeCodingNotesHTML(): string {
           <li><strong>~80 feature requests</strong> (36%)</li>
           <li><strong>~25 bug reports</strong> (11%)</li>
           <li><strong>~40 UI/UX improvements</strong> (18%)</li>
-          <li><strong>~75 operational prompts</strong> (34%): server restarts, git commits, session continuations</li>
+          <li><strong>~75 tooling delegation prompts</strong> (34%): server restarts, git commits, session continuations&mdash;tasks a developer would handle themselves, delegated to the AI by a non-coder</li>
           <li>Longest prompt: <strong>~500 words</strong> (opening game concept)</li>
           <li>Shortest prompt: <strong>1 word</strong> (&ldquo;continue&rdquo;, &ldquo;yes&rdquo;, &ldquo;both&rdquo;)</li>
         </ul>

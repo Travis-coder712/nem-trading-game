@@ -9,6 +9,7 @@ import { getTechnicalNotesHTML } from '../pages/technical-notes.ts';
 import { getVibeCodingNotesHTML } from '../pages/vibe-coding-notes.ts';
 import { getGameMasterGuideHTML } from '../pages/game-master-guide.ts';
 import { getRecommendedImprovementsHTML } from '../pages/recommended-improvements.ts';
+import { getCinematicTrailerHTML } from '../pages/cinematic-trailer.ts';
 import { listConfigs, saveConfig, deleteConfig } from '../data/configs.ts';
 import { getWifiConfig, saveWifiConfig, deleteWifiConfig, generateWifiQRString, type WifiConfig } from '../data/wifi.ts';
 import type { AssetConfigPreset } from '../../shared/types.ts';
@@ -106,6 +107,11 @@ apiRouter.get('/notes/technical', (req, res) => {
 apiRouter.get('/notes/vibe-coding', (req, res) => {
   res.setHeader('Content-Type', 'text/html');
   res.send(getVibeCodingNotesHTML());
+});
+
+apiRouter.get('/trailer', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getCinematicTrailerHTML());
 });
 
 // ---- Asset Configuration Presets ----

@@ -409,6 +409,23 @@ export default function TeamGame() {
     AudioManager.bidSubmitted();
   };
 
+  // Track how long we've been disconnected to show escalating help
+  const [disconnectedSince, setDisconnectedSince] = useState<number | null>(null);
+  const [showReconnectHelp, setShowReconnectHelp] = useState(false);
+
+  useEffect(() => {
+    if (!connected) {
+      const now = Date.now();
+      setDisconnectedSince(prev => prev ?? now);
+      // After 10 seconds disconnected, show expanded reconnect help
+      const timer = setTimeout(() => setShowReconnectHelp(true), 10000);
+      return () => clearTimeout(timer);
+    } else {
+      setDisconnectedSince(null);
+      setShowReconnectHelp(false);
+    }
+  }, [connected]);
+
   // Show reconnecting state
   if (!team && (reconnecting || sessionStorage.getItem('nem_team_id'))) {
     const savedTeamName = sessionStorage.getItem('nem_team_name');
@@ -465,8 +482,57 @@ export default function TeamGame() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Disconnected banner */}
-      {!connected && (
+      {/* Disconnected overlay */}
+      {!connected && showReconnectHelp && (
+        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div className="text-4xl mb-3">📡</div>
+            <h3 className="text-lg font-bold text-gray-800 mb-1">Connection Lost</h3>
+            <p className="text-gray-500 text-sm mb-4">
+              We're trying to reconnect you automatically. If it doesn't work, try:
+            </p>
+            <div className="space-y-3 text-left text-sm">
+              <div className="flex items-start gap-3 bg-blue-50 rounded-lg p-3">
+                <span className="text-lg flex-shrink-0">1️⃣</span>
+                <div>
+                  <div className="font-medium text-gray-800">Wait a moment</div>
+                  <div className="text-gray-500 text-xs">Auto-reconnect usually works within 15 seconds</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-blue-50 rounded-lg p-3">
+                <span className="text-lg flex-shrink-0">2️⃣</span>
+                <div>
+                  <div className="font-medium text-gray-800">Check your WiFi</div>
+                  <div className="text-gray-500 text-xs">Make sure you're still on the venue network</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-blue-50 rounded-lg p-3">
+                <span className="text-lg flex-shrink-0">3️⃣</span>
+                <div>
+                  <div className="font-medium text-gray-800">Scan the QR code on screen</div>
+                  <div className="text-gray-500 text-xs">Ask your host to show the join QR code — scan it to rejoin</div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors text-sm"
+              >
+                Reload Page
+              </button>
+              <button
+                onClick={() => setShowReconnectHelp(false)}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors text-sm"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Simple disconnect banner (shown immediately) */}
+      {!connected && !showReconnectHelp && (
         <div className="bg-red-500 text-white text-center py-2 text-sm font-medium animate-pulse">
           ⚠️ Disconnected — reconnecting...
         </div>

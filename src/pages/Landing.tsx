@@ -220,6 +220,14 @@ export default function Landing() {
             >
               ✨ How This Was Built (Vibe Coding)
             </a>
+            <a
+              href="/api/trailer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 text-xs font-medium text-electric-300 border border-electric-500/25 hover:border-electric-400 hover:bg-electric-500/10 rounded-lg transition-all"
+            >
+              🎬 Watch Trailer
+            </a>
           </motion.div>
 
           {/* Animated stats */}
