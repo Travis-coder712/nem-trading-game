@@ -128,15 +128,30 @@ export default function RoundStartTransition({
           40% { opacity: 0.6; transform: scaleY(1); }
           100% { opacity: 0; transform: scaleY(0); }
         }
+        @keyframes rsTransSpotlight {
+          0%   { left: 15%; top: 70%; transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+          8%   { left: 15%; top: 70%; transform: translate(-50%, -50%) scale(0.8); opacity: 0.6; }
+          25%  { left: 80%; top: 25%; transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
+          45%  { left: 25%; top: 20%; transform: translate(-50%, -50%) scale(0.7); opacity: 0.5; }
+          65%  { left: 70%; top: 65%; transform: translate(-50%, -50%) scale(0.85); opacity: 0.6; }
+          85%  { left: 50%; top: 38%; transform: translate(-50%, -50%) scale(1.0); opacity: 0.9; }
+          100% { left: 50%; top: 38%; transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+        }
       `}</style>
 
       {/* Background */}
       <div className="absolute inset-0 bg-navy-950">
+        {/* Animated spotlight that roams around then settles on the text */}
         <div
-          className="absolute inset-0"
+          className="absolute"
           style={{
-            background: seasonCfg.bgGradient,
-            animation: 'rsTransBgPulse 3s ease-in-out',
+            width: '700px',
+            height: '700px',
+            borderRadius: '50%',
+            background: `radial-gradient(ellipse at center, ${seasonCfg.color}30 0%, ${seasonCfg.color}10 35%, transparent 70%)`,
+            animation: 'rsTransSpotlight 3.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards',
+            opacity: 0,
+            pointerEvents: 'none',
           }}
         />
         {[...Array(5)].map((_, i) => (

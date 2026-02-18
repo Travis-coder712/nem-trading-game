@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import type {
-  AssetBid, AssetConfigOverrides, AssetDefinition, AssetInfo, AssetType, BalancingResult, FleetInfo, GameConfig,
+  AssetBid, AssetConfigOverrides, AssetDefinition, AssetInfo, AssetType, BalancingResult, FleetAssetTypeInfo, FleetInfo, GameConfig,
   GameMode, GamePhase, GameState, LeaderboardEntry, RoundAnalysis, RoundConfig,
-  RoundDispatchResult, ScenarioEffect, ScenarioEvent, Season,
+  RoundDispatchResult, ScenarioEffect, ScenarioEvent, Season, SurpriseIncident,
   Team, TeamAssetInstance, TeamBidSubmission, TeamPublicInfo,
   TimePeriod, TimePeriodDispatchResult, GameStateSnapshot,
 } from '../../shared/types.ts';
@@ -16,10 +16,58 @@ import {
 } from '../data/assets.ts';
 import { generateDemandForRound } from '../data/demand-profiles.ts';
 import { getScenarioEventsForRound, SCENARIO_EVENTS } from '../data/scenarios.ts';
+import { getSurpriseEvent } from '../data/surprises.ts';
 import { fullGameRounds } from '../data/rounds/full-game.ts';
 import { quickGameRounds } from '../data/rounds/quick-game.ts';
 import { experiencedReplayRounds } from '../data/rounds/experienced-replay.ts';
 import { beginnerRounds } from '../data/rounds/beginner.ts';
+
+/**
+ * Generate a dramatic, vague incident report for teams.
+ * Teams see the symptoms but NOT the cause — mimics real-world market uncertainty.
+ */
+function generateIncidentReport(eventId: string): SurpriseIncident | null {
+  const INCIDENT_REPORTS: Record<string, SurpriseIncident> = {
+    generator_trip: {
+      icon: '🚨',
+      headline: 'BREAKING: Unplanned generator outage reported',
+      description: 'AEMO has received notification of an unplanned generating unit trip in the NEM. The affected unit has been derated significantly. Market participants should be aware that available supply has tightened — capacity margins are narrower than forecast. Expect supply-demand balance to be tighter than briefed.',
+      category: 'supply',
+    },
+    demand_surge_heat: {
+      icon: '🌡️',
+      headline: 'ALERT: Temperature forecast revised sharply upward',
+      description: 'The Bureau of Meteorology has revised today\'s temperature forecast significantly higher than earlier predictions. Air conditioning load is surging across the network. Grid demand during peak periods is now tracking well above the original forecast. Traders should factor higher-than-expected demand into their bidding.',
+      category: 'demand',
+    },
+    demand_drop_solar: {
+      icon: '☀️',
+      headline: 'UPDATE: Rooftop solar output exceeding forecast',
+      description: 'Clear skies and optimal conditions mean rooftop PV generation across the network is substantially higher than forecast. Grid-level demand during daytime periods has dropped below original projections. Behind-the-meter solar is eating into grid demand — expect lower clearing prices during daylight hours.',
+      category: 'demand',
+    },
+    renewable_drought: {
+      icon: '🌫️',
+      headline: 'WARNING: Renewable output collapsing across the network',
+      description: 'A persistent high-pressure system has brought overcast skies and calm conditions across the NEM. Wind farm output has plummeted to a fraction of forecast capacity, and solar generation is well below expectations. Dispatchable generators will need to fill the gap. This is shaping up to be a tight day.',
+      category: 'supply',
+    },
+    fuel_price_spike: {
+      icon: '📊',
+      headline: 'MARKET ALERT: International gas prices spike overnight',
+      description: 'Asian spot LNG prices surged overnight following supply disruptions in the global market. Domestic gas generators are now facing substantially higher fuel costs than anticipated when they filed their initial bids. Gas-fired generators\' true cost of production has increased materially — check your marginal cost assumptions.',
+      category: 'cost',
+    },
+    interconnector_outage: {
+      icon: '⚡',
+      headline: 'CRITICAL: Interconnector failure — region now islanded',
+      description: 'AEMO has declared a major interconnector outage, severing the link to a neighbouring region. All demand must now be met by local generation — there is no import capacity available. Total system demand is effectively higher than forecast as previously imported energy must be replaced. All generators should prepare for elevated dispatch requirements.',
+      category: 'demand',
+    },
+  };
+
+  return INCIDENT_REPORTS[eventId] || null;
+}
 
 export class GameEngine {
   private games = new Map<string, GameState>();
@@ -60,6 +108,9 @@ export class GameEngine {
       teams: [],
       roundResults: [],
       activeScenarioEvents: [],
+      activeSurpriseEvents: [],
+      preSurpriseDemandMW: null,
+      surpriseIncidents: [],
       currentBids: new Map(),
       biddingTimeRemaining: 0,
       startedAt: Date.now(),
@@ -160,6 +211,9 @@ export class GameEngine {
     game.phase = 'briefing';
     game.currentBids = new Map();
     game.biddingTimeRemaining = roundConfig.biddingTimeLimitSeconds;
+    game.activeSurpriseEvents = [];  // Reset surprise events for the new round
+    game.preSurpriseDemandMW = null;
+    game.surpriseIncidents = [];
 
     // Assign assets for this round
     this.assignAssetsForRound(game, roundConfig);
@@ -478,8 +532,20 @@ export class GameEngine {
         : undefined,
       lastRoundAnalysis: this.getLastRoundAnalysis(gameId),
       fleetInfo: this.getFleetInfo(gameId),
+      activeScenarioEventDetails: game.activeScenarioEvents.length > 0
+        ? game.activeScenarioEvents
+        : undefined,
       biddingGuardrailEnabled: game.config.biddingGuardrailEnabled,
       nextRoundConfig,
+      // Only include surprise events in host snapshot (no forTeamId)
+      activeSurpriseEvents: !forTeamId && game.activeSurpriseEvents.length > 0
+        ? game.activeSurpriseEvents
+        : undefined,
+      // Surprise incident reports and pre-surprise demand (for BOTH host and team)
+      preSurpriseDemandMW: game.preSurpriseDemandMW || undefined,
+      surpriseIncidents: game.surpriseIncidents.length > 0
+        ? game.surpriseIncidents
+        : undefined,
     };
   }
 
@@ -537,7 +603,64 @@ export class GameEngine {
         : 0;
     }
 
-    return { totalFleetMW, demandMW, demandAsPercentOfFleet };
+    // Build per-asset-type fleet breakdown
+    const typeMap = new Map<AssetType, {
+      nameplateMW: number;
+      availableMW: Record<string, number>;
+      teamCount: number;
+      srmcMin: number;
+      srmcMax: number;
+    }>();
+
+    for (const team of game.teams) {
+      for (const asset of team.assets) {
+        const def = gameDefs.get(asset.assetDefinitionId);
+        if (!def) continue;
+
+        let entry = typeMap.get(def.type);
+        if (!entry) {
+          entry = { nameplateMW: 0, availableMW: {}, teamCount: 0, srmcMin: Infinity, srmcMax: -Infinity };
+          typeMap.set(def.type, entry);
+        }
+
+        entry.nameplateMW += def.nameplateMW;
+        entry.teamCount += 1;
+        if (def.srmcPerMWh > 0) {
+          entry.srmcMin = Math.min(entry.srmcMin, def.srmcPerMWh);
+          entry.srmcMax = Math.max(entry.srmcMax, def.srmcPerMWh);
+        } else {
+          entry.srmcMin = Math.min(entry.srmcMin, 0);
+          entry.srmcMax = Math.max(entry.srmcMax, 0);
+        }
+
+        // Compute per-period available MW
+        for (const period of roundConfig.timePeriods) {
+          let avail = asset.currentAvailableMW;
+          if (def.type === 'wind') {
+            avail = Math.round(avail * getWindCapacityFactor(roundConfig.season, period as TimePeriod));
+          } else if (def.type === 'solar') {
+            avail = Math.round(avail * getSolarCapacityFactor(roundConfig.season, period as TimePeriod));
+          }
+          entry.availableMW[period] = (entry.availableMW[period] || 0) + avail;
+        }
+      }
+    }
+
+    const fleetByAssetType: Record<string, FleetAssetTypeInfo> = {};
+    for (const [type, entry] of typeMap) {
+      fleetByAssetType[type] = {
+        nameplateMW: entry.nameplateMW,
+        availableMW: entry.availableMW,
+        teamCount: entry.teamCount,
+        srmcRange: [
+          entry.srmcMin === Infinity ? 0 : entry.srmcMin,
+          entry.srmcMax === -Infinity ? 0 : entry.srmcMax,
+        ],
+        isNew: roundConfig.newAssetsUnlocked.includes(type),
+      };
+    }
+
+    return { totalFleetMW, demandMW, demandAsPercentOfFleet, fleetByAssetType };
   }
 
   /**
@@ -561,6 +684,57 @@ export class GameEngine {
     return true;
   }
 
+  /**
+   * Apply host-triggered surprise events before bidding opens.
+   * Modifies demand, asset availability, and/or SRMC in-place.
+   * Returns a summary for the host and the updated demand values.
+   */
+  applySurprises(
+    gameId: string,
+    eventIds: string[],
+  ): { applied: string[]; summaries: string[]; updatedDemand: Record<string, number> } | null {
+    const game = this.games.get(gameId);
+    if (!game || game.currentRound === 0) return null;
+
+    // Only allow during briefing phase (before bidding opens)
+    if (game.phase !== 'briefing') return null;
+
+    const roundConfig = game.config.rounds[game.currentRound - 1];
+    if (!roundConfig) return null;
+
+    const gameDefs = this.assetDefs.get(gameId);
+    if (!gameDefs) return null;
+
+    // Store pre-surprise demand for comparison
+    game.preSurpriseDemandMW = { ...roundConfig.baseDemandMW };
+
+    const applied: string[] = [];
+    const summaries: string[] = [];
+
+    for (const eventId of eventIds) {
+      const event = getSurpriseEvent(eventId);
+      if (!event) continue;
+
+      const summary = event.apply(game, roundConfig, gameDefs);
+      applied.push(eventId);
+      summaries.push(summary);
+    }
+
+    // Store which surprises are active (for host snapshot only)
+    game.activeSurpriseEvents = applied;
+
+    // Generate dramatic incident reports for teams (vague — no event names)
+    game.surpriseIncidents = applied.map(id => generateIncidentReport(id)).filter(Boolean) as SurpriseIncident[];
+
+    game.updatedAt = Date.now();
+
+    return {
+      applied,
+      summaries,
+      updatedDemand: { ...roundConfig.baseDemandMW },
+    };
+  }
+
   resetGame(gameId: string): void {
     const game = this.games.get(gameId);
     if (!game) return;
@@ -569,6 +743,9 @@ export class GameEngine {
     game.currentRound = 0;
     game.roundResults = [];
     game.activeScenarioEvents = [];
+    game.activeSurpriseEvents = [];
+    game.preSurpriseDemandMW = null;
+    game.surpriseIncidents = [];
     game.currentBids = new Map();
     game.biddingTimeRemaining = 0;
 

@@ -86,6 +86,8 @@ export function getGameMasterGuideHTML(): string {
       <li><a href="#beginner-round">Beginner Mode</a></li>
       <li><a href="#assets">Asset Reference</a></li>
       <li><a href="#scenarios">Scenario Events Reference</a></li>
+      <li><a href="#surprise-events">Surprise Events</a></li>
+      <li><a href="#strategies">Bidding Strategy Reference</a></li>
       <li><a href="#guardrails">Bidding Guardrails</a></li>
       <li><a href="#tips">Tips, Tricks &amp; Facilitation Notes</a></li>
       <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -746,8 +748,140 @@ export function getGameMasterGuideHTML(): string {
     </tr>
   </table>
 
-  <!-- Section 10: Guardrails -->
-  <h2 id="guardrails">10. Bidding Guardrails</h2>
+  <!-- Section 10: Surprise Events -->
+  <h2 id="surprise-events">10. Surprise Events</h2>
+
+  <p>Surprise events are secret modifications the Game Master can toggle ON during the <strong>briefing phase</strong>, before bidding opens. Teams see the effects (changed demand, outages) but <strong>NOT</strong> the reason. The toggles are found at the bottom of the host sidebar under <strong>&ldquo;&#127922; Game Mechanics&rdquo;</strong>.</p>
+
+  <div class="warning">
+    <strong>&#9888;&#65039; Important:</strong> Surprise events modify the round in-place. Once you click &ldquo;Open Bidding,&rdquo; the changes are baked in. Use them intentionally &mdash; they significantly alter the supply-demand balance and can swing results dramatically. Multiple surprise events can be combined for compounding effects.
+  </div>
+
+  <h3>Event Reference</h3>
+  <table>
+    <tr>
+      <th>Event</th>
+      <th>Category</th>
+      <th>Effect</th>
+      <th>When to Use</th>
+    </tr>
+    <tr>
+      <td><strong>&#128295; Generator Trip</strong></td>
+      <td>Supply</td>
+      <td>A random thermal plant loses ~70% capacity. Tightens supply by 200&ndash;500 MW.</td>
+      <td>When a round feels too easy or supply margins are comfortable. Creates genuine scarcity.</td>
+    </tr>
+    <tr>
+      <td><strong>&#128200; Demand Surge &mdash; Hot Day</strong></td>
+      <td>Demand</td>
+      <td>Heatwave increases afternoon &amp; evening demand by 15&ndash;25%.</td>
+      <td>For drama and excitement. Great in summer rounds or when you want teams to experience price spikes.</td>
+    </tr>
+    <tr>
+      <td><strong>&#128201; Demand Drop &mdash; Rooftop Solar</strong></td>
+      <td>Demand</td>
+      <td>Sunny day reduces daytime demand by 15&ndash;25%.</td>
+      <td>When you want to demonstrate the duck curve or push prices toward negative territory.</td>
+    </tr>
+    <tr>
+      <td><strong>&#127787;&#65039; Renewable Drought</strong></td>
+      <td>Supply</td>
+      <td>Wind drops to 30% capacity, solar drops to 40% capacity.</td>
+      <td>To highlight dependence on dispatchable generation. Pairs well with high-demand scenarios.</td>
+    </tr>
+    <tr>
+      <td><strong>&#9981; Fuel Price Spike</strong></td>
+      <td>Cost</td>
+      <td>Gas CCGT and Peaker marginal costs increase by +50%.</td>
+      <td>To restructure the merit order mid-game. Gas becomes much more expensive, changing bidding dynamics.</td>
+    </tr>
+    <tr>
+      <td><strong>&#128268; Interconnector Outage</strong></td>
+      <td>Demand</td>
+      <td>All periods demand increases +10&ndash;20% (region must self-supply).</td>
+      <td>To simulate an isolated grid. Tightens the market across all periods, not just peaks.</td>
+    </tr>
+  </table>
+
+  <h3>How to Use Surprise Events</h3>
+  <div class="card">
+    <ol>
+      <li><strong>Toggle during the briefing phase.</strong> Before you click &ldquo;Open Bidding,&rdquo; scroll to the bottom of the host sidebar and find the &ldquo;&#127922; Game Mechanics&rdquo; panel. Toggle one or more events ON.</li>
+      <li><strong>Events are applied when you click &ldquo;Open Bidding.&rdquo;</strong> The modified demand, capacity, or cost values are baked into the round at that moment.</li>
+      <li><strong>Teams see a dramatic &ldquo;Developing Situation&rdquo; incident report</strong> with vague descriptions. They see the symptoms (e.g., &ldquo;reports of elevated demand across the network&rdquo;) but NOT the specific cause. This simulates real-world uncertainty &mdash; market participants react to conditions, not explanations.</li>
+      <li><strong>Combine events for compounding effects.</strong> For example, a Generator Trip + Demand Surge creates extreme scarcity. A Demand Drop + Renewable Drought partially cancel out. Experiment to find the right level of challenge for your group.</li>
+    </ol>
+  </div>
+
+  <h3>Tips for Each Event</h3>
+  <div class="card">
+    <ul>
+      <li><strong>&#128295; Generator Trip:</strong> Use when a round feels too comfortable and supply margins are wide. The random nature means one team gets hit hard &mdash; builds empathy for real generator operators dealing with unplanned outages.</li>
+      <li><strong>&#128200; Demand Surge:</strong> The go-to event for drama. Afternoon and evening periods become extremely tight. Peakers and batteries become very valuable. Use in summer rounds for maximum realism.</li>
+      <li><strong>&#128201; Demand Drop:</strong> Best in spring rounds when renewables are already strong. Can push clearing prices negative during the afternoon. Forces teams to rethink coal and gas strategies.</li>
+      <li><strong>&#127787;&#65039; Renewable Drought:</strong> Pairs naturally with winter rounds or when you want to show the value of thermal &ldquo;firming&rdquo; capacity. Without wind and solar, the merit order looks very different.</li>
+      <li><strong>&#9981; Fuel Price Spike:</strong> Changes the cost stack without changing supply or demand volumes. Gas plants become more expensive, which can push coal back into favour. Good for discussing LNG export dynamics.</li>
+      <li><strong>&#128268; Interconnector Outage:</strong> A steady demand increase across all periods. Less dramatic than a heatwave spike but creates sustained pressure. Good for teaching about grid interconnection and energy security.</li>
+    </ul>
+  </div>
+
+  <div class="tip">
+    <strong>&#128161; Pro tip:</strong> Use surprise events sparingly in early rounds when teams are still learning. Save them for mid-to-late game when teams are confident and need a new challenge. Announce &ldquo;Something unexpected may happen this round...&rdquo; to build anticipation without revealing the details.
+  </div>
+
+  <!-- Section 11: Bidding Strategy Reference -->
+  <h2 id="strategies">11. Bidding Strategy Reference</h2>
+
+  <p>These are the six core bidding strategies available in the game. Teams can access the full Strategy Guide from the &ldquo;&#129504; Strategies&rdquo; help button during bidding. Below is a concise reference for the Game Master.</p>
+
+  <div class="round-card">
+    <h4>&#129001; Price Taker</h4>
+    <p>Bid all capacity at $0/MWh. Guaranteed dispatch &mdash; you accept whatever the market pays. This strategy relies entirely on other teams setting a reasonable clearing price. If everyone plays Price Taker, the clearing price collapses to $0 and nobody covers costs.</p>
+    <p><strong>Relies on:</strong> Other teams bidding above $0 to set a meaningful clearing price.</p>
+    <p><strong>Main risk:</strong> If the clearing price is very low (or negative), you earn little or lose money while being fully dispatched. Best suited for renewables with $0 marginal cost.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>&#128309; Marginal Cost Bidder</h4>
+    <p>Bid every asset at its actual production cost (SRMC). You never lose money on a dispatched megawatt &mdash; the economically rational baseline. Simple to execute and a safe default, but you miss the upside when the market is tight and clearing prices spike well above your costs.</p>
+    <p><strong>Relies on:</strong> Nothing &mdash; this is self-sufficient. You break even on marginal dispatch and profit from infra-marginal rent.</p>
+    <p><strong>Main risk:</strong> Leaving money on the table in scarcity. When demand exceeds supply, more aggressive bidders capture the price premium you could have earned.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>&#128992; Price Maker</h4>
+    <p>Split capacity into two bands: a cheap &ldquo;dispatch band&rdquo; bid near marginal cost to guarantee most of your fleet runs, plus an expensive &ldquo;price-setting band&rdquo; bid high to try to set the clearing price. If the high band is the marginal unit, it lifts the clearing price for ALL your dispatched capacity. This is the most common real-world strategy.</p>
+    <p><strong>Relies on:</strong> Enough demand to reach your price-setting band. If supply is abundant, your expensive band sits idle.</p>
+    <p><strong>Main risk:</strong> If the market clears below your price-setting band, that capacity earns nothing. You also risk other teams undercutting you.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>&#128995; Portfolio Optimizer</h4>
+    <p>Each asset plays its optimal role: renewables at $0 for guaranteed dispatch, coal splits into dispatch and price-setting bands, gas CCGT bids at mid-merit, peakers target price spikes, and batteries arbitrage the spread between cheap and expensive periods. This mirrors how a real &ldquo;gentailer&rdquo; (generator-retailer) manages a diverse portfolio.</p>
+    <p><strong>Relies on:</strong> Good market reads &mdash; you need to anticipate demand patterns, competitor behaviour, and seasonal conditions to set each asset correctly.</p>
+    <p><strong>Main risk:</strong> Complexity. With many moving parts, mistakes are more likely. If you misjudge the market, multiple assets can be mispositioned simultaneously.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>&#128308; Strategic Withdrawal</h4>
+    <p>Deliberately withhold capacity by bidding some assets at the price cap ($20,000/MWh), effectively removing them from the supply stack. This tightens supply and can push clearing prices dramatically higher. It is a risky and controversial strategy &mdash; regulators in the real NEM actively monitor for this behaviour.</p>
+    <p><strong>Relies on:</strong> Supply already being tight. If other teams have surplus capacity, your withdrawal is absorbed and you simply lose dispatch revenue.</p>
+    <p><strong>Main risk:</strong> Balancing penalties (if enabled) punish teams that withhold too much. Even without penalties, you earn $0 on withheld capacity. If the gambit fails, you lose on both fronts.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>&#129000; Battery Arbitrageur</h4>
+    <p>Focus the strategy around battery storage: charge at $0 during cheap off-peak or solar-surplus periods, then discharge at a premium during evening peaks. Other assets (coal, gas) bid at or near marginal cost to provide stable base revenue while the battery captures the volatile spread.</p>
+    <p><strong>Relies on:</strong> Meaningful price spreads between periods. If clearing prices are flat across the day, the arbitrage opportunity disappears.</p>
+    <p><strong>Main risk:</strong> If peak prices do not materialise (e.g., mild demand or oversupply in the evening), the battery discharges at a low price and the 15% round-trip efficiency loss erodes any slim margin.</p>
+  </div>
+
+  <div class="tip">
+    <strong>&#128161; Facilitation note:</strong> Encourage teams to try different strategies across rounds rather than sticking with one approach. The game is designed so that no single strategy dominates every scenario &mdash; the best teams adapt to conditions.
+  </div>
+
+  <!-- Section 12: Guardrails -->
+  <h2 id="guardrails">12. Bidding Guardrails</h2>
 
   <table>
     <tr><th>Restriction</th><th>Guardrails ON</th><th>Guardrails OFF</th></tr>
@@ -781,8 +915,8 @@ export function getGameMasterGuideHTML(): string {
 
   <div class="tip"><strong>Recommendation:</strong> Use guardrails ON for teams new to the NEM. Switch to OFF for experienced players or the Experienced Replay mode, where strategic withdrawal is a legitimate advanced strategy.</div>
 
-  <!-- Section 11: Tips -->
-  <h2 id="tips">11. Tips, Tricks &amp; Facilitation Notes</h2>
+  <!-- Section 13: Tips -->
+  <h2 id="tips">13. Tips, Tricks &amp; Facilitation Notes</h2>
 
   <h3>Pacing the Session</h3>
   <div class="card">
@@ -793,6 +927,11 @@ export function getGameMasterGuideHTML(): string {
       <li><strong>Take a break at the technology transition.</strong> When new assets are introduced (Round 3/4 in Quick, Round 5/6 in Full), briefly explain the new asset types and their cost structures before starting the round.</li>
       <li><strong>Build to the climax.</strong> The heatwave and final rounds should feel dramatic. Use the cinematic transitions and sound effects. Announce the leaderboard standings before the final round.</li>
     </ul>
+  </div>
+
+  <h3>Team Help Buttons</h3>
+  <div class="tip">
+    <strong>&#128161; Teams have built-in help:</strong> During bidding, teams can access four help resources from the top of their bidding screen: <strong>&ldquo;&#128214; How to Bid&rdquo;</strong> (interface walkthrough), <strong>&ldquo;&#128202; Round Overview&rdquo;</strong> (current round conditions and demand), <strong>&ldquo;&#129504; Strategies&rdquo;</strong> (the full six-strategy guide), and <strong>&ldquo;&#9888;&#65039; Common Mistakes&rdquo;</strong> (pitfalls to avoid). Remind teams these exist at the start of the session &mdash; they reduce the number of questions you need to field and help slower teams catch up without slowing down the group.
   </div>
 
   <h3>What to Say Between Rounds</h3>
@@ -896,8 +1035,8 @@ export function getGameMasterGuideHTML(): string {
     </ol>
   </div>
 
-  <!-- Section 12: Troubleshooting -->
-  <h2 id="troubleshooting">12. Troubleshooting</h2>
+  <!-- Section 14: Troubleshooting -->
+  <h2 id="troubleshooting">14. Troubleshooting</h2>
 
   <div class="card">
     <table>

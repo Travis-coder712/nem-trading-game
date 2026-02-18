@@ -42,6 +42,7 @@ interface SocketContextValue {
   nextRound: () => void;
   adjustTimer: (seconds: number) => void;
   setDemand: (demand: Record<string, number>) => void;
+  applySurprises: (eventIds: string[]) => void;
   resetGame: () => void;
   viewTeamScreen: (teamId: string) => void;
   clearHostSession: () => void;
@@ -201,6 +202,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const nextRound = useCallback(() => socket.emit('host:next_round'), []);
   const adjustTimer = useCallback((s: number) => socket.emit('host:adjust_timer', s), []);
   const setDemand = useCallback((demand: Record<string, number>) => socket.emit('host:set_demand', demand), []);
+  const applySurprises = useCallback((eventIds: string[]) => socket.emit('host:apply_surprises', eventIds), []);
   const resetGame = useCallback(() => {
     socket.emit('host:reset_game');
   }, []);
@@ -277,6 +279,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       nextRound,
       adjustTimer,
       setDemand,
+      applySurprises,
       resetGame,
       viewTeamScreen,
       clearHostSession,

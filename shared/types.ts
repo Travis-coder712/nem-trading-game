@@ -271,6 +271,25 @@ export interface EducationalSlide {
   imageUrl?: string;
 }
 
+// ---- Surprise Events (host-triggered mid-game mechanics) ----
+
+export interface SurpriseEventDefinition {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;        // what happens (for host)
+  impactSummary: string;      // predicted market impact
+  category: 'supply' | 'demand' | 'cost';
+}
+
+/** Dramatic incident report shown to teams — vague, no event names, mimics real-world uncertainty */
+export interface SurpriseIncident {
+  icon: string;
+  headline: string;         // dramatic 1-liner: "BREAKING: Grid demand surging beyond forecast"
+  description: string;      // 2-3 sentences of dramatic, vague context
+  category: 'supply' | 'demand' | 'cost';
+}
+
 export interface WalkthroughSuggestedBid {
   assetType: AssetType;
   period: TimePeriod;
@@ -452,6 +471,12 @@ export interface GameState {
   teams: Team[];
   roundResults: RoundDispatchResult[];
   activeScenarioEvents: ScenarioEvent[];
+  /** Host-triggered surprise events applied this round (IDs only) */
+  activeSurpriseEvents: string[];
+  /** Original demand before surprise events were applied (null if no surprises) */
+  preSurpriseDemandMW: Record<string, number> | null;
+  /** Dramatic incident reports for teams (vague, no event names — mimics real-world uncertainty) */
+  surpriseIncidents: SurpriseIncident[];
   currentBids: Map<string, TeamBidSubmission>;
   biddingTimeRemaining: number;
   startedAt: number;
@@ -479,10 +504,20 @@ export interface TeamPublicInfo {
   cumulativeProfitDollars: number;
 }
 
+export interface FleetAssetTypeInfo {
+  nameplateMW: number;                         // total nameplate across all teams
+  availableMW: Record<string, number>;         // available MW per period (after capacity factors)
+  teamCount: number;                           // how many teams have this asset
+  srmcRange: [number, number];                 // [min, max] SRMC across teams
+  isNew: boolean;                              // true if newly unlocked this round
+}
+
 export interface FleetInfo {
   totalFleetMW: Record<string, number>;       // per period: total generation MW from all teams
   demandMW: Record<string, number>;           // per period: demand MW set for this round
   demandAsPercentOfFleet: Record<string, number>; // per period: demand / fleet * 100
+  /** Per-asset-type fleet composition for all teams combined */
+  fleetByAssetType?: Record<string, FleetAssetTypeInfo>;
 }
 
 export interface AssetInfo {
@@ -509,10 +544,18 @@ export interface GameStateSnapshot {
   lastRoundResults?: RoundDispatchResult;
   lastRoundAnalysis?: RoundAnalysis;
   fleetInfo?: FleetInfo;
+  /** Full scenario event objects for the current round (resolved from string IDs) */
+  activeScenarioEventDetails?: ScenarioEvent[];
   /** Whether the bidding guardrail (warn on too much $0 capacity) is active */
   biddingGuardrailEnabled?: boolean;
   /** Config for the next round (used by Round Summary to preview what's coming) */
   nextRoundConfig?: RoundConfig | null;
+  /** Active surprise events — only included in HOST snapshots, not team snapshots */
+  activeSurpriseEvents?: string[];
+  /** Pre-surprise demand values for comparison (set when surprises modify demand) */
+  preSurpriseDemandMW?: Record<string, number>;
+  /** Dramatic incident reports for teams (vague descriptions, not event names) */
+  surpriseIncidents?: SurpriseIncident[];
 }
 
 export interface BiddingStrategy {
@@ -635,6 +678,7 @@ export interface ServerToClientEvents {
   'scenario:balancing_applied': (data: BalancingResult) => void;
   'host:bid_status': (data: Record<string, boolean>) => void;
   'host:team_screen_data': (data: GameStateSnapshot) => void;
+  'host:surprises_applied': (data: { appliedIds: string[]; updatedDemand: Record<string, number> }) => void;
   'error': (message: string) => void;
 }
 
@@ -647,6 +691,7 @@ export interface ClientToServerEvents {
   'host:show_results': () => void;
   'host:next_round': () => void;
   'host:trigger_event': (eventId: string) => void;
+  'host:apply_surprises': (eventIds: string[]) => void;
   'host:pause_game': () => void;
   'host:resume_game': () => void;
   'host:reset_game': () => void;

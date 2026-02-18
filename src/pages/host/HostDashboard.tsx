@@ -10,7 +10,9 @@ import LeaderboardChart from '../../components/charts/LeaderboardChart';
 import GameStartTransition from '../../components/transitions/GameStartTransition';
 import RoundStartTransition from '../../components/transitions/RoundStartTransition';
 import RoundSummary from '../../components/host/RoundSummary';
+import RoundBriefing from '../../components/host/RoundBriefing';
 import HowToBidTutorial from '../../components/game/HowToBidTutorial';
+import StrategyGuide from '../../components/game/StrategyGuide';
 import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 
@@ -19,7 +21,7 @@ export default function HostDashboard() {
   const {
     connected, gameState, roundResults, biddingTimeRemaining,
     bidStatus, allBidsIn, lastBalancing, teamScreenData,
-    startRound, startBidding, endBidding, nextRound, resetGame, setDemand, viewTeamScreen,
+    startRound, startBidding, endBidding, nextRound, resetGame, setDemand, applySurprises, viewTeamScreen,
     clearHostSession,
   } = useSocket();
   const [qrData, setQrData] = useState<{ qrDataUrl: string; joinUrl: string } | null>(null);
@@ -35,7 +37,14 @@ export default function HostDashboard() {
   const [showGameStart, setShowGameStart] = useState(false);
   const [showRoundStart, setShowRoundStart] = useState(false);
   const [showRoundSummary, setShowRoundSummary] = useState(false);
+  const [showRoundBriefing, setShowRoundBriefing] = useState(false);
   const [showHowToBid, setShowHowToBid] = useState(false);
+  const [showStrategyGuide, setShowStrategyGuide] = useState(false);
+
+  // Surprise events toggles (host-only, subtle, at bottom of sidebar)
+  const [activeSurprises, setActiveSurprises] = useState<Set<string>>(new Set());
+  const [surprisesExpanded, setSurprisesExpanded] = useState(false);
+  const [surprisesApplied, setSurprisesApplied] = useState(false);
 
   // Wrapped handlers that show the transition, then call the socket action
   const handleStartRound = useCallback(() => {
@@ -49,9 +58,46 @@ export default function HostDashboard() {
   }, [startBidding]);
 
   const handleNextRound = useCallback(() => {
-    setShowRoundStart(true);
+    // No cinematic — Round Briefing will auto-show when phase becomes 'briefing'
     nextRound();
   }, [nextRound]);
+
+  const handleStartBiddingWithSurprises = useCallback(() => {
+    if (activeSurprises.size > 0 && !surprisesApplied) {
+      applySurprises([...activeSurprises]);
+      setSurprisesApplied(true);
+      // Small delay to let server process, then start bidding
+      setTimeout(() => {
+        setShowRoundStart(true);
+        startBidding();
+      }, 200);
+    } else {
+      setShowRoundStart(true);
+      startBidding();
+    }
+  }, [activeSurprises, surprisesApplied, applySurprises, startBidding]);
+
+  const handleStartBiddingFromBriefing = useCallback(() => {
+    setShowRoundBriefing(false);
+    handleStartBiddingWithSurprises();
+  }, [handleStartBiddingWithSurprises]);
+
+  // Reset surprise state when round changes
+  useEffect(() => {
+    setActiveSurprises(new Set());
+    setSurprisesApplied(false);
+    setSurprisesExpanded(false);
+  }, [gameState?.currentRound]);
+
+  // Auto-show Round Briefing when entering briefing phase
+  const prevPhaseRef = useRef<string | null>(null);
+  useEffect(() => {
+    const phase = gameState?.phase;
+    if (phase === 'briefing' && prevPhaseRef.current !== 'briefing' && gameState?.roundConfig && !showGameStart) {
+      setShowRoundBriefing(true);
+    }
+    prevPhaseRef.current = phase || null;
+  }, [gameState?.phase, gameState?.roundConfig, showGameStart]);
 
   // Sync demand edits when round config changes
   useEffect(() => {
@@ -199,16 +245,28 @@ export default function HostDashboard() {
             {phase === 'briefing' && (
               <>
                 <button
-                  onClick={handleStartBidding}
+                  onClick={handleStartBiddingWithSurprises}
                   className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-white font-semibold rounded-lg transition-colors text-sm animate-pulse-glow"
                 >
-                  Open Bidding 💰
+                  {activeSurprises.size > 0 ? `Open Bidding 💰 (${activeSurprises.size} surprise${activeSurprises.size > 1 ? 's' : ''})` : 'Open Bidding 💰'}
+                </button>
+                <button
+                  onClick={() => setShowRoundBriefing(true)}
+                  className="w-full py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 font-medium rounded-lg transition-colors text-sm border border-purple-500/30"
+                >
+                  📊 Round Briefing
                 </button>
                 <button
                   onClick={() => setShowHowToBid(true)}
                   className="w-full py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-medium rounded-lg transition-colors text-sm border border-blue-500/30"
                 >
                   📖 How to Bid
+                </button>
+                <button
+                  onClick={() => setShowStrategyGuide(true)}
+                  className="w-full py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 font-medium rounded-lg transition-colors text-sm border border-indigo-500/30"
+                >
+                  🧠 Strategy Guide
                 </button>
               </>
             )}
@@ -226,6 +284,12 @@ export default function HostDashboard() {
                   className="w-full py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-medium rounded-lg transition-colors text-sm border border-blue-500/30"
                 >
                   📖 How to Bid
+                </button>
+                <button
+                  onClick={() => setShowStrategyGuide(true)}
+                  className="w-full py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 font-medium rounded-lg transition-colors text-sm border border-indigo-500/30"
+                >
+                  🧠 Strategy Guide
                 </button>
               </>
             )}
@@ -346,6 +410,98 @@ export default function HostDashboard() {
                   <p className="text-navy-500 text-xs italic">Waiting for teams to join...</p>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Surprise Events — subtle, at bottom, scroll to find */}
+          {(phase === 'briefing' || phase === 'bidding') && (
+            <div className="mt-auto pt-4 border-t border-white/5">
+              <button
+                onClick={() => setSurprisesExpanded(!surprisesExpanded)}
+                className="w-full flex items-center justify-between text-xs text-navy-600 hover:text-navy-400 transition-colors py-1"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span>🎲</span>
+                  <span className="font-medium">Game Mechanics</span>
+                  {activeSurprises.size > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-amber-500/30 text-amber-400 text-[9px] font-bold flex items-center justify-center">
+                      {activeSurprises.size}
+                    </span>
+                  )}
+                </span>
+                <span className={`transition-transform text-[10px] ${surprisesExpanded ? 'rotate-180' : ''}`}>▼</span>
+              </button>
+
+              {surprisesExpanded && (
+                <div className="mt-2 space-y-1.5">
+                  <p className="text-[10px] text-navy-600 leading-tight px-1">
+                    Secret modifiers — teams won't know these are active.
+                    {phase === 'bidding' && <span className="text-amber-500 font-medium"> Locked during bidding.</span>}
+                  </p>
+
+                  {[
+                    { id: 'generator_trip', icon: '🔧', name: 'Generator Trip', desc: 'Random thermal plant loses ~70% capacity. Tightens supply.', cat: 'supply' as const },
+                    { id: 'demand_surge_heat', icon: '📈', name: 'Hot Day Surge', desc: 'Heatwave: +15-25% peak demand. Higher prices expected.', cat: 'demand' as const },
+                    { id: 'demand_drop_solar', icon: '📉', name: 'Rooftop Solar', desc: 'Sunny day: -15-25% daytime demand. Prices drop.', cat: 'demand' as const },
+                    { id: 'renewable_drought', icon: '🌫️', name: 'Dunkelflaute', desc: 'Wind to 30%, solar to 40%. Thermal more valuable.', cat: 'supply' as const },
+                    { id: 'fuel_price_spike', icon: '⛽', name: 'Gas Price Spike', desc: 'Gas SRMC +50%. Coal becomes relatively cheaper.', cat: 'cost' as const },
+                    { id: 'interconnector_outage', icon: '🔌', name: 'Interconnector Out', desc: 'All demand +10-20%. Broad price increase.', cat: 'demand' as const },
+                  ].map(evt => {
+                    const isActive = activeSurprises.has(evt.id);
+                    const catColor = evt.cat === 'supply' ? 'text-red-400' : evt.cat === 'demand' ? 'text-blue-400' : 'text-amber-400';
+                    const disabled = phase === 'bidding' || surprisesApplied;
+
+                    return (
+                      <button
+                        key={evt.id}
+                        onClick={() => {
+                          if (disabled) return;
+                          setActiveSurprises(prev => {
+                            const next = new Set(prev);
+                            if (next.has(evt.id)) next.delete(evt.id); else next.add(evt.id);
+                            return next;
+                          });
+                        }}
+                        disabled={disabled}
+                        className={`w-full text-left px-2 py-1.5 rounded-lg text-[11px] transition-all ${
+                          isActive
+                            ? 'bg-amber-500/15 border border-amber-500/30'
+                            : 'bg-white/3 border border-transparent hover:bg-white/5'
+                        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          {/* Toggle indicator */}
+                          <div className={`w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center transition-colors ${
+                            isActive ? 'bg-amber-500 border-amber-400' : 'border-navy-600 bg-transparent'
+                          }`}>
+                            {isActive && <span className="text-[7px] text-white font-bold">✓</span>}
+                          </div>
+                          <span>{evt.icon}</span>
+                          <span className={`font-medium ${isActive ? 'text-amber-300' : 'text-navy-400'}`}>{evt.name}</span>
+                        </div>
+                        <p className={`mt-0.5 pl-[22px] leading-tight ${isActive ? 'text-navy-400' : 'text-navy-600'}`}>
+                          {evt.desc}
+                        </p>
+                      </button>
+                    );
+                  })}
+
+                  {activeSurprises.size > 0 && !surprisesApplied && phase === 'briefing' && (
+                    <div className="px-1 pt-1">
+                      <p className="text-[10px] text-amber-500/70 italic">
+                        {activeSurprises.size} surprise{activeSurprises.size > 1 ? 's' : ''} will activate when you open bidding.
+                      </p>
+                    </div>
+                  )}
+                  {surprisesApplied && (
+                    <div className="px-1 pt-1">
+                      <p className="text-[10px] text-green-500/70 italic">
+                        ✓ Surprises applied this round.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1401,9 +1557,30 @@ export default function HostDashboard() {
         />
       )}
 
+      {/* Full-screen Round Briefing overlay */}
+      {showRoundBriefing && roundConfig && gameState.fleetInfo && (
+        <RoundBriefing
+          roundConfig={roundConfig}
+          roundNumber={round}
+          totalRounds={totalRounds}
+          fleetInfo={gameState.fleetInfo}
+          teamCount={teams.length}
+          scenarioEvents={gameState.activeScenarioEventDetails}
+          surpriseIncidents={gameState.surpriseIncidents}
+          preSurpriseDemandMW={gameState.preSurpriseDemandMW}
+          onClose={() => setShowRoundBriefing(false)}
+          onStartBidding={phase === 'briefing' ? handleStartBiddingFromBriefing : undefined}
+        />
+      )}
+
       {/* Full-screen How to Bid tutorial overlay */}
       {showHowToBid && (
         <HowToBidTutorial onClose={() => setShowHowToBid(false)} />
+      )}
+
+      {/* Full-screen Strategy Guide overlay */}
+      {showStrategyGuide && (
+        <StrategyGuide onClose={() => setShowStrategyGuide(false)} />
       )}
     </div>
   );

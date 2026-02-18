@@ -201,6 +201,23 @@ export function registerHostHandlers(
     }
   }));
 
+  socket.on('host:apply_surprises', safe((eventIds) => {
+    const gameId = (socket as any).gameId;
+    if (!gameId) return;
+
+    const result = engine.applySurprises(gameId, eventIds);
+    if (result) {
+      socket.emit('host:surprises_applied', {
+        appliedIds: result.applied,
+        updatedDemand: result.updatedDemand,
+      });
+      // Broadcast updated snapshot so host sees new demand/fleet values
+      broadcastSnapshot(io, engine, gameId);
+    } else {
+      socket.emit('error', 'Cannot apply surprises (must be in briefing phase)');
+    }
+  }));
+
   socket.on('host:reset_game', safe(() => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;

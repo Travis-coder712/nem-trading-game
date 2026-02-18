@@ -102,7 +102,7 @@ export function getVibeCodingNotesHTML(): string {
       <p>Claude handled all the technical work:</p>
       <ul>
         <li><strong>Architecture design:</strong> Chose the right software components (React, Node.js, Socket.IO, etc.) and how they fit together</li>
-        <li><strong>All code writing:</strong> ~19,000 lines of TypeScript/JavaScript across ~60 files</li>
+        <li><strong>All code writing:</strong> ~22,000+ lines of TypeScript/JavaScript across ~70+ files</li>
         <li><strong>Algorithm implementation:</strong> Built the merit order dispatch algorithm, profit calculations, demand curve generation</li>
         <li><strong>Real-time networking:</strong> Set up WebSocket communication so all players see updates instantly</li>
         <li><strong>Visual design:</strong> Created animations, charts, responsive layouts, and the landing page visual effects</li>
@@ -114,7 +114,7 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <h2>The Development Story: How It Actually Happened</h2>
-  <p>The entire game was built across <strong>9 conversation sessions</strong> over 5 days, with <strong>127 human prompts</strong> in total. Here's how it unfolded:</p>
+  <p>The entire game was built across <strong>11+ conversation sessions</strong> over 7 days, with <strong>~160+ human prompts</strong> in total. Here is how it unfolded:</p>
 
   <div class="timeline">
     <div class="timeline-item">
@@ -211,15 +211,28 @@ export function getVibeCodingNotesHTML(): string {
       </ul>
       <div class="ai"><strong>What Claude did:</strong> Deep-dived into socket room management to permanently fix the QR code bug, added PDF download capability using browser print dialogs, improved currency formatting with comma separators, added mobile-friendly input selection, relaxed bidding restrictions when guardrails are disabled, and updated documentation.</div>
     </div>
+
+    <div class="timeline-item">
+      <h3>Phase 7: Advanced Game Mechanics &amp; Documentation <span class="badge badge-blue">30+ prompts &middot; Sessions 10&ndash;11</span></h3>
+      <p><span class="badge badge-purple">Wednesday &ndash; Thursday</span> The user wanted deeper gameplay mechanics, better onboarding for new players, and comprehensive documentation for game masters and future improvements.</p>
+      <div class="human"><strong>What the human said (examples):</strong></div>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;Can you add buttons to the teams bidding page so that they can access the Bid explainer and the Round explainer and the strategy explainer&rdquo;</li>
+        <li>&ldquo;Can you update the round briefing to include when a surprise event was called &mdash; mimicking real life where something happens but you&rsquo;re not sure why&rdquo;</li>
+        <li>&ldquo;Can you give me a written plan detailing further improvements that could be made to the game prioritised into desirability/impact&rdquo;</li>
+      </ul>
+      <div class="ai"><strong>What Claude did:</strong> This was a major expansion phase. Claude built an entire <strong>Surprise Events system</strong>&mdash;6 host-triggered secret disruptions (Generator Trip, Demand Surge, Demand Drop/Solar, Renewable Drought, Fuel Price Spike, Interconnector Outage) that the game master can toggle during the briefing phase. When active, teams see dramatic &ldquo;Developing Situation&rdquo; incident reports with deliberately vague descriptions, mimicking the real-world uncertainty that energy traders face. Claude also built a <strong>full-screen cinematic Round Briefing</strong> slide deck (season overview, demand profiles, fleet capacity, scenario events, and incident reports), a <strong>6-slide Strategy Guide</strong> covering bidding approaches (Price Taker, Marginal Cost, Price Maker, Portfolio Optimizer, Strategic Withdrawal, Battery Arbitrageur) with mock examples and game theory, a <strong>How to Bid tutorial</strong> for first-time players, <strong>quick-access help buttons</strong> during bidding, a <strong>Common Mistakes reference</strong> drawn from the Game Master&rsquo;s Guide, and a comprehensive <strong>Recommended Improvements document</strong> proposing a new &ldquo;Progressive Learning&rdquo; 10-round game mode. The Game Master&rsquo;s Guide was also updated with surprise event documentation and facilitation notes.</div>
+      <div class="highlight"><strong>Key insight:</strong> This phase shows how vibe coding enables a domain expert to rapidly layer sophisticated game mechanics on top of a working product. Features like the surprise events system&mdash;which required changes to game state, host controls, team UI, round briefing presentations, and the dispatch engine&mdash;would typically need a multi-sprint planning effort. Here, each feature went from idea to working implementation in a single conversation exchange.</div>
+    </div>
   </div>
 
   <h2>The Prompts: What the Human Actually Said</h2>
   <div class="card">
-    <p>Across all 9 sessions, the human sent <strong>127 prompts</strong>. These ranged from a 500-word opening brief to single-word continuations like &ldquo;yes&rdquo; and &ldquo;continue.&rdquo; Here is how they break down by category:</p>
+    <p>Across all 11+ sessions, the human sent <strong>~160+ prompts</strong>. These ranged from a 500-word opening brief to single-word continuations like &ldquo;yes&rdquo; and &ldquo;continue.&rdquo; Here is how they break down by category:</p>
 
     <div class="split" style="margin-top: 1rem;">
       <div>
-        <h3 style="color: #805ad5;">Feature Requests (39 prompts, 31%)</h3>
+        <h3 style="color: #805ad5;">Feature Requests (~50 prompts, 31%)</h3>
         <p style="font-size: 0.9rem;">New features and capabilities, described in plain English:</p>
         <ul style="font-size: 0.85rem;">
           <li>Game concept and structure (initial 500-word brief)</li>
@@ -232,11 +245,14 @@ export function getVibeCodingNotesHTML(): string {
           <li>Beginner mode</li>
           <li>PDF downloads for all resources</li>
           <li>Bidding guardrails</li>
-          <li>Pre-read and documentation pages</li>
+          <li>Surprise events system (6 disruptions)</li>
+          <li>Strategy guide, how-to-bid tutorial, help buttons</li>
+          <li>Round briefing presentations</li>
+          <li>Recommended improvements roadmap</li>
         </ul>
       </div>
       <div>
-        <h3 style="color: #e53e3e;">Bug Reports (18 prompts, 14%)</h3>
+        <h3 style="color: #e53e3e;">Bug Reports (~20 prompts, 12%)</h3>
         <p style="font-size: 0.9rem;">Issues discovered through testing:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;$0 is not showing in bids&rdquo;</li>
@@ -251,7 +267,7 @@ export function getVibeCodingNotesHTML(): string {
     </div>
     <div class="split" style="margin-top: 1rem;">
       <div>
-        <h3 style="color: #3182ce;">UI/UX Improvements (22 prompts, 17%)</h3>
+        <h3 style="color: #3182ce;">UI/UX Improvements (~30 prompts, 19%)</h3>
         <p style="font-size: 0.9rem;">Visual and usability refinements:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;make the SRMC badges bigger&rdquo;</li>
@@ -260,16 +276,18 @@ export function getVibeCodingNotesHTML(): string {
           <li>&ldquo;call out SRMC as its full name&rdquo;</li>
           <li>&ldquo;make the scrollbar a little larger&rdquo;</li>
           <li>&ldquo;make the opening screen more exciting&rdquo;</li>
+          <li>&ldquo;add help buttons during bidding&rdquo;</li>
+          <li>&ldquo;incident reports should feel dramatic&rdquo;</li>
         </ul>
       </div>
       <div>
-        <h3 style="color: #718096;">Operations (48 prompts, 38%)</h3>
+        <h3 style="color: #718096;">Operational (~60 prompts, 38%)</h3>
         <p style="font-size: 0.9rem;">Server management, git, and session continuations:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;give me a link to click to start&rdquo; (&times;8)</li>
           <li>&ldquo;please restart the server&rdquo; (&times;7)</li>
           <li>&ldquo;commit the changes to git&rdquo; (&times;5)</li>
-          <li>&ldquo;please continue&rdquo; / &ldquo;tokens reset&rdquo; (&times;9)</li>
+          <li>&ldquo;please continue&rdquo; / &ldquo;tokens reset&rdquo; (&times;12)</li>
           <li>&ldquo;how many tokens do I have left?&rdquo;</li>
           <li>&ldquo;how do I open my previous work?&rdquo;</li>
           <li>&ldquo;I&rsquo;m going to turn off the computer&rdquo;</li>
@@ -279,7 +297,7 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <div class="callout" style="margin-top: 1.5rem;">
-    <p><strong>What&rsquo;s striking:</strong> Only <strong>31%</strong> of prompts were feature requests&mdash;the creative, directional input. Another <strong>14%</strong> were bug reports. The remaining <strong>55%</strong> were operational (server restarts, git commits, session management) and UI tweaks. This reveals the reality of vibe coding: the human spends as much time <em>managing the process</em> as they do <em>directing the product</em>.</p>
+    <p><strong>What&rsquo;s striking:</strong> Only <strong>31%</strong> of prompts were feature requests&mdash;the creative, directional input. Another <strong>12%</strong> were bug reports. The remaining <strong>57%</strong> were operational (server restarts, git commits, session management) and UI tweaks. This reveals the reality of vibe coding: the human spends as much time <em>managing the process</em> as they do <em>directing the product</em>.</p>
   </div>
 
   <h2>What Did Claude Already Know?</h2>
@@ -319,23 +337,23 @@ export function getVibeCodingNotesHTML(): string {
       <div>
         <h3>Scale of Work</h3>
         <ul>
-          <li><strong>~19,000 lines of code</strong> written</li>
-          <li><strong>~60 files</strong> created</li>
-          <li><strong>8 major versions</strong> committed to git</li>
-          <li><strong>~5 days</strong> elapsed, ~20 hours active</li>
+          <li><strong>~22,000+ lines of code</strong> written</li>
+          <li><strong>~70+ files</strong> created</li>
+          <li><strong>10+ major versions</strong> committed to git</li>
+          <li><strong>~7 days</strong> elapsed, ~30 hours active</li>
           <li><strong>7 asset types</strong> with realistic parameters</li>
-          <li><strong>10+ scenario events</strong></li>
+          <li><strong>16+ scenario events</strong> (including 6 surprise events)</li>
           <li><strong>4 game modes</strong></li>
         </ul>
       </div>
       <div>
         <h3>Human Input</h3>
         <ul>
-          <li><strong>127 prompts</strong> across 9 conversation sessions</li>
-          <li><strong>39 feature requests</strong> (31%)</li>
-          <li><strong>18 bug reports</strong> (14%)</li>
-          <li><strong>22 UI/UX improvements</strong> (17%)</li>
-          <li><strong>48 operational prompts</strong> (38%): server restarts, git commits, session continuations</li>
+          <li><strong>~160+ prompts</strong> across 11+ conversation sessions</li>
+          <li><strong>~50+ feature requests</strong> (31%)</li>
+          <li><strong>~20 bug reports</strong> (12%)</li>
+          <li><strong>~30 UI/UX improvements</strong> (19%)</li>
+          <li><strong>~60 operational prompts</strong> (38%): server restarts, git commits, session continuations</li>
           <li>Longest prompt: <strong>~500 words</strong> (opening game concept)</li>
           <li>Shortest prompt: <strong>1 word</strong> (&ldquo;continue&rdquo;, &ldquo;yes&rdquo;, &ldquo;both&rdquo;)</li>
         </ul>
@@ -343,19 +361,81 @@ export function getVibeCodingNotesHTML(): string {
     </div>
     <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
       <h3>What Would This Normally Take?</h3>
-      <p>A similar application built by a traditional development team would typically require:</p>
-      <div class="split">
-        <ul>
-          <li>A team of 2&ndash;4 developers</li>
-          <li>A UX/UI designer</li>
-          <li>A subject matter expert for NEM content</li>
+      <p>Let us compare the vibe coding approach with what a traditional corporate IT project would realistically look like for the same deliverable.</p>
+
+      <div class="split" style="margin-top: 1rem;">
+        <div class="card" style="border-top: 4px solid #38a169; margin: 0;">
+          <h3 style="color: #38a169; margin-top: 0;">Vibe Coding Approach</h3>
+          <ul>
+            <li><strong>Team:</strong> 1 person (domain expert + AI)</li>
+            <li><strong>Elapsed time:</strong> ~7 days</li>
+            <li><strong>Active work:</strong> ~30 hours</li>
+            <li><strong>Tooling cost:</strong> Claude Code subscription ~$200/month</li>
+            <li><strong>Total cost:</strong> ~$200 + the person&rsquo;s time</li>
+          </ul>
+          <p style="font-size: 0.9rem; margin-top: 0.8rem; color: #4a5568;">The person described features in plain English, tested the game, reported bugs, and provided domain expertise. Claude wrote all 22,000+ lines of code, designed the architecture, created the UI, built the audio engine, and produced all documentation.</p>
+        </div>
+
+        <div class="card" style="border-top: 4px solid #e53e3e; margin: 0;">
+          <h3 style="color: #e53e3e; margin-top: 0;">Traditional Corporate IT Approach</h3>
+          <p style="font-size: 0.9rem;"><strong>Team required (minimum):</strong></p>
+          <ul style="font-size: 0.85rem;">
+            <li>1&times; Project Manager / BA &mdash; $1,400&ndash;1,800/day</li>
+            <li>1&times; UX/UI Designer &mdash; $1,200&ndash;1,600/day</li>
+            <li>2&times; Senior Full-Stack Developers &mdash; $1,400&ndash;1,800/day each</li>
+            <li>1&times; QA/Test Engineer &mdash; $1,000&ndash;1,400/day</li>
+            <li>1&times; Subject Matter Expert (0.3 FTE) &mdash; $1,200&ndash;1,600/day</li>
+            <li>1&times; DevOps / Infrastructure (0.2 FTE) &mdash; $1,200&ndash;1,600/day</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 1rem;">
+        <h3 style="margin-top: 0;">Traditional Timeline (realistic corporate)</h3>
+        <div class="split">
+          <div>
+            <ul style="font-size: 0.9rem;">
+              <li><strong>Weeks 1&ndash;2:</strong> Requirements gathering, stakeholder alignment, design sprints</li>
+              <li><strong>Weeks 3&ndash;4:</strong> Architecture design, tech stack selection, environment setup</li>
+              <li><strong>Weeks 5&ndash;8:</strong> Core development (game engine, UI, real-time networking)</li>
+            </ul>
+          </div>
+          <div>
+            <ul style="font-size: 0.9rem;">
+              <li><strong>Weeks 9&ndash;10:</strong> Integration, testing, user acceptance testing</li>
+              <li><strong>Weeks 11&ndash;12:</strong> Bug fixes, polish, deployment, documentation</li>
+              <li><strong>Total: 10&ndash;12 weeks</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 1rem; border-left: 4px solid #e53e3e;">
+        <h3 style="margin-top: 0; color: #e53e3e;">Traditional Cost Estimate</h3>
+        <ul style="font-size: 0.9rem;">
+          <li><strong>Core team</strong> (PM + Designer + 2 Devs + QA): ~5 people &times; 12 weeks &times; 5 days &times; $1,400 avg = <strong>~$420,000</strong></li>
+          <li><strong>Part-time specialists</strong> (SME at 0.3 FTE + DevOps at 0.2 FTE): <strong>~$50,000</strong></li>
+          <li><strong>Corporate overhead</strong> (meetings, approvals, change requests, procurement): <strong>+30&ndash;50%</strong></li>
+          <li><strong>Infrastructure and tooling</strong> (cloud environments, CI/CD, licences): <strong>~$5,000&ndash;10,000</strong></li>
         </ul>
-        <ul>
-          <li>4&ndash;8 weeks of development</li>
-          <li>Cost: approximately $50,000&ndash;$150,000 in developer time</li>
+        <p style="font-size: 1.1rem; font-weight: 700; color: #e53e3e; margin-top: 0.8rem; text-align: center;">Estimated total: $500,000 &ndash; $750,000</p>
+      </div>
+
+      <div class="callout" style="margin-top: 1rem;">
+        <p><strong>And even then:</strong></p>
+        <ul style="font-size: 0.9rem;">
+          <li>No guarantee of the same creative iteration speed &mdash; features that took minutes in vibe coding would take days through sprint cycles</li>
+          <li>Requirements would need to be locked much earlier &mdash; the organic discovery process (&ldquo;what if we added surprise events?&rdquo;) does not fit neatly into a waterfall or even an agile process</li>
+          <li>Change requests mid-development are expensive &mdash; each new idea goes through estimation, prioritisation, and replanning</li>
+          <li>The &ldquo;vibe&rdquo; &mdash; the rapid creative back-and-forth where ideas become working features in minutes &mdash; would be replaced by sprint planning, Jira tickets, and fortnightly demos</li>
         </ul>
       </div>
-      <p style="margin-top: 0.5rem;">The vibe coding approach reduced this to <strong>one person + AI over a long weekend, using 127 plain-English prompts</strong>.</p>
+
+      <div class="highlight" style="margin-top: 1rem;">
+        <p style="font-size: 0.9rem;"><strong>A note on the traditional estimate:</strong> The $500,000&ndash;$750,000 figure may seem high, but consider: corporate IT projects routinely involve procurement processes, security reviews, architectural review boards, multiple environments (dev/staging/prod), accessibility compliance, and documentation requirements that simply do not apply to a weekend vibe-coding session. In many large organisations, even getting a new project approved and a team assembled can take 4&ndash;6 weeks before any code is written.</p>
+      </div>
+
+      <p style="margin-top: 1rem;">The vibe coding approach reduced this to <strong>one person + AI over about a week, using ~160 plain-English prompts and a $200 subscription</strong>.</p>
     </div>
   </div>
 
@@ -394,7 +474,7 @@ export function getVibeCodingNotesHTML(): string {
 
   <h2>The Takeaway</h2>
   <div class="callout">
-    <p>This game was built by a <strong>collaboration between human vision and AI capability</strong>. The human knew what the NEM is, how it works, and what the game should teach. The AI knew how to build a real-time multiplayer web application, create data visualisations, synthesise audio, and structure 19,000 lines of code into a maintainable architecture. Neither could have built this alone in the time available.</p>
+    <p>This game was built by a <strong>collaboration between human vision and AI capability</strong>. The human knew what the NEM is, how it works, and what the game should teach. The AI knew how to build a real-time multiplayer web application, create data visualisations, synthesise audio, and structure 22,000+ lines of code into a maintainable architecture. Neither could have built this alone in the time available.</p>
     <p style="margin-top: 0.8rem;">That is the power of vibe coding: <strong>ideas become software at the speed of conversation</strong>.</p>
   </div>
 

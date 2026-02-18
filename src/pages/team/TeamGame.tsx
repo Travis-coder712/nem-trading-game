@@ -18,6 +18,10 @@ import {
 } from '../../lib/bidding-strategies';
 import BidReviewModal from '../../components/game/BidReviewModal';
 import MeritOrderWalkthrough from '../../components/charts/MeritOrderWalkthrough';
+import StrategyGuide from '../../components/game/StrategyGuide';
+import HowToBidTutorial from '../../components/game/HowToBidTutorial';
+import CommonMistakes from '../../components/game/CommonMistakes';
+import RoundBriefing from '../../components/host/RoundBriefing';
 import GameStartTransition from '../../components/transitions/GameStartTransition';
 import RoundStartTransition from '../../components/transitions/RoundStartTransition';
 
@@ -35,6 +39,10 @@ export default function TeamGame() {
   const [showResults, setShowResults] = useState(false);
   const [showBidReview, setShowBidReview] = useState(false);
   const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const [showStrategyGuide, setShowStrategyGuide] = useState(false);
+  const [showHowToBid, setShowHowToBid] = useState(false);
+  const [showRoundBriefing, setShowRoundBriefing] = useState(false);
+  const [showCommonMistakes, setShowCommonMistakes] = useState(false);
 
   useEffect(() => {
     // Only redirect to join if we don't have a team AND we're not reconnecting
@@ -623,6 +631,14 @@ export default function TeamGame() {
               </div>
             )}
 
+            {/* Strategy Guide Button */}
+            <button
+              onClick={() => setShowStrategyGuide(true)}
+              className="w-full mt-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-semibold rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <span>🧠</span> Bidding Strategy Guide
+            </button>
+
             <p className="text-center text-gray-400 text-sm mt-4">
               Waiting for host to open bidding...
             </p>
@@ -642,6 +658,34 @@ export default function TeamGame() {
                 <p className="text-xs text-purple-700 leading-relaxed">{walkthrough.introText}</p>
               </div>
             )}
+
+            {/* Help Buttons Bar */}
+            <div className="flex gap-1.5 mb-3 overflow-x-auto pb-0.5">
+              <button
+                onClick={() => setShowHowToBid(true)}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors shadow-sm"
+              >
+                <span>📖</span> How to Bid
+              </button>
+              <button
+                onClick={() => setShowRoundBriefing(true)}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors shadow-sm"
+              >
+                <span>📊</span> Round Overview
+              </button>
+              <button
+                onClick={() => setShowStrategyGuide(true)}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors shadow-sm"
+              >
+                <span>🧠</span> Strategies
+              </button>
+              <button
+                onClick={() => setShowCommonMistakes(true)}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors shadow-sm"
+              >
+                <span>⚠️</span> Common Mistakes
+              </button>
+            </div>
 
             {/* Demand Overview Banner - All Periods */}
             <div className="bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-xl p-4 mb-3">
@@ -811,6 +855,13 @@ export default function TeamGame() {
                 <div className="flex items-center gap-2">
                   <span className="text-base">🧠</span>
                   <span className="text-sm font-semibold text-gray-800">Strategy Auto-Fill</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowStrategyGuide(true); }}
+                    className="px-1.5 py-0.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded text-[10px] font-bold transition-colors"
+                    title="Open Strategy Guide"
+                  >
+                    📖 Guide
+                  </button>
                   {selectedStrategy && (
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
                       {STRATEGIES.find(s => s.id === selectedStrategy)?.icon}{' '}
@@ -1488,6 +1539,38 @@ export default function TeamGame() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Strategy Guide */}
+      {showStrategyGuide && (
+        <StrategyGuide onClose={() => setShowStrategyGuide(false)} />
+      )}
+
+      {/* How to Bid Tutorial */}
+      {showHowToBid && (
+        <HowToBidTutorial onClose={() => setShowHowToBid(false)} />
+      )}
+
+      {/* Round Briefing (re-viewable) */}
+      {showRoundBriefing && roundConfig && gameState?.fleetInfo && (
+        <div className="fixed inset-0 z-[100]">
+          <RoundBriefing
+            roundConfig={roundConfig}
+            roundNumber={gameState.currentRound || 1}
+            totalRounds={gameState.totalRounds || 8}
+            fleetInfo={gameState.fleetInfo}
+            teamCount={gameState.expectedTeamCount || gameState.teams?.length || 1}
+            scenarioEvents={gameState.activeScenarioEventDetails}
+            surpriseIncidents={gameState.surpriseIncidents}
+            preSurpriseDemandMW={gameState.preSurpriseDemandMW}
+            onClose={() => setShowRoundBriefing(false)}
+          />
+        </div>
+      )}
+
+      {/* Common Mistakes */}
+      {showCommonMistakes && (
+        <CommonMistakes onClose={() => setShowCommonMistakes(false)} />
       )}
 
       {/* Cinematic Transitions */}

@@ -180,11 +180,28 @@ export default function Landing() {
             </a>
           </motion.div>
 
-          {/* Development notes */}
+          {/* Recommended improvements */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 2.0, duration: 0.6 }}
+            className="flex items-center justify-center gap-3 flex-wrap mb-6"
+          >
+            <a
+              href="/api/recommended-improvements"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 text-sm font-medium text-green-300 border border-green-500/30 hover:border-green-400 hover:bg-green-500/10 rounded-xl transition-all"
+            >
+              🚀 Recommended Further Improvements
+            </a>
+          </motion.div>
+
+          {/* Development notes */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2.1, duration: 0.6 }}
             className="flex items-center justify-center gap-3 mb-10"
           >
             <a
