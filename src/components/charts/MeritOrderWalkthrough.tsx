@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { TimePeriodDispatchResult, TimePeriod } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS } from '../../../shared/types';
-import { formatMW } from '../../lib/formatters';
+import { formatMW, formatNumber } from '../../lib/formatters';
 
 interface Props {
   periodResults: TimePeriodDispatchResult[];
@@ -183,7 +183,7 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
       const clearingPrice = periodResult?.clearingPriceMWh || 0;
       return {
         title: 'Clearing Price Set!',
-        text: `The clearing price is $${clearingPrice.toFixed(0)}/MWh. Every dispatched generator earns this price — not their bid price. This is how the NEM's uniform pricing works.`,
+        text: `The clearing price is $${formatNumber(clearingPrice)}/MWh. Every dispatched generator earns this price — not their bid price. This is how the NEM's uniform pricing works.`,
         highlight: 'success',
       };
     }
@@ -191,7 +191,7 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
     if (currentBand) {
       const priceLabel = currentBand.bidPriceMWh === 0
         ? '$0/MWh (price taker)'
-        : `$${currentBand.bidPriceMWh}/MWh`;
+        : `$${formatNumber(currentBand.bidPriceMWh)}/MWh`;
 
       if (currentBand.isMarginal) {
         return {
@@ -300,7 +300,7 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
       <div className="flex items-center gap-4 text-sm text-navy-300">
         <span>Demand: <strong className="text-red-400 font-mono">{formatMW(demandMW)}</strong></span>
         {showClearingPrice && (
-          <span>Clearing Price: <strong className="text-yellow-400 font-mono">${periodResult.clearingPriceMWh.toFixed(0)}/MWh</strong></span>
+          <span>Clearing Price: <strong className="text-yellow-400 font-mono">${formatNumber(periodResult.clearingPriceMWh)}/MWh</strong></span>
         )}
         <span>Supply shown: <strong className="text-electric-300 font-mono">{formatMW(cumulativeMW)}</strong></span>
       </div>
@@ -317,7 +317,7 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
                 stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3"
               />
               <text x={MARGIN.left - 8} y={yScale(v) + 4} textAnchor="end"
-                fill="#a0aec0" fontSize={11}>${v}</text>
+                fill="#a0aec0" fontSize={11}>${formatNumber(v)}</text>
             </g>
           ))}
           {xTicks.map(v => (
@@ -366,7 +366,7 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
               />
               <text x={MARGIN.left + plotW + 8} y={yScale(periodResult.clearingPriceMWh) + 4}
                 textAnchor="start" fill="#ecc94b" fontSize={11}>
-                ${periodResult.clearingPriceMWh.toFixed(0)}/MWh
+                ${formatNumber(periodResult.clearingPriceMWh)}/MWh
               </text>
             </>
           )}
@@ -428,7 +428,7 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
                     textAnchor="middle" fill="white" fontSize={9} fontWeight="bold"
                     opacity={0.9}
                   >
-                    ${band.bidPriceMWh}
+                    ${formatNumber(band.bidPriceMWh)}
                   </text>
                 )}
 
@@ -450,8 +450,8 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
                 <div className="bg-navy-800 border border-white/20 rounded-lg p-2 shadow-xl text-xs pointer-events-none">
                   <div className="font-semibold text-white">{d.teamName}</div>
                   <div className="text-navy-300">{d.assetName} ({d.assetType})</div>
-                  <div className="text-electric-300 mt-0.5">Bid: <span className="font-mono">${d.bidPriceMWh}/MWh</span></div>
-                  <div className="text-navy-300">Offered: <span className="font-mono">{d.offeredMW} MW</span></div>
+                  <div className="text-electric-300 mt-0.5">Bid: <span className="font-mono">${formatNumber(d.bidPriceMWh)}/MWh</span></div>
+                  <div className="text-navy-300">Offered: <span className="font-mono">{formatNumber(d.offeredMW)} MW</span></div>
                   {d.isMarginal && <div className="text-amber-400 font-bold">Sets the clearing price!</div>}
                 </div>
               </foreignObject>

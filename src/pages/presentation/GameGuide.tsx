@@ -1,12 +1,4 @@
-import { useEffect } from 'react';
-
 export default function GameGuide() {
-  // Auto-trigger print dialog for PDF download
-  useEffect(() => {
-    const timer = setTimeout(() => window.print(), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <div className="min-h-screen bg-navy-950 text-white print:bg-white print:text-black">
       {/* Print button - hidden when printing */}
@@ -126,6 +118,56 @@ export default function GameGuide() {
             <PeriodCard icon="☀️" name="Afternoon" time="12pm–6pm" demand="Medium-High" desc="Solar at peak. Duck curve — prices can drop." />
             <PeriodCard icon="🌆" name="Evening" time="6pm–12am" demand="High" desc="Solar drops off. Peak demand. Highest prices." />
           </div>
+        </Section>
+
+        {/* Bidding Guardrails */}
+        <Section title="Bidding Guardrails">
+          <p className="mb-3">
+            The host can toggle <strong>bidding guardrails</strong> on or off when creating a game.
+            Guardrails help beginners avoid common mistakes, while experienced players get full freedom.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-white/20 print:border-gray-300">
+                  <th className="text-left py-2 pr-4">Restriction</th>
+                  <th className="text-center py-2 pr-4">Guardrails ON</th>
+                  <th className="text-center py-2 pr-4">Guardrails OFF</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-white/5 print:border-gray-200">
+                  <td className="py-2 pr-4">Non-battery assets must bid &gt; 0 MW in every period</td>
+                  <td className="py-2 pr-4 text-center">❌ Blocked</td>
+                  <td className="py-2 pr-4 text-center">✅ Allowed (strategic withdrawal)</td>
+                </tr>
+                <tr className="border-b border-white/5 print:border-gray-200">
+                  <td className="py-2 pr-4">Warning if &gt;60% of capacity bid at $0/MWh</td>
+                  <td className="py-2 pr-4 text-center">⚠️ Warning (can dismiss)</td>
+                  <td className="py-2 pr-4 text-center">✅ No warning</td>
+                </tr>
+                <tr className="border-b border-white/5 print:border-gray-200">
+                  <td className="py-2 pr-4">Below marginal cost warning</td>
+                  <td className="py-2 pr-4 text-center" colSpan={2}>⚠️ Always shown in bid review (non-blocking)</td>
+                </tr>
+                <tr className="border-b border-white/5 print:border-gray-200">
+                  <td className="py-2 pr-4">Price range</td>
+                  <td className="py-2 pr-4 text-center" colSpan={2}>-$1,000 to $20,000/MWh (always)</td>
+                </tr>
+                <tr className="border-b border-white/5 print:border-gray-200">
+                  <td className="py-2 pr-4">Quantity range</td>
+                  <td className="py-2 pr-4 text-center" colSpan={2}>0 to asset available MW (always)</td>
+                </tr>
+                <tr className="border-b border-white/5 print:border-gray-200">
+                  <td className="py-2 pr-4">Batteries can bid 0 MW (sit idle)</td>
+                  <td className="py-2 pr-4 text-center" colSpan={2}>✅ Always allowed</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-navy-400 print:text-gray-500">
+            💡 Tip: With guardrails off, experienced players can use strategic withdrawal — withholding capacity to tighten supply and raise the clearing price.
+          </p>
         </Section>
 
         {/* Quick Reference */}

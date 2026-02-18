@@ -511,6 +511,8 @@ export interface GameStateSnapshot {
   fleetInfo?: FleetInfo;
   /** Whether the bidding guardrail (warn on too much $0 capacity) is active */
   biddingGuardrailEnabled?: boolean;
+  /** Config for the next round (used by Round Summary to preview what's coming) */
+  nextRoundConfig?: RoundConfig | null;
 }
 
 export interface BiddingStrategy {

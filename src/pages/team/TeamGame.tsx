@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../contexts/SocketContext';
-import { formatCurrency, formatMW, formatPrice } from '../../lib/formatters';
+import { formatCurrency, formatMW, formatPrice, formatNumber } from '../../lib/formatters';
 import { ASSET_ICONS, ASSET_COLORS } from '../../lib/colors';
 import type {
   AssetBid, AssetInfo, BidBand, TeamAssetInstance, TimePeriod,
@@ -49,6 +49,8 @@ export default function TeamGame() {
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyId | ''>('');
   const [selectedIntensity, setSelectedIntensity] = useState<Intensity>('medium');
+  const [strategyApplyMode, setStrategyApplyMode] = useState<'all' | 'selected'>('all');
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
 
   // Transition overlays — driven by watching gameState.phase changes.
   // We track which phase+round combos we've already shown to prevent replays.
@@ -88,6 +90,8 @@ export default function TeamGame() {
       setWalkthroughApplied(false);
       setSelectedStrategy('');
       setStrategyOpen(false);
+      setStrategyApplyMode('all');
+      setSelectedAssetIds(new Set());
     }
     if (gameState?.phase === 'results') {
       setShowResults(true);
@@ -271,12 +275,24 @@ export default function TeamGame() {
     setBids(new Map(bids.set(key, newBid)));
   };
 
-  // Apply a full strategy across ALL assets and ALL periods
+  // Apply a strategy — either to all assets or only selected ones
   const applyStrategy = (stratId: StrategyId, intens: Intensity) => {
     if (!team || !roundConfig) return;
     const periods = roundConfig.timePeriods as TimePeriod[];
-    const newBids = generateStrategyBids(stratId, intens, assets, team.id, periods);
-    setBids(newBids);
+    const generatedBids = generateStrategyBids(stratId, intens, assets, team.id, periods);
+
+    if (strategyApplyMode === 'all') {
+      setBids(generatedBids); // Current behaviour: replace all
+    } else {
+      // Merge: preserve existing bids for unselected assets
+      const mergedBids = new Map(bids);
+      for (const [key, bid] of generatedBids) {
+        if (selectedAssetIds.has(bid.assetDefinitionId)) {
+          mergedBids.set(key, bid);
+        }
+      }
+      setBids(mergedBids);
+    }
     setSelectedStrategy(stratId);
     setSelectedIntensity(intens);
   };
@@ -297,31 +313,32 @@ export default function TeamGame() {
       }
     }
 
-    // VALIDATION: Every non-battery asset in every period must have some generation offered.
-    // Batteries are excluded because they can legitimately sit idle in some periods.
-    const missingBids: string[] = [];
-    for (const period of roundConfig.timePeriods) {
-      for (const asset of assets) {
-        const def = assetDefs.find(d => d.id === asset.assetDefinitionId);
-        // Skip batteries — they can charge, discharge, or sit idle
-        if (def?.type === 'battery') continue;
-        const key = getBidKey(asset.assetDefinitionId, period as TimePeriod);
-        const bid = bids.get(key);
-        const totalOffered = bid ? bid.bands.reduce((sum, b) => sum + b.quantityMW, 0) : 0;
-        if (totalOffered <= 0) {
-          const periodLabel = period === 'night_offpeak' ? 'Overnight' : period === 'day_offpeak' ? 'Morning' : period === 'day_peak' ? 'Afternoon' : 'Evening';
-          missingBids.push(`${def?.name || asset.assetDefinitionId} (${periodLabel})`);
+    // GUARDRAILS (only when enabled): validate bids and warn about risky strategies
+    if (gameState?.biddingGuardrailEnabled) {
+      // VALIDATION: Every non-battery asset in every period must have some generation offered.
+      // Batteries are excluded because they can legitimately sit idle in some periods.
+      const missingBids: string[] = [];
+      for (const period of roundConfig.timePeriods) {
+        for (const asset of assets) {
+          const def = assetDefs.find(d => d.id === asset.assetDefinitionId);
+          // Skip batteries — they can charge, discharge, or sit idle
+          if (def?.type === 'battery') continue;
+          const key = getBidKey(asset.assetDefinitionId, period as TimePeriod);
+          const bid = bids.get(key);
+          const totalOffered = bid ? bid.bands.reduce((sum, b) => sum + b.quantityMW, 0) : 0;
+          if (totalOffered <= 0) {
+            const periodLabel = period === 'night_offpeak' ? 'Overnight' : period === 'day_offpeak' ? 'Morning' : period === 'day_peak' ? 'Afternoon' : 'Evening';
+            missingBids.push(`${def?.name || asset.assetDefinitionId} (${periodLabel})`);
+          }
         }
       }
-    }
 
-    if (missingBids.length > 0) {
-      setSubmitError(`You must bid some generation for every asset in every period. Missing bids: ${missingBids.join(', ')}`);
-      return;
-    }
+      if (missingBids.length > 0) {
+        setSubmitError(`You must bid some generation for every asset in every period. Missing bids: ${missingBids.join(', ')}`);
+        return;
+      }
 
-    // GUARDRAIL: Warn if too much capacity bid at $0 (when enabled)
-    if (gameState?.biddingGuardrailEnabled) {
+      // Warn if too much capacity bid at $0 (risk of $0 clearing price)
       let totalCapacity = 0;
       let totalAtZero = 0;
       for (const bid of allBids) {
@@ -810,7 +827,7 @@ export default function TeamGame() {
               {strategyOpen && (
                 <div className="border-t border-gray-100 px-4 py-3 space-y-3">
                   <p className="text-[11px] text-gray-500">
-                    Choose a strategy and intensity to auto-fill bids for <strong>all assets</strong> across <strong>all time periods</strong>. You can still adjust individual bids after.
+                    Choose a strategy and intensity, then apply to <strong>all assets</strong> or <strong>specific assets</strong>. You can still adjust individual bids after.
                   </p>
 
                   {/* Strategy Dropdown */}
@@ -880,14 +897,92 @@ export default function TeamGame() {
                     </div>
                   )}
 
-                  {/* Apply Button */}
+                  {/* Apply to Assets Selection + Button */}
                   {selectedStrategy && (
-                    <button
-                      onClick={() => applyStrategy(selectedStrategy as StrategyId, selectedIntensity)}
-                      className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white font-bold text-sm rounded-lg shadow-sm active:scale-[0.98] transition-all"
-                    >
-                      Apply {STRATEGIES.find(s => s.id === selectedStrategy)?.name} ({selectedIntensity}) to All Assets
-                    </button>
+                    <div className="space-y-3">
+                      {/* Apply Mode Selector */}
+                      <div>
+                        <label className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Apply to</label>
+                        <div className="mt-1.5 space-y-2">
+                          {/* All Assets checkbox */}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={strategyApplyMode === 'all'}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setStrategyApplyMode('all');
+                                  setSelectedAssetIds(new Set(assets.map(a => a.assetDefinitionId)));
+                                } else {
+                                  setStrategyApplyMode('selected');
+                                  // Pre-check all assets when switching to "selected" mode
+                                  setSelectedAssetIds(new Set(assets.map(a => a.assetDefinitionId)));
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm font-medium text-gray-700">All Assets</span>
+                          </label>
+
+                          {/* Individual asset checkboxes (shown when not "all") */}
+                          {strategyApplyMode === 'selected' && (
+                            <div className="ml-6 space-y-1 border-l-2 border-gray-200 pl-3">
+                              {assets.map(asset => {
+                                const typeKey = asset.assetDefinitionId.includes('ccgt') ? 'gas_ccgt' as AssetType :
+                                               asset.assetDefinitionId.includes('peaker') ? 'gas_peaker' as AssetType :
+                                               asset.assetDefinitionId.split('_')[0] as AssetType;
+                                const def = assetDefs.find((d: AssetInfo) => d.id === asset.assetDefinitionId);
+                                const isChecked = selectedAssetIds.has(asset.assetDefinitionId);
+
+                                return (
+                                  <label
+                                    key={asset.assetDefinitionId}
+                                    className={`flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-lg transition-colors ${
+                                      isChecked ? 'bg-blue-50' : 'hover:bg-gray-50'
+                                    } ${asset.isForceOutage ? 'opacity-50' : ''}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      disabled={asset.isForceOutage}
+                                      onChange={(e) => {
+                                        const next = new Set(selectedAssetIds);
+                                        if (e.target.checked) {
+                                          next.add(asset.assetDefinitionId);
+                                        } else {
+                                          next.delete(asset.assetDefinitionId);
+                                        }
+                                        setSelectedAssetIds(next);
+                                      }}
+                                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm">{ASSET_ICONS[typeKey] || '⚡'}</span>
+                                    <span className="text-xs text-gray-700 font-medium truncate">
+                                      {def?.name || asset.assetDefinitionId}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 ml-auto whitespace-nowrap">
+                                      {Math.round(asset.currentAvailableMW)} MW
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Apply Button */}
+                      <button
+                        onClick={() => applyStrategy(selectedStrategy as StrategyId, selectedIntensity)}
+                        disabled={strategyApplyMode === 'selected' && selectedAssetIds.size === 0}
+                        className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white font-bold text-sm rounded-lg shadow-sm active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {strategyApplyMode === 'all'
+                          ? `Apply ${STRATEGIES.find(s => s.id === selectedStrategy)?.name} (${selectedIntensity}) to All Assets`
+                          : `Apply ${STRATEGIES.find(s => s.id === selectedStrategy)?.name} (${selectedIntensity}) to ${selectedAssetIds.size} Asset${selectedAssetIds.size !== 1 ? 's' : ''}`
+                        }
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -951,7 +1046,7 @@ export default function TeamGame() {
                       if (!def) return null;
                       return (
                         <div className="px-4 py-1.5 bg-gray-50 text-[11px] text-gray-500 border-b border-gray-100">
-                          Your marginal cost to generate: <strong className="text-gray-700">${def.srmcPerMWh}/MWh</strong> — bid above this to cover costs
+                          Your marginal cost to generate: <strong className="text-gray-700">${formatNumber(def.srmcPerMWh)}/MWh</strong> — bid above this to cover costs
                         </div>
                       );
                     })()}
@@ -1124,7 +1219,7 @@ export default function TeamGame() {
                 {roundResults.periodResults.map(pr => (
                   <div key={pr.timePeriod} className="bg-gray-50 rounded-lg p-3">
                     <div className="text-sm font-medium text-gray-700 capitalize">{pr.timePeriod.replace(/_/g, ' ')}</div>
-                    <div className="text-2xl font-bold font-mono text-blue-600">${Math.round(pr.clearingPriceMWh)}<span className="text-sm text-gray-400">/MWh</span></div>
+                    <div className="text-2xl font-bold font-mono text-blue-600">${formatNumber(pr.clearingPriceMWh)}<span className="text-sm text-gray-400">/MWh</span></div>
                     <div className="mt-1 text-sm font-mono font-semibold text-gray-600">
                       Demand: {formatMW(pr.demandMW)}
                     </div>
@@ -1256,7 +1351,7 @@ export default function TeamGame() {
                             {TIME_PERIOD_SHORT_LABELS[pa.timePeriod]}
                           </span>
                           <span className="font-mono font-bold text-blue-600 w-16 flex-shrink-0">
-                            ${Math.round(pa.clearingPriceMWh)}
+                            ${formatNumber(pa.clearingPriceMWh)}
                           </span>
                           <span className="text-gray-500 truncate">
                             Set by {pa.priceSetterTeam}

@@ -4,7 +4,7 @@ import {
   ReferenceLine, Cell, Legend
 } from 'recharts';
 import type { TimePeriodDispatchResult, DispatchedBand } from '../../../shared/types';
-import { formatMW, formatPrice } from '../../lib/formatters';
+import { formatMW, formatPrice, formatNumber } from '../../lib/formatters';
 
 interface Props {
   periodResult: TimePeriodDispatchResult;
@@ -121,13 +121,13 @@ export default function MeritOrderChart({ periodResult, height = 400 }: Props) {
         <div className="text-navy-300 text-xs">{data.assetName} ({data.assetType})</div>
         <div className="mt-1 space-y-0.5">
           <div className="text-electric-300">
-            Bid: <span className="font-mono">${data.actualBidPrice}/MWh</span>
+            Bid: <span className="font-mono">${formatNumber(data.actualBidPrice)}/MWh</span>
           </div>
           <div className="text-navy-300">
-            Offered: <span className="font-mono">{data.widthMW} MW</span>
+            Offered: <span className="font-mono">{formatNumber(data.widthMW)} MW</span>
           </div>
           <div className={data.isDispatched ? 'text-green-400' : 'text-red-400'}>
-            {data.isDispatched ? `Dispatched: ${data.dispatchedMW} MW` : 'Not dispatched'}
+            {data.isDispatched ? `Dispatched: ${formatNumber(data.dispatchedMW)} MW` : 'Not dispatched'}
           </div>
           {data.isMarginal && (
             <div className="text-amber-400 font-semibold">★ Marginal Unit (sets price)</div>
@@ -143,7 +143,7 @@ export default function MeritOrderChart({ periodResult, height = 400 }: Props) {
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="text-navy-300">
           Clearing Price: <span className="text-electric-300 font-mono font-bold text-lg">
-            ${periodResult.clearingPriceMWh.toFixed(0)}/MWh
+            ${formatNumber(periodResult.clearingPriceMWh)}/MWh
           </span>
         </div>
         <div className="text-navy-400">
@@ -212,7 +212,7 @@ export default function MeritOrderChart({ periodResult, height = 400 }: Props) {
             stroke="#ecc94b"
             strokeDasharray="5 5"
             strokeWidth={2}
-            label={{ value: `$${periodResult.clearingPriceMWh.toFixed(0)}/MWh`, fill: '#ecc94b', fontSize: 11, position: 'right' }}
+            label={{ value: `$${formatNumber(periodResult.clearingPriceMWh)}/MWh`, fill: '#ecc94b', fontSize: 11, position: 'right' }}
           />
 
           <Bar dataKey="bidPrice" name="Bid Price">

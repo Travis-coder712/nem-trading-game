@@ -39,7 +39,7 @@ export default function PhotoCarousel() {
         <motion.div
           key={currentIndex}
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.15 }}
+          animate={{ opacity: 0.35 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 2.5, ease: 'easeInOut' }}
           className="absolute inset-0"
@@ -55,7 +55,7 @@ export default function PhotoCarousel() {
       <div
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(to bottom, rgba(8,16,28,0.65) 0%, rgba(8,16,28,0.80) 40%, rgba(8,16,28,0.92) 100%)',
+          background: 'linear-gradient(to bottom, rgba(8,16,28,0.45) 0%, rgba(8,16,28,0.60) 40%, rgba(8,16,28,0.85) 100%)',
         }}
       />
     </div>

@@ -114,46 +114,172 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <h2>The Development Story: How It Actually Happened</h2>
-  <p>The entire game was built in a single intensive session of roughly 20 hours. Here's how it unfolded:</p>
+  <p>The entire game was built across <strong>9 conversation sessions</strong> over 5 days, with <strong>127 human prompts</strong> in total. Here's how it unfolded:</p>
 
   <div class="timeline">
     <div class="timeline-item">
-      <h3>Phase 1: The Big Bang (Sunday morning)</h3>
-      <p><span class="badge badge-purple">Human prompt</span> The user described the concept: a multiplayer NEM simulation game where teams bid electricity into a merit order dispatch.</p>
-      <div class="human"><strong>What the human said (in essence):</strong> "Build a game that simulates the NEM. Teams should have different generation assets and bid them into the market. Use a merit order dispatch to determine the clearing price. Make it work on phones with a host dashboard on a big screen."</div>
+      <h3>Phase 1: The Big Bang <span class="badge badge-blue">28 prompts &middot; Session 1</span></h3>
+      <p><span class="badge badge-purple">Friday &ndash; Saturday</span> The user described the concept in a single, detailed opening prompt&mdash;over 500 words long&mdash;covering game modes, asset types, bidding mechanics, demand curves, seasonal scenarios, and output requirements.</p>
+      <div class="human"><strong>Actual opening prompt (excerpt):</strong> &ldquo;I would like to build an app which can be used to run a training program for people who work in the energy industry to better understand the NEM merit order mechanism. To do this I would like to create a relatively simple game, that enables up to 15 teams to play the role of an energy company&hellip;&rdquo;</div>
       <div class="ai"><strong>What Claude did:</strong> Within a single conversation, Claude designed the entire application architecture, created 59 files, and wrote over 15,000 lines of code. This included the game engine, the merit order algorithm, the user interfaces for hosts and teams, real-time WebSocket communication, data visualisation charts, a QR code joining system, and an animated landing page. The game was playable at the end of this first session.</div>
       <div class="highlight"><strong>Key insight:</strong> Claude drew on its training knowledge of electricity markets, the Australian NEM specifically, software architecture patterns, and dozens of web technologies to build a complete working system from a high-level description. No line-by-line coding instructions were needed.</div>
+      <p style="margin-top: 0.8rem;"><strong>Other prompts in this phase included:</strong></p>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;when using my phone I was able to connect but then when my phone went on standby it lost connection and I couldn&rsquo;t reconnect&rdquo;</li>
+        <li>&ldquo;can you please add Bidding strategy pre-fill buttons on team page&rdquo;</li>
+        <li>&ldquo;each round needs a descriptor of the demand and supply balance&rdquo;</li>
+        <li>&ldquo;can you make the opening screen more exciting. Can you add music?&rdquo;</li>
+        <li>&ldquo;create a pre-read pdf that can be sent to players the week before they play&rdquo;</li>
+      </ul>
     </div>
 
     <div class="timeline-item">
-      <h3>Phase 2: Testing and Hardening (Sunday afternoon)</h3>
-      <p><span class="badge badge-purple">Human feedback</span> The user tested the game and reported real-world issues.</p>
-      <div class="human"><strong>What the human said (in essence):</strong> "The server crashes sometimes. The $0 is not showing in bids. The connections drop on mobile hotspot. We need a beginner mode for people who don't know the NEM. Make the marginal cost badges bigger."</div>
-      <div class="ai"><strong>What Claude did:</strong> Added global error handlers to prevent server crashes, fixed the display bug, relaxed network timeout settings for poor WiFi connections, created a new Beginner game mode with only 2 asset types and a guided walkthrough, and improved various UI elements based on the feedback.</div>
+      <h3>Phase 2: Testing and Hardening <span class="badge badge-blue">26 prompts &middot; Sessions 2&ndash;3</span></h3>
+      <p><span class="badge badge-purple">Saturday morning</span> The user tested the game with a colleague and reported real-world issues.</p>
+      <div class="human"><strong>What the human said (examples):</strong></div>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;the server crashes sometimes&rdquo;</li>
+        <li>&ldquo;the $0 is not showing in bids&rdquo;</li>
+        <li>&ldquo;the connections drop on mobile hotspot&rdquo;</li>
+        <li>&ldquo;need a beginner mode for people who don&rsquo;t know the NEM&rdquo;</li>
+        <li>&ldquo;make the SRMC badges bigger and more prominent&rdquo;</li>
+        <li>&ldquo;demand should be an average 50&ndash;90% of capacity&rdquo;</li>
+        <li>&ldquo;create an overview dashboard for the game master of each generator, broken down by asset type&rdquo;</li>
+        <li>&ldquo;can you make a super simplified version, which has only one round two assets, just for beginners?&rdquo;</li>
+      </ul>
+      <div class="ai"><strong>What Claude did:</strong> Added global error handlers to prevent server crashes, fixed the display bug, relaxed network timeout settings for poor WiFi connections, created a new Beginner game mode with only 2 asset types and a guided walkthrough, rewrote demand generation to target 50&ndash;95% of fleet capacity, built a dispatch overview dashboard, and improved various UI elements.</div>
       <div class="highlight"><strong>Key insight:</strong> The human didn't need to know <em>how</em> to fix a server crash or a display bug. They just reported what was wrong, and Claude diagnosed the root cause and implemented the fix.</div>
     </div>
 
     <div class="timeline-item">
-      <h3>Phase 3: Making It Educational (Sunday evening)</h3>
-      <p><span class="badge badge-purple">Human direction</span> The user wanted features that would help players learn, not just play.</p>
-      <div class="human"><strong>What the human said (in essence):</strong> "Players need to understand what's happening with the merit order. Can we show them step by step how dispatch works? Also, add warnings if they're making bad bids. And the host should be able to see what teams are doing. Oh, and people need exit buttons."</div>
+      <h3>Phase 3: Making It Educational <span class="badge badge-blue">10 prompts &middot; Sessions 4&ndash;5</span></h3>
+      <p><span class="badge badge-purple">Saturday afternoon</span> The user wanted features that would help players learn, not just play.</p>
+      <div class="human"><strong>What the human said (examples):</strong></div>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;at the end of each round, create a walkthrough which shows how the merit order dispatch was built up&rdquo;</li>
+        <li>&ldquo;instead of submitting bids, the button should be review bids&rdquo; with warnings for zero-MW and below-SRMC bids</li>
+        <li>&ldquo;the host should have a button to view what is being shown to each of the teams&rdquo;</li>
+        <li>&ldquo;at the end of the game, there is no way to start again and go back to the main page&rdquo;</li>
+        <li>&ldquo;the walkthrough is great, but when someone bids zero you need to be able to see the bid&rdquo;</li>
+      </ul>
       <div class="ai"><strong>What Claude did:</strong> Built an animated merit order walkthrough that visually steps through the dispatch process, created a bid review modal that warns about common mistakes (bidding below cost, zero-MW bids), added a host team view feature, and added exit buttons throughout the application.</div>
     </div>
 
     <div class="timeline-item">
-      <h3>Phase 4: Making It Theatrical (Sunday night)</h3>
-      <p><span class="badge badge-purple">Human vision</span> The user wanted the game to feel like an event, not just a web page.</p>
-      <div class="human"><strong>What the human said (in essence):</strong> "This needs cinematic transitions when the game starts and between rounds. Think trading floor energy. Add sound effects. Make it feel dramatic. Also the price cap should be $20,000 per MWh, that's the real NEM cap."</div>
-      <div class="ai"><strong>What Claude did:</strong> Created a "MARKET OPEN" cinematic sequence with visual effects and built an entire procedural audio engine from scratch. Rather than using pre-recorded sound files, Claude wrote code that generates sounds using mathematical waveforms&mdash;buzzes, chimes, whooshes, and zaps&mdash;all synthesised in real time by the browser. Claude also updated the market price cap across the entire codebase to match the real NEM rules.</div>
-      <div class="highlight"><strong>Key insight:</strong> The human said "make it sound dramatic." Claude independently decided to build a procedural audio engine using the Web Audio API, which is a sophisticated technical approach that avoids the need for audio files and creates unique sounds every time. This is an example of the AI making expert-level technical decisions that the human never specifically requested.</div>
+      <h3>Phase 4: Making It Theatrical <span class="badge badge-blue">29 prompts &middot; Session 6</span></h3>
+      <p><span class="badge badge-purple">Saturday evening</span> The user wanted the game to feel like an event, not just a web page. This was also the session with the infamous transition loop bug.</p>
+      <div class="human"><strong>What the human said (examples):</strong></div>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;create a nice dramatic transition slide for when the game is selected&rdquo;</li>
+        <li>&ldquo;can you add some appropriate audio to the transitions?&rdquo;</li>
+        <li>&ldquo;the transition slide for round 1 got stuck in a loop&rdquo;</li>
+        <li>&ldquo;the loop is still there&rdquo; (reported <strong>8 times</strong> across 45 minutes)</li>
+        <li>&ldquo;I think the problem is I don&rsquo;t know how to explain it to you clearly&rdquo;</li>
+        <li>[Installed Claude Chrome Extension so the AI could <em>see</em> the bug visually]</li>
+        <li>&ldquo;add a bidding guardrail toggle&rdquo; and &ldquo;call out SRMC as its full name, not an acronym&rdquo;</li>
+      </ul>
+      <div class="ai"><strong>What Claude did:</strong> Created a &ldquo;MARKET OPEN&rdquo; cinematic sequence with visual effects and built an entire procedural audio engine from scratch. Rather than using pre-recorded sound files, Claude wrote code that generates sounds using mathematical waveforms&mdash;buzzes, chimes, whooshes, and zaps&mdash;all synthesised in real time by the browser. After struggling to diagnose the transition loop bug through text descriptions alone, the Claude Chrome Extension allowed the AI to observe the bug visually, identify the root cause (a state update triggering a re-render loop), and fix it.</div>
+      <div class="highlight"><strong>Key insight:</strong> This phase perfectly illustrates both the power and the limits of vibe coding. The human said &ldquo;make it sound dramatic&rdquo; and Claude independently built a procedural audio engine using the Web Audio API. But when a visual bug appeared, 8 rounds of &ldquo;the loop is still there&rdquo; couldn&rsquo;t convey what 5 seconds of screen observation could. The Chrome Extension bridged that gap.</div>
     </div>
 
     <div class="timeline-item">
-      <h3>Phase 5: Polish and Customisation (Monday morning)</h3>
-      <p><span class="badge badge-purple">Human refinement</span> The user wanted customisation and final polish.</p>
-      <div class="human"><strong>What the human said (in essence):</strong> "We need to be able to edit the asset configurations so we can run different scenarios. The term SRMC is too jargony&mdash;call it Marginal Cost instead. Some of the animations are janky. Fix the transitions."</div>
-      <div class="ai"><strong>What Claude did:</strong> Built a complete asset configuration editor (save/load presets), renamed "SRMC" to "Marginal Cost" across all code and user-facing content, rewrote the transition animations from a library-based approach to pure CSS for better reliability, and added various quality-of-life improvements.</div>
+      <h3>Phase 5: Polish and Customisation <span class="badge badge-blue">21 prompts &middot; Sessions 7&ndash;8</span></h3>
+      <p><span class="badge badge-purple">Saturday night &ndash; Sunday morning</span> The user wanted customisation, documentation, and final polish.</p>
+      <div class="human"><strong>What the human said (examples):</strong></div>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;make it so the key parameters of the game are editable&mdash;the names and SRMC for each plant&rdquo;</li>
+        <li>&ldquo;make the dispatch overview have the same type of graphic as the walkthrough&rdquo;</li>
+        <li>&ldquo;make the scrolling sidebar a little larger, I find it hard to grab&rdquo;</li>
+        <li>&ldquo;prepare some notes regarding how it has been developed&rdquo; (IT notes and vibe coding notes)</li>
+        <li>&ldquo;when you end a game and try to start another, the QR code does not appear&rdquo;</li>
+        <li>&ldquo;let me toggle through the other options on the left hand side while bidding is in progress&rdquo;</li>
+      </ul>
+      <div class="ai"><strong>What Claude did:</strong> Built a complete asset configuration editor (save/load presets), renamed &ldquo;SRMC&rdquo; to &ldquo;Marginal Cost&rdquo; across all code and user-facing content, rewrote the transition animations from a library-based approach to pure CSS for better reliability, created technical and vibe coding documentation, fixed the QR code bug through socket room management, and added various quality-of-life improvements.</div>
     </div>
+
+    <div class="timeline-item">
+      <h3>Phase 6: Final Refinements <span class="badge badge-blue">13 prompts &middot; Session 9</span></h3>
+      <p><span class="badge badge-purple">Tuesday</span> Final bug fixes, mobile UX improvements, and documentation updates.</p>
+      <div class="human"><strong>What the human said (examples):</strong></div>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;the QR code for the next game seems to disappear&rdquo; (deeper fix for socket room cleanup)</li>
+        <li>&ldquo;make the Learn the NEM, Player Pre-Read, and Download Guide all downloadable as PDF&rdquo;</li>
+        <li>&ldquo;put a comma for every thousand to make dollar amounts clearer&rdquo;</li>
+        <li>&ldquo;on an iPhone, the cursor defaults to being after the 0 rather than before it&rdquo;</li>
+        <li>&ldquo;make sure the guardrails don&rsquo;t put users in a doom loop where they can&rsquo;t submit a bid&rdquo;</li>
+        <li>&ldquo;add the guardrails table into the game guide&rdquo;</li>
+      </ul>
+      <div class="ai"><strong>What Claude did:</strong> Deep-dived into socket room management to permanently fix the QR code bug, added PDF download capability using browser print dialogs, improved currency formatting with comma separators, added mobile-friendly input selection, relaxed bidding restrictions when guardrails are disabled, and updated documentation.</div>
+    </div>
+  </div>
+
+  <h2>The Prompts: What the Human Actually Said</h2>
+  <div class="card">
+    <p>Across all 9 sessions, the human sent <strong>127 prompts</strong>. These ranged from a 500-word opening brief to single-word continuations like &ldquo;yes&rdquo; and &ldquo;continue.&rdquo; Here is how they break down by category:</p>
+
+    <div class="split" style="margin-top: 1rem;">
+      <div>
+        <h3 style="color: #805ad5;">Feature Requests (39 prompts, 31%)</h3>
+        <p style="font-size: 0.9rem;">New features and capabilities, described in plain English:</p>
+        <ul style="font-size: 0.85rem;">
+          <li>Game concept and structure (initial 500-word brief)</li>
+          <li>Bidding strategies and pre-fill buttons</li>
+          <li>Merit order walkthrough animation</li>
+          <li>Cinematic transitions and sound effects</li>
+          <li>Bid review modal with warnings</li>
+          <li>Asset configuration editor</li>
+          <li>Host team view and dispatch overview</li>
+          <li>Beginner mode</li>
+          <li>PDF downloads for all resources</li>
+          <li>Bidding guardrails</li>
+          <li>Pre-read and documentation pages</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color: #e53e3e;">Bug Reports (18 prompts, 14%)</h3>
+        <p style="font-size: 0.9rem;">Issues discovered through testing:</p>
+        <ul style="font-size: 0.85rem;">
+          <li>&ldquo;$0 is not showing in bids&rdquo;</li>
+          <li>&ldquo;phone lost connection on standby&rdquo;</li>
+          <li>&ldquo;server crashes sometimes&rdquo;</li>
+          <li>&ldquo;transition slide stuck in a loop&rdquo; (&times;8)</li>
+          <li>&ldquo;QR code disappears on second game&rdquo;</li>
+          <li>&ldquo;iPhone cursor after the 0&rdquo;</li>
+          <li>&ldquo;exit takes you back to lobby, not setup&rdquo;</li>
+        </ul>
+      </div>
+    </div>
+    <div class="split" style="margin-top: 1rem;">
+      <div>
+        <h3 style="color: #3182ce;">UI/UX Improvements (22 prompts, 17%)</h3>
+        <p style="font-size: 0.9rem;">Visual and usability refinements:</p>
+        <ul style="font-size: 0.85rem;">
+          <li>&ldquo;make the SRMC badges bigger&rdquo;</li>
+          <li>&ldquo;put demand at the top of the bidding screen&rdquo;</li>
+          <li>&ldquo;add commas in dollar amounts&rdquo;</li>
+          <li>&ldquo;call out SRMC as its full name&rdquo;</li>
+          <li>&ldquo;make the scrollbar a little larger&rdquo;</li>
+          <li>&ldquo;make the opening screen more exciting&rdquo;</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color: #718096;">Operations (48 prompts, 38%)</h3>
+        <p style="font-size: 0.9rem;">Server management, git, and session continuations:</p>
+        <ul style="font-size: 0.85rem;">
+          <li>&ldquo;give me a link to click to start&rdquo; (&times;8)</li>
+          <li>&ldquo;please restart the server&rdquo; (&times;7)</li>
+          <li>&ldquo;commit the changes to git&rdquo; (&times;5)</li>
+          <li>&ldquo;please continue&rdquo; / &ldquo;tokens reset&rdquo; (&times;9)</li>
+          <li>&ldquo;how many tokens do I have left?&rdquo;</li>
+          <li>&ldquo;how do I open my previous work?&rdquo;</li>
+          <li>&ldquo;I&rsquo;m going to turn off the computer&rdquo;</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top: 1.5rem;">
+    <p><strong>What&rsquo;s striking:</strong> Only <strong>31%</strong> of prompts were feature requests&mdash;the creative, directional input. Another <strong>14%</strong> were bug reports. The remaining <strong>55%</strong> were operational (server restarts, git commits, session management) and UI tweaks. This reveals the reality of vibe coding: the human spends as much time <em>managing the process</em> as they do <em>directing the product</em>.</p>
   </div>
 
   <h2>What Did Claude Already Know?</h2>
@@ -195,25 +321,41 @@ export function getVibeCodingNotesHTML(): string {
         <ul>
           <li><strong>~19,000 lines of code</strong> written</li>
           <li><strong>~60 files</strong> created</li>
-          <li><strong>5 major versions</strong> committed</li>
-          <li><strong>~20 hours</strong> total development time</li>
+          <li><strong>8 major versions</strong> committed to git</li>
+          <li><strong>~5 days</strong> elapsed, ~20 hours active</li>
           <li><strong>7 asset types</strong> with realistic parameters</li>
           <li><strong>10+ scenario events</strong></li>
           <li><strong>4 game modes</strong></li>
         </ul>
       </div>
       <div>
-        <h3>What Would This Normally Take?</h3>
-        <p>A similar application built by a traditional development team would typically require:</p>
+        <h3>Human Input</h3>
+        <ul>
+          <li><strong>127 prompts</strong> across 9 conversation sessions</li>
+          <li><strong>39 feature requests</strong> (31%)</li>
+          <li><strong>18 bug reports</strong> (14%)</li>
+          <li><strong>22 UI/UX improvements</strong> (17%)</li>
+          <li><strong>48 operational prompts</strong> (38%): server restarts, git commits, session continuations</li>
+          <li>Longest prompt: <strong>~500 words</strong> (opening game concept)</li>
+          <li>Shortest prompt: <strong>1 word</strong> (&ldquo;continue&rdquo;, &ldquo;yes&rdquo;, &ldquo;both&rdquo;)</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+      <h3>What Would This Normally Take?</h3>
+      <p>A similar application built by a traditional development team would typically require:</p>
+      <div class="split">
         <ul>
           <li>A team of 2&ndash;4 developers</li>
           <li>A UX/UI designer</li>
           <li>A subject matter expert for NEM content</li>
+        </ul>
+        <ul>
           <li>4&ndash;8 weeks of development</li>
           <li>Cost: approximately $50,000&ndash;$150,000 in developer time</li>
         </ul>
-        <p>The vibe coding approach reduced this to <strong>one person + AI over a single weekend</strong>.</p>
       </div>
+      <p style="margin-top: 0.5rem;">The vibe coding approach reduced this to <strong>one person + AI over a long weekend, using 127 plain-English prompts</strong>.</p>
     </div>
   </div>
 
@@ -240,7 +382,7 @@ export function getVibeCodingNotesHTML(): string {
       <li><strong>You need clear ideas.</strong> The AI is excellent at execution, but it needs direction. Vague requests produce vague results. Specific, well-thought-out requests produce impressive results.</li>
       <li><strong>Testing is still essential.</strong> AI-generated code can have bugs, just like human-written code. The iterative testing and feedback cycle (Phase 2) was crucial.</li>
       <li><strong>Domain expertise matters.</strong> Without the human's knowledge of the NEM, the game might have been technically impressive but factually wrong. The human validated that the game mechanics matched real market operations.</li>
-      <li><strong>Complex debugging can be tricky.</strong> When something goes wrong, explaining the problem to the AI sometimes takes more effort than explaining what you want built.</li>
+      <li><strong>Complex debugging can be tricky.</strong> When something goes wrong, explaining the problem to the AI sometimes takes more effort than explaining what you want built. In one case, a cinematic transition between game phases was getting stuck in an infinite loop. Describing the visual bug in text wasn&rsquo;t enough for the AI to diagnose it. The solution was to use the <strong>Claude Chrome Extension</strong>&mdash;a browser plugin that lets Claude actually <em>see</em> what&rsquo;s on screen, read the live DOM, and inspect the running application in real time. Once Claude could observe the transition loop happening visually, it identified the root cause (a state update triggering a re-render that re-triggered the transition) and fixed it within minutes. This highlights an important lesson: some bugs are inherently <em>visual</em> and need to be seen, not just described.</li>
     </ul>
   </div>
 

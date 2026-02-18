@@ -36,3 +36,17 @@ export function formatPrice(value: number): string {
 export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
 }
+
+/** Format a number with commas (e.g. 1,234 or 1,234,567) */
+export function formatNumber(value: number): string {
+  return Math.round(value).toLocaleString('en-AU');
+}
+
+/** Format a dollar amount per MWh (e.g. $1,234/MWh) */
+export function formatDollarPerMWh(value: number): string {
+  const rounded = Math.round(value);
+  const formatted = rounded < 0
+    ? `-$${Math.abs(rounded).toLocaleString('en-AU')}`
+    : `$${rounded.toLocaleString('en-AU')}`;
+  return `${formatted}/MWh`;
+}

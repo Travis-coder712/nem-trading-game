@@ -7,6 +7,7 @@ import { getPreReadHTML } from '../pages/pre-read.ts';
 import { getLearnNemHTML } from '../pages/learn-nem.ts';
 import { getTechnicalNotesHTML } from '../pages/technical-notes.ts';
 import { getVibeCodingNotesHTML } from '../pages/vibe-coding-notes.ts';
+import { getGameMasterGuideHTML } from '../pages/game-master-guide.ts';
 import { listConfigs, saveConfig, deleteConfig } from '../data/configs.ts';
 import type { AssetConfigPreset } from '../../shared/types.ts';
 
@@ -79,6 +80,12 @@ apiRouter.get('/pre-read', (req, res) => {
 apiRouter.get('/learn-nem', (req, res) => {
   res.setHeader('Content-Type', 'text/html');
   res.send(getLearnNemHTML());
+});
+
+// Game Master's Guide printable page (File > Print > Save as PDF)
+apiRouter.get('/game-master-guide', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getGameMasterGuideHTML());
 });
 
 // ---- Development Notes ----

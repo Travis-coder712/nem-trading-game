@@ -3,7 +3,7 @@ import type {
 } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 import { ASSET_ICONS } from '../../lib/colors';
-import { formatMW, formatPrice } from '../../lib/formatters';
+import { formatMW, formatPrice, formatNumber } from '../../lib/formatters';
 
 interface Props {
   bids: Map<string, AssetBid>;
@@ -81,7 +81,7 @@ export default function BidReviewModal({
               type: 'below_srmc',
               asset: def.name,
               period,
-              message: `${def.name} bid at $${band.pricePerMWh}/MWh is below marginal cost ($${def.srmcPerMWh}/MWh) in ${TIME_PERIOD_SHORT_LABELS[period]}`,
+              message: `${def.name} bid at $${formatNumber(band.pricePerMWh)}/MWh is below marginal cost ($${formatNumber(def.srmcPerMWh)}/MWh) in ${TIME_PERIOD_SHORT_LABELS[period]}`,
             });
             break; // only warn once per asset per period
           }

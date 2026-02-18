@@ -170,6 +170,14 @@ export default function Landing() {
             >
               📄 Download Guide
             </a>
+            <a
+              href="/api/game-master-guide"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 text-sm font-medium text-amber-300 border border-amber-500/30 hover:border-amber-400 hover:bg-amber-500/10 rounded-xl transition-all"
+            >
+              🎯 Game Master&apos;s Guide
+            </a>
           </motion.div>
 
           {/* Development notes */}

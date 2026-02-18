@@ -486,10 +486,14 @@ function buildKeyTakeaways(
     takeaways.push(`Different teams set the price in different periods. The marginal generator changes as demand shifts through the day.`);
   }
 
-  // New assets takeaway
+  // New assets takeaway — only say "unlocked" for rounds after the first
   if (roundConfig.newAssetsUnlocked.length > 0) {
     const newNames = roundConfig.newAssetsUnlocked.map(t => ASSET_TYPE_LABELS[t]).join(', ');
-    takeaways.push(`New asset types unlocked: ${newNames}. These change the competitive dynamics — learn their cost structures.`);
+    if (roundConfig.roundNumber <= 1) {
+      takeaways.push(`Your fleet includes ${newNames} — learn their cost structures and how they compete in the merit order.`);
+    } else {
+      takeaways.push(`New asset types unlocked: ${newNames}. These change the competitive dynamics — learn their cost structures.`);
+    }
   }
 
   // Profit distribution

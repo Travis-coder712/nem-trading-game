@@ -157,7 +157,6 @@ ${slideHTML}
   </div>
 </div>
 
-<script>window.addEventListener('DOMContentLoaded', function() { setTimeout(function() { window.print(); }, 400); });</script>
 </body>
 </html>`;
 }

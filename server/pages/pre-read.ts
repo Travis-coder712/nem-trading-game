@@ -52,7 +52,14 @@ export function getPreReadHTML(): string {
   ul { padding-left: 1.5rem; margin-bottom: 0.6rem; }
   li { margin-bottom: 0.3rem; }
   .footer { text-align: center; color: #a0aec0; font-size: 0.75rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; margin-top: auto; }
+  .no-print { background: #1e3a5f; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .no-print a { color: #63b3ed; text-decoration: none; font-size: 14px; font-weight: 500; }
+  .no-print a:hover { color: #90cdf4; }
+  .no-print button { background: #3182ce; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .no-print button:hover { background: #4299e1; }
+
   @media print {
+    .no-print { display: none !important; }
     .page { page-break-after: always; }
     .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .highlight, .highlight-amber, .key-concept, .card, .era-badge, .stat, .cover .prep-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -60,6 +67,11 @@ export function getPreReadHTML(): string {
 </style>
 </head>
 <body>
+
+<div class="no-print">
+  <a href="/">&larr; Back to Game</a>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
 
 <!-- PAGE 1: COVER -->
 <div class="page cover">
@@ -351,7 +363,6 @@ export function getPreReadHTML(): string {
   </div>
 </div>
 
-<script>window.addEventListener('DOMContentLoaded', function() { setTimeout(function() { window.print(); }, 400); });</script>
 </body>
 </html>`;
 }

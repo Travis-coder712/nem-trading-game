@@ -420,6 +420,11 @@ export class GameEngine {
       ? game.config.rounds[game.currentRound - 1]
       : null;
 
+    // Next round config for Round Summary "preview" slide
+    const nextRoundConfig = game.currentRound < game.config.rounds.length
+      ? game.config.rounds[game.currentRound]   // currentRound is 1-indexed, so [currentRound] = next
+      : null;
+
     const teams: TeamPublicInfo[] = game.teams.map(t => ({
       id: t.id,
       name: t.name,
@@ -474,6 +479,7 @@ export class GameEngine {
       lastRoundAnalysis: this.getLastRoundAnalysis(gameId),
       fleetInfo: this.getFleetInfo(gameId),
       biddingGuardrailEnabled: game.config.biddingGuardrailEnabled,
+      nextRoundConfig,
     };
   }
 

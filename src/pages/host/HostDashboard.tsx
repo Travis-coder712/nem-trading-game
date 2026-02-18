@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../contexts/SocketContext';
-import { formatCurrency, formatCurrencyFull, formatMW, formatPrice } from '../../lib/formatters';
+import { formatCurrency, formatCurrencyFull, formatMW, formatPrice, formatNumber } from '../../lib/formatters';
 import { ASSET_ICONS } from '../../lib/colors';
 import MeritOrderChart from '../../components/charts/MeritOrderChart';
 import MeritOrderWalkthrough from '../../components/charts/MeritOrderWalkthrough';
@@ -9,6 +9,8 @@ import ProfitLossBar from '../../components/charts/ProfitLossBar';
 import LeaderboardChart from '../../components/charts/LeaderboardChart';
 import GameStartTransition from '../../components/transitions/GameStartTransition';
 import RoundStartTransition from '../../components/transitions/RoundStartTransition';
+import RoundSummary from '../../components/host/RoundSummary';
+import HowToBidTutorial from '../../components/game/HowToBidTutorial';
 import type { TimePeriod, RoundAnalysis, PeriodAnalysis, TeamAnalysis, AssetType, AssetInfo, DispatchedBand } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 
@@ -32,6 +34,8 @@ export default function HostDashboard() {
   // No socket effects, no timers to cancel, no dedup logic needed.
   const [showGameStart, setShowGameStart] = useState(false);
   const [showRoundStart, setShowRoundStart] = useState(false);
+  const [showRoundSummary, setShowRoundSummary] = useState(false);
+  const [showHowToBid, setShowHowToBid] = useState(false);
 
   // Wrapped handlers that show the transition, then call the socket action
   const handleStartRound = useCallback(() => {
@@ -193,21 +197,37 @@ export default function HostDashboard() {
             )}
 
             {phase === 'briefing' && (
-              <button
-                onClick={handleStartBidding}
-                className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-white font-semibold rounded-lg transition-colors text-sm animate-pulse-glow"
-              >
-                Open Bidding 💰
-              </button>
+              <>
+                <button
+                  onClick={handleStartBidding}
+                  className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-white font-semibold rounded-lg transition-colors text-sm animate-pulse-glow"
+                >
+                  Open Bidding 💰
+                </button>
+                <button
+                  onClick={() => setShowHowToBid(true)}
+                  className="w-full py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-medium rounded-lg transition-colors text-sm border border-blue-500/30"
+                >
+                  📖 How to Bid
+                </button>
+              </>
             )}
 
             {phase === 'bidding' && (
-              <button
-                onClick={endBidding}
-                className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-white font-semibold rounded-lg transition-colors text-sm"
-              >
-                End Bidding Early ⏱️
-              </button>
+              <>
+                <button
+                  onClick={endBidding}
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-white font-semibold rounded-lg transition-colors text-sm"
+                >
+                  End Bidding Early ⏱️
+                </button>
+                <button
+                  onClick={() => setShowHowToBid(true)}
+                  className="w-full py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-medium rounded-lg transition-colors text-sm border border-blue-500/30"
+                >
+                  📖 How to Bid
+                </button>
+              </>
             )}
 
             {phase === 'results' && (
@@ -249,6 +269,17 @@ export default function HostDashboard() {
           {/* View Toggle */}
           <div className="mb-6 space-y-1">
             <div className="text-xs text-navy-400 uppercase tracking-wide mb-2">Display</div>
+
+            {/* Round Summary — prominent button, only when results exist */}
+            {lastResults && gameState.lastRoundAnalysis && (
+              <button
+                onClick={() => setShowRoundSummary(true)}
+                className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 transition-colors mb-2"
+              >
+                🎯 Round Summary
+              </button>
+            )}
+
             {(['overview', 'analysis', 'walkthrough', 'dispatch', 'merit', 'profit', 'leaderboard', 'team_view', 'slides'] as const).map(view => (
               <button
                 key={view}
@@ -832,11 +863,11 @@ export default function HostDashboard() {
                                     </td>
                                     {allPeriods.map(p => (
                                       <td key={p} className="px-4 py-2 text-right text-sm font-mono text-navy-200">
-                                        {summary[at][p] > 0 ? `${Math.round(summary[at][p])}` : <span className="text-navy-600">—</span>}
+                                        {summary[at][p] > 0 ? formatNumber(summary[at][p]) : <span className="text-navy-600">—</span>}
                                       </td>
                                     ))}
                                     <td className="px-4 py-2 text-right text-sm font-mono font-bold text-electric-300">
-                                      {Math.round(rowTotal)}
+                                      {formatNumber(rowTotal)}
                                     </td>
                                   </tr>
                                 );
@@ -847,12 +878,12 @@ export default function HostDashboard() {
                                   const pr = lastResults.periodResults.find(r => r.timePeriod === p);
                                   return (
                                     <td key={p} className="px-4 py-2 text-right text-sm font-mono font-bold text-amber-300">
-                                      {pr ? Math.round(pr.demandMW) : '—'}
+                                      {pr ? formatNumber(pr.demandMW) : '—'}
                                     </td>
                                   );
                                 })}
                                 <td className="px-4 py-2 text-right text-sm font-mono font-bold text-amber-300">
-                                  {Math.round(lastResults.periodResults.reduce((s, pr) => s + pr.demandMW, 0))}
+                                  {formatNumber(lastResults.periodResults.reduce((s, pr) => s + pr.demandMW, 0))}
                                 </td>
                               </tr>
                             </tbody>
@@ -911,7 +942,7 @@ export default function HostDashboard() {
                                         <td className="px-4 py-1.5 text-xs text-navy-200">{assetName}</td>
                                         {allPeriods.map(p => (
                                           <td key={p} className="px-4 py-1.5 text-right text-xs font-mono text-navy-300">
-                                            {periods[p] ? `${Math.round(periods[p])} MW` : <span className="text-navy-600">—</span>}
+                                            {periods[p] ? `${formatNumber(periods[p])} MW` : <span className="text-navy-600">—</span>}
                                           </td>
                                         ))}
                                       </tr>
@@ -962,7 +993,7 @@ export default function HostDashboard() {
                   <div key={pr.timePeriod} className="bg-white/5 border border-white/10 rounded-xl p-4">
                     <div className="text-xs text-navy-400 capitalize">{pr.timePeriod.replace(/_/g, ' ')}</div>
                     <div className="text-2xl font-bold font-mono text-electric-300 mt-1">
-                      ${Math.round(pr.clearingPriceMWh)}
+                      ${formatNumber(pr.clearingPriceMWh)}
                     </div>
                     <div className="text-xs text-navy-500">/MWh clearing price</div>
                     <div className="text-xs text-navy-400 mt-1">
@@ -1040,11 +1071,11 @@ export default function HostDashboard() {
                           {TIME_PERIOD_SHORT_LABELS[pa.timePeriod] || pa.timePeriod.replace(/_/g, ' ')}
                         </span>
                         <span className="text-lg font-bold font-mono text-electric-300">
-                          ${Math.round(pa.clearingPriceMWh)}/MWh
+                          ${formatNumber(pa.clearingPriceMWh)}/MWh
                         </span>
                       </div>
                       <div className="space-y-2 text-xs text-navy-300">
-                        <p><span className="text-amber-300 font-medium">⚡ Price setter:</span> {pa.priceSetterTeam} — {pa.priceSetterAsset} (bid ${Math.round(pa.priceSetterBidPrice)}/MWh)</p>
+                        <p><span className="text-amber-300 font-medium">⚡ Price setter:</span> {pa.priceSetterTeam} — {pa.priceSetterAsset} (bid ${formatNumber(pa.priceSetterBidPrice)}/MWh)</p>
                         <p>{pa.priceExplanation}</p>
                         <p className="text-navy-400">{pa.supplyDemandNarrative}</p>
                       </div>
@@ -1083,7 +1114,7 @@ export default function HostDashboard() {
                         <span className={`ml-auto text-sm font-mono font-bold ${
                           ta.roundProfit >= 0 ? 'text-green-400' : 'text-red-400'
                         }`}>
-                          {ta.roundProfit >= 0 ? '+' : ''}${Math.round(ta.roundProfit)}
+                          {ta.roundProfit >= 0 ? '+' : ''}{formatCurrency(ta.roundProfit)}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-xs">
@@ -1172,7 +1203,7 @@ export default function HostDashboard() {
                               </div>
                               <div className="text-[10px] text-navy-400">
                                 {formatMW(asset.currentAvailableMW)} available
-                                {assetDef && ` · Marginal Cost $${assetDef.srmcPerMWh}`}
+                                {assetDef && ` · Marginal Cost $${formatNumber(assetDef.srmcPerMWh)}`}
                                 {asset.isForceOutage && <span className="text-red-400 ml-1">OUTAGE</span>}
                               </div>
                             </div>
@@ -1355,6 +1386,25 @@ export default function HostDashboard() {
         season={roundConfig?.season || 'summer'}
         onComplete={() => setShowRoundStart(false)}
       />
+
+      {/* Full-screen Round Summary overlay */}
+      {showRoundSummary && lastResults && gameState.lastRoundAnalysis && roundConfig && (
+        <RoundSummary
+          roundResults={lastResults}
+          roundAnalysis={gameState.lastRoundAnalysis}
+          leaderboard={leaderboard}
+          roundConfig={roundConfig}
+          roundNumber={round}
+          totalRounds={totalRounds}
+          nextRoundConfig={gameState.nextRoundConfig}
+          onClose={() => setShowRoundSummary(false)}
+        />
+      )}
+
+      {/* Full-screen How to Bid tutorial overlay */}
+      {showHowToBid && (
+        <HowToBidTutorial onClose={() => setShowHowToBid(false)} />
+      )}
     </div>
   );
 }
