@@ -172,6 +172,21 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem(SS_TEAM_NAME, data.teamName);
     });
 
+    socket.on('game:reset', () => {
+      console.log('Game was reset by host — clearing session');
+      sessionStorage.removeItem(SS_TEAM_ID);
+      sessionStorage.removeItem(SS_GAME_ID);
+      sessionStorage.removeItem(SS_TEAM_NAME);
+      setGameState(null);
+      setRoundResults(null);
+      setBiddingTimeRemaining(0);
+      setReconnecting(false);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+    });
+
     socket.on('error', (msg) => {
       console.error('Socket error:', msg);
       setLastError(msg);
@@ -192,6 +207,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       socket.off('scenario:balancing_applied');
       socket.off('team:reconnected');
       socket.off('host:team_screen_data');
+      socket.off('game:reset');
       socket.off('error');
       socket.disconnect();
     };

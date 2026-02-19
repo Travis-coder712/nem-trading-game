@@ -52,6 +52,14 @@ export default function TeamGame() {
   const [showCommonMistakes, setShowCommonMistakes] = useState(false);
   const [useGuidedView, setUseGuidedView] = useState(true); // default to guided step-by-step view
 
+  // Derive these early so hooks below can reference them safely (avoids temporal dead zone)
+  const team = gameState?.myTeam;
+  const phase = gameState?.phase;
+  const roundConfig = gameState?.roundConfig;
+  const assets = team?.assets || [];
+  const walkthrough = roundConfig?.walkthrough;
+  const assetDefs: AssetInfo[] = (gameState as any)?.myAssetDefs || [];
+
   useEffect(() => {
     // Only redirect to join if we don't have a team AND we're not reconnecting
     // Also check sessionStorage - if we have saved credentials, wait for reconnection
@@ -142,12 +150,7 @@ export default function TeamGame() {
     }
   }, [gameState?.roundConfig]);
 
-  const team = gameState?.myTeam;
-  const phase = gameState?.phase;
-  const roundConfig = gameState?.roundConfig;
-  const assets = team?.assets || [];
-  const walkthrough = roundConfig?.walkthrough;
-  const assetDefs: AssetInfo[] = (gameState as any)?.myAssetDefs || [];
+  // team, phase, roundConfig, assets, walkthrough, assetDefs already derived above for hooks
 
   // Helper: get asset def info (SRMC, name) for an asset instance
   const getAssetDef = (assetId: string): AssetInfo | undefined =>

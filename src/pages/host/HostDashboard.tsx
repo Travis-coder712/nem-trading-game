@@ -28,6 +28,7 @@ export default function HostDashboard() {
     clearHostSession,
   } = useSocket();
   const [qrData, setQrData] = useState<{ qrDataUrl: string; joinUrl: string } | null>(null);
+  const [urlCopied, setUrlCopied] = useState(false);
   const [activeView, setActiveView] = useState<'overview' | 'merit' | 'profit' | 'leaderboard' | 'slides' | 'analysis' | 'dispatch' | 'team_view' | 'walkthrough'>('overview');
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('day_peak');
   const [demandEdits, setDemandEdits] = useState<Record<string, number>>({});
@@ -237,9 +238,9 @@ export default function HostDashboard() {
           .then(data => setQrData(data))
           .catch(err => {
             if (err.name === 'AbortError') return;
-            // Retry up to 2 times with 1s delay (covers race where game not yet registered)
-            if (attempt < 2) {
-              setTimeout(() => fetchQR(attempt + 1), 1000);
+            // Retry up to 4 times with increasing delay (covers race conditions on game restart)
+            if (attempt < 4) {
+              setTimeout(() => fetchQR(attempt + 1), 500 * (attempt + 1));
             } else {
               console.error('QR fetch failed after retries:', err);
             }
@@ -805,7 +806,24 @@ export default function HostDashboard() {
               {qrData && (
                 <div id="lobby-qr" className="bg-white rounded-2xl p-6 inline-block mb-6 shadow-xl">
                   <img src={qrData.qrDataUrl} alt="QR Code" className="w-64 h-64" />
-                  <p className="text-navy-700 text-sm font-mono mt-2 break-all">{qrData.joinUrl}</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(qrData.joinUrl).then(() => {
+                        setUrlCopied(true);
+                        setTimeout(() => setUrlCopied(false), 2000);
+                      });
+                    }}
+                    className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-navy-100 hover:bg-navy-200 text-navy-700 rounded-lg transition-colors cursor-pointer group"
+                    title="Click to copy URL"
+                  >
+                    <span className="text-sm font-mono break-all select-all">{qrData.joinUrl}</span>
+                    <span className="flex-shrink-0 text-base opacity-60 group-hover:opacity-100 transition-opacity">
+                      {urlCopied ? '✅' : '📋'}
+                    </span>
+                  </button>
+                  {urlCopied && (
+                    <p className="text-green-600 text-xs font-medium mt-1">Copied to clipboard!</p>
+                  )}
                   {qrData.joinUrl.startsWith('https://') && (
                     <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
                       <span>🌐</span> Public link — anyone with this URL can join

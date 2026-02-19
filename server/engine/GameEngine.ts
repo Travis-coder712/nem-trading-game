@@ -750,28 +750,20 @@ export class GameEngine {
     };
   }
 
-  resetGame(gameId: string): void {
+  resetGame(gameId: string): string[] {
     const game = this.games.get(gameId);
-    if (!game) return;
+    if (!game) return [];
 
-    game.phase = 'lobby';
-    game.currentRound = 0;
-    game.roundResults = [];
-    game.activeScenarioEvents = [];
-    game.activeSurpriseEvents = [];
-    game.preSurpriseDemandMW = null;
-    game.surpriseIncidents = [];
-    game.currentBids = new Map();
-    game.biddingTimeRemaining = 0;
+    // Collect team socket IDs so the caller can notify/kick them
+    const teamSocketIds = game.teams
+      .map(t => t.socketId)
+      .filter((id): id is string => !!id);
 
-    for (const team of game.teams) {
-      team.cumulativeProfitDollars = 0;
-      team.roundResults = [];
-      team.assets = [];
-      team.rank = game.teams.indexOf(team) + 1;
-    }
+    // Delete the game entirely — host will create a fresh one
+    this.games.delete(gameId);
+    this.assetDefs.delete(gameId);
 
-    game.updatedAt = Date.now();
+    return teamSocketIds;
   }
 
   // ---- Private helpers ----

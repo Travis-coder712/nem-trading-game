@@ -221,15 +221,27 @@ export function registerHostHandlers(
   socket.on('host:reset_game', safe(() => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
-    engine.resetGame(gameId);
 
-    // Leave rooms so the broadcast doesn't re-populate the host's cleared state
+    // Delete game and get team socket IDs
+    const teamSocketIds = engine.resetGame(gameId);
+
+    // Notify all team sockets that the game was reset, then kick them from rooms
+    for (const socketId of teamSocketIds) {
+      const teamSocket = io.sockets.sockets.get(socketId);
+      if (teamSocket) {
+        teamSocket.emit('game:reset');
+        teamSocket.leave(`game:${gameId}`);
+        (teamSocket as any).gameId = null;
+      }
+    }
+
+    // Also broadcast to the room in case any sockets were missed
+    io.to(`game:${gameId}`).emit('game:reset');
+
+    // Host leaves rooms
     socket.leave(`game:${gameId}`);
     socket.leave(`game:${gameId}:host`);
     (socket as any).gameId = null;
-
-    // Still broadcast to remaining clients (teams) so they know the game was reset
-    broadcastSnapshot(io, engine, gameId);
   }));
 
   socket.on('host:view_team_screen', safe((data) => {
