@@ -382,7 +382,7 @@ export function getVibeCodingNotesHTML(): string {
           <li><strong>~35,000+ lines of code</strong> written</li>
           <li><strong>~120+ files</strong> created</li>
           <li><strong>15+ major versions</strong> committed to git</li>
-          <li><strong>~10 days</strong> elapsed, ~45 hours active</li>
+          <li><strong>~10 days</strong> elapsed, <strong>~8 hours</strong> active human time</li>
           <li><strong>7 asset types</strong> with realistic parameters</li>
           <li><strong>16+ scenario events</strong> (including 6 surprise events)</li>
           <li><strong>5 game modes</strong> (including Progressive Learning)</li>
@@ -411,11 +411,12 @@ export function getVibeCodingNotesHTML(): string {
           <ul>
             <li><strong>Team:</strong> 1 person (domain expert + AI)</li>
             <li><strong>Elapsed time:</strong> ~10 days</li>
-            <li><strong>Active work:</strong> ~45 hours</li>
+            <li><strong>Human active time:</strong> ~8 hours</li>
+            <li><strong>Equivalent AI dev effort:</strong> ~500 hours</li>
             <li><strong>Tooling cost:</strong> Claude Code subscription ~$200/month</li>
-            <li><strong>Total cost:</strong> ~$200 + the person&rsquo;s time</li>
+            <li><strong>Total cost:</strong> ~$200 + ~8 hours of the person&rsquo;s time</li>
           </ul>
-          <p style="font-size: 0.9rem; margin-top: 0.8rem; color: #4a5568;">The person described features in plain English, tested the game, reported bugs, and provided domain expertise. Claude wrote all 35,000+ lines of code, designed the architecture, created the UI, built the audio engine, optimised performance, and produced all documentation.</p>
+          <p style="font-size: 0.9rem; margin-top: 0.8rem; color: #4a5568;">The person spent ~8 hours describing features in plain English, testing the game, reporting bugs, and providing domain expertise. Claude delivered the equivalent of ~500 hours of professional development work: 35,000+ lines of code, architecture design, UI, procedural audio engine, performance optimisation, and all documentation. A <strong>60:1 leverage ratio</strong>.</p>
         </div>
 
         <div class="card" style="border-top: 4px solid #e53e3e; margin: 0;">
@@ -477,7 +478,7 @@ export function getVibeCodingNotesHTML(): string {
         <p style="font-size: 0.9rem;"><strong>A note on the traditional estimate:</strong> The $500,000&ndash;$750,000 figure may seem high, but consider: corporate IT projects routinely involve procurement processes, security reviews, architectural review boards, multiple environments (dev/staging/prod), accessibility compliance, and documentation requirements that simply do not apply to a weekend vibe-coding session. In many large organisations, even getting a new project approved and a team assembled can take 4&ndash;6 weeks before any code is written.</p>
       </div>
 
-      <p style="margin-top: 1rem;">The vibe coding approach reduced this to <strong>one person + AI over about 10 days, using ~220 plain-English prompts and a $200 subscription</strong>.</p>
+      <p style="margin-top: 1rem;">The vibe coding approach reduced this to <strong>~8 hours of human effort + AI over 10 days, using ~220 plain-English prompts and a $200 subscription</strong>. That&rsquo;s a 60:1 leverage ratio&mdash;every hour the human invested yielded roughly 60 hours of development output.</p>
     </div>
   </div>
 
@@ -515,8 +516,10 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <h2>The Takeaway</h2>
-  <div class="callout">
-    <p>This game was built by a <strong>collaboration between human vision and AI capability</strong>. The human knew what the NEM is, how it works, and what the game should teach. The AI knew how to build a real-time multiplayer web application, create data visualisations, synthesise audio, optimise bundle performance, and structure 35,000+ lines of code into a maintainable architecture. Neither could have built this alone in the time available.</p>
+  <div class="callout" style="background: linear-gradient(135deg, #fffbeb 0%, #faf5ff 100%); border: 2px solid #805ad5;">
+    <p style="font-size: 1.15rem; font-weight: 700; color: #553c9a; text-align: center; margin-bottom: 0.8rem;">~8 hours of human effort. ~500 hours of equivalent AI development. $200.</p>
+    <p>The human spent roughly <strong>8 active hours</strong> across 10 days&mdash;describing features, testing the game, reporting bugs, and providing domain expertise. In that same window, Claude delivered the equivalent of <strong>~500 hours of professional developer effort</strong>: 35,000+ lines of code, 120+ files, a real-time multiplayer architecture, a procedural audio engine, cinematic animations, and comprehensive documentation.</p>
+    <p style="margin-top: 0.8rem;">That is a <strong>60:1 leverage ratio</strong>. For every hour the human invested in conversation, the AI delivered roughly 60 hours of development work&mdash;at a total AI cost of ~$200.</p>
     <p style="margin-top: 0.8rem;">That is the power of vibe coding: <strong>ideas become software at the speed of conversation</strong>.</p>
   </div>
 

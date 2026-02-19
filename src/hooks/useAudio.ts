@@ -196,6 +196,23 @@ export function useAudio(mp3Src?: string, autoStart = false) {
     };
   }, [autoStart, startWebAudio, startMp3]);
 
+  // Pause audio when tab loses visibility (e.g. trailer opens in new tab)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && isPlaying) {
+        if (modeRef.current === 'mp3' && audioRef.current) {
+          stopMp3();
+        } else {
+          stopWebAudio();
+        }
+        setIsPlaying(false);
+        autoStartedRef.current = false; // allow re-autostart on return
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [isPlaying, stopMp3, stopWebAudio]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {

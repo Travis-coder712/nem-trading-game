@@ -99,12 +99,13 @@ export default function GameSetup() {
 
   // Track whether WE created the game in this session.
   const createdByUs = useRef(false);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if (createdByUs.current && gameState && gameState.phase === 'lobby') {
+    if ((createdByUs.current || creating) && gameState && gameState.phase === 'lobby') {
       navigate('/host/dashboard');
     }
-  }, [gameState, navigate]);
+  }, [gameState, navigate, creating]);
 
   // Fetch saved configs on mount
   useEffect(() => {
@@ -131,6 +132,7 @@ export default function GameSetup() {
 
   const handleCreate = () => {
     createdByUs.current = true;
+    setCreating(true);
     createGame(
       selectedMode,
       teamCount,
@@ -139,6 +141,8 @@ export default function GameSetup() {
       useCustomConfig ? assetConfig : undefined,
       useCustomConfig ? applyVariation : undefined,
     );
+    // Safety: if navigation hasn't happened after 5s, reset the button
+    setTimeout(() => setCreating(false), 5000);
   };
 
   const updateAsset = (type: AssetType, field: string, value: string | number) => {
@@ -669,10 +673,10 @@ export default function GameSetup() {
         {/* Create Button */}
         <button
           onClick={handleCreate}
-          disabled={!connected}
+          disabled={!connected || creating}
           className="w-full py-4 bg-gradient-to-r from-electric-500 to-electric-600 hover:from-electric-400 hover:to-electric-500 text-white font-bold text-lg rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-electric-500/30 hover:shadow-electric-500/50"
         >
-          Create Game
+          {creating ? 'Creating Game...' : 'Create Game'}
         </button>
 
         <button

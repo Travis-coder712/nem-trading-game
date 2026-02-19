@@ -895,8 +895,8 @@ export function getCinematicTrailerHTML(): string {
       <div class="vibe-badge">&#128640; How It Was Built</div>
       <div class="vibe-title">Built by conversation,<br>not by committee</div>
       <div class="vibe-desc">
-        One person with domain expertise. No developers. No project managers. No Jira tickets.<br>
-        Just plain-English prompts to an AI &mdash; and a working game in 10 days.
+        220 plain-English prompts. One AI. No developers, no Jira tickets, no sprints.<br>
+        A back-and-forth conversation that turned ideas into a working game in 10 days.
       </div>
 
       <div class="prompt-demo">
@@ -912,16 +912,16 @@ export function getCinematicTrailerHTML(): string {
 
       <div class="vibe-stats" style="margin-top: 2rem;">
         <div class="vibe-stat" id="vs-0">
-          <div class="vibe-stat-value purple">220+</div>
-          <div class="vibe-stat-label">Human prompts</div>
+          <div class="vibe-stat-value purple">~8 hrs</div>
+          <div class="vibe-stat-label">Human active time</div>
         </div>
         <div class="vibe-stat" id="vs-1">
-          <div class="vibe-stat-value blue">10 days</div>
-          <div class="vibe-stat-label">Elapsed time</div>
+          <div class="vibe-stat-value blue">~500 hrs</div>
+          <div class="vibe-stat-label">Equivalent dev effort by Claude</div>
         </div>
         <div class="vibe-stat" id="vs-2">
           <div class="vibe-stat-value green">~$200</div>
-          <div class="vibe-stat-label">Total cost</div>
+          <div class="vibe-stat-label">Total AI cost</div>
         </div>
       </div>
     </div>

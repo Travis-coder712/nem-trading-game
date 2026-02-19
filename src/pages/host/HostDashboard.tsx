@@ -62,6 +62,9 @@ export default function HostDashboard() {
   const disconnectTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const prevTeamStatusRef = useRef<Map<string, boolean>>(new Map()); // teamId -> wasConnected
 
+  // Derive phase early so hooks below can reference it safely
+  const phase = gameState?.phase;
+
   useEffect(() => {
     if (allBidsIn && phase === 'bidding' && autoAdvanceCountdown === null) {
       // Start 5-second countdown
@@ -282,7 +285,7 @@ export default function HostDashboard() {
     );
   }
 
-  const phase = gameState.phase;
+  // phase already derived above for hooks; gameState is guaranteed non-null here
   const round = gameState.currentRound;
   const totalRounds = gameState.totalRounds;
   const teams = gameState.teams || [];
