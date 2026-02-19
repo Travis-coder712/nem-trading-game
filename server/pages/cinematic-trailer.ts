@@ -1,5 +1,5 @@
 /**
- * Cinematic Trailer — NEM Merit Order Game
+ * Cinematic Trailer — Watt Street
  * A movie-trailer-style HTML presentation that auto-plays through timed scenes.
  * Served at /api/trailer
  *
@@ -14,7 +14,7 @@ export function getCinematicTrailerHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEM Merit Order Game — Trailer</title>
+<title>Watt Street — Trailer</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   /* ===== RESET & BASE ===== */
@@ -766,7 +766,7 @@ export function getCinematicTrailerHTML(): string {
   <div class="scene" id="scene-3">
     <div style="text-align:center">
       <div style="font-size:3.5rem; margin-bottom:0.5rem">&#9889;</div>
-      <div class="reveal-title">NEM Merit Order Game</div>
+      <div class="reveal-title">Watt Street</div>
       <div class="reveal-subtitle">Learn by playing the market</div>
 
       <div class="feature-grid" id="featureGrid">
@@ -931,7 +931,7 @@ export function getCinematicTrailerHTML(): string {
   <div class="scene" id="scene-6">
     <div class="finale-container">
       <div class="finale-logo">&#9889;</div>
-      <div class="finale-title">NEM Merit Order Game</div>
+      <div class="finale-title">Watt Street</div>
       <div class="finale-tagline">Understand the market by playing it</div>
       <button class="cta-button" onclick="window.open('/','_blank')">Launch the Game &rarr;</button>
       <div class="finale-meta">
@@ -950,7 +950,7 @@ export function getCinematicTrailerHTML(): string {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   cursor:pointer; user-select:none;
 ">
-  <div style="font-size:clamp(1.8rem,4vw,3rem); font-weight:800; color:#fff; margin-bottom:0.5rem; letter-spacing:-0.02em;">&#9889; NEM Merit Order Game</div>
+  <div style="font-size:clamp(1.8rem,4vw,3rem); font-weight:800; color:#fff; margin-bottom:0.5rem; letter-spacing:-0.02em;">&#9889; Watt Street</div>
   <div style="font-size:clamp(0.9rem,2vw,1.2rem); color:var(--navy-300); margin-bottom:2.5rem;">A cinematic trailer</div>
   <div style="
     width:80px; height:80px; border-radius:50%;

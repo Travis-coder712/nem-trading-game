@@ -315,7 +315,7 @@ export default function HostDashboard() {
             Exit
           </button>
           <div>
-            <h1 className="text-white font-bold text-sm">NEM Merit Order Game</h1>
+            <h1 className="text-white font-bold text-sm">Watt Street</h1>
             <p className="text-navy-400 text-xs">
               {round > 0 ? `Round ${round}/${totalRounds}` : 'Lobby'} &bull; {teams.length} teams
             </p>
@@ -1682,7 +1682,17 @@ export default function HostDashboard() {
                                 <div className="flex gap-2 flex-wrap">
                                   {pb.assets.map(a => (
                                     <span key={a.assetDefinitionId} className="text-[10px] text-navy-400">
-                                      {a.assetName}: {formatMW(a.dispatchedMW)} @ {formatPrice(a.revenueFromDispatch / Math.max(1, a.energyMWh))}
+                                      {a.assetType === 'battery' ? (
+                                        a.batteryMode === 'charge' ? (
+                                          <>🔋 {a.assetName}: CHG {formatMW(a.chargeMW || 0)} (-{formatCurrency(a.chargeCostDollars || 0)})</>
+                                        ) : a.batteryMode === 'discharge' ? (
+                                          <>🔋 {a.assetName}: DIS {formatMW(a.dispatchedMW)} (+{formatCurrency(a.revenueFromDispatch)})</>
+                                        ) : (
+                                          <>🔋 {a.assetName}: IDLE</>
+                                        )
+                                      ) : (
+                                        <>{a.assetName}: {formatMW(a.dispatchedMW)} @ {formatPrice(a.revenueFromDispatch / Math.max(1, a.energyMWh))}</>
+                                      )}
                                     </span>
                                   ))}
                                 </div>

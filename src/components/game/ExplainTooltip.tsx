@@ -58,7 +58,7 @@ export const NEM_TERMS = {
   },
   meritOrder: {
     term: 'Merit Order',
-    explanation: 'The way AEMO stacks all bids from cheapest to most expensive. The cheapest generators run first. The most expensive generator needed to meet demand sets the price for everyone.',
+    explanation: 'The way AEMO stacks all bids from cheapest to most expensive. The cheapest generators run first. The most expensive generator needed to meet demand sets the price for everyone. When multiple generators bid the same price at the margin, dispatch is split pro-rata (proportionally).',
   },
   srmc: {
     term: 'Short Run Marginal Cost (SRMC)',
@@ -78,7 +78,7 @@ export const NEM_TERMS = {
   },
   arbitrage: {
     term: 'Arbitrage',
-    explanation: 'Making money by buying low and selling high. Batteries do this by charging when prices are low and discharging when prices are high.',
+    explanation: 'Making money by buying low and selling high. Batteries earn arbitrage revenue by charging when prices are low and discharging when prices are high. The profit is the spread minus efficiency losses. Note: battery charging adds to market demand, which can push prices higher.',
   },
   priceTaker: {
     term: 'Price Taker',
@@ -87,5 +87,9 @@ export const NEM_TERMS = {
   priceMaker: {
     term: 'Price Maker',
     explanation: 'When your bid sets the clearing price for the market. If you\'re the last generator dispatched, your bid price becomes the clearing price that ALL generators receive.',
+  },
+  negativePrices: {
+    term: 'Negative Prices',
+    explanation: 'When supply massively exceeds demand (3× or more), the clearing price crashes to -$1,000/MWh. Dispatched generators PAY to produce. This happens in the real NEM during spring midday when solar and wind flood the market. Batteries profit by charging during negative prices (getting paid to absorb power) and discharging later when prices recover.',
   },
 } as const;

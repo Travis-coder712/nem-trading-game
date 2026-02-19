@@ -194,6 +194,7 @@ export const quickGameRounds: RoundConfig[] = [
     demandVariability: 0.1,
     newAssetsUnlocked: ['battery'],
     activeScenarioEvents: [],
+    batteryMiniGame: true,
     biddingTimeLimitSeconds: 300,
     maxBidBandsPerAsset: 10,
     educationalContent: {
@@ -201,11 +202,11 @@ export const quickGameRounds: RoundConfig[] = [
       slides: [
         {
           heading: 'The Arbitrage Machine',
-          body: '**Battery**: 150 MW / 300 MWh, 85% round-trip efficiency\n\nCharge during low/negative prices, discharge at peaks. You need the spread to exceed the 15% efficiency loss to profit.\n\nYou now have your full portfolio: Coal, Gas CCGT, Peaker, Wind, Solar, Hydro, Battery.',
+          body: '**Battery**: 500 MW / 2,000 MWh / 4-hour duration / 92% round-trip efficiency\n\nCharge during low/negative prices, discharge at peaks. You need the spread to exceed the 8% efficiency loss to profit.\n\nYou now have your full portfolio: Coal, Gas CCGT, Peaker, Wind, Solar, Hydro, Battery.',
         },
         {
           heading: 'Battery Strategy by Period',
-          body: '🌙 **Overnight**: CHARGE — prices lowest, fill up the battery\n🌅 **Morning**: May continue charging if solar is pushing prices down\n☀️ **Afternoon**: CHARGE during solar surplus (spring) or DISCHARGE in summer peaks\n🌆 **Evening**: DISCHARGE — this is prime time! Solar gone, demand high, prices peak\n\nWith 85% efficiency, if you charge at $20/MWh you need to discharge above $24/MWh to break even. The bigger the spread, the more profit.',
+          body: '🌙 **Overnight**: CHARGE — prices lowest, fill up the battery\n🌅 **Morning**: May continue charging if solar is pushing prices down\n☀️ **Afternoon**: CHARGE during solar surplus (spring) or DISCHARGE in summer peaks\n🌆 **Evening**: DISCHARGE — this is prime time! Solar gone, demand high, prices peak\n\nWith 92% efficiency, if you charge at $20/MWh you need to discharge above ~$22/MWh to break even. The bigger the spread, the more profit.',
         },
       ],
     },

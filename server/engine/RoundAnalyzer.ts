@@ -186,6 +186,15 @@ function buildAssetPerformance(
   // Aggregate across all periods for each asset
   const assetMap = new Map<string, AssetPerformanceSummary>();
 
+  // Track battery-specific aggregates for arbitrage revenue reporting
+  const batteryAggregates = new Map<string, {
+    totalDischargeRevenue: number;
+    totalChargeCost: number;
+    periodsCharged: number;
+    periodsDischarged: number;
+    periodsIdle: number;
+  }>();
+
   for (const periodResult of teamResult.periodBreakdown) {
     for (const asset of periodResult.assets) {
       const existing = assetMap.get(asset.assetDefinitionId);
@@ -218,6 +227,27 @@ function buildAssetPerformance(
           assessment: '',
         });
       }
+
+      // Track battery-specific data for arbitrage revenue reporting
+      if (asset.assetType === 'battery' && asset.batteryMode) {
+        const batAgg = batteryAggregates.get(asset.assetDefinitionId) || {
+          totalDischargeRevenue: 0,
+          totalChargeCost: 0,
+          periodsCharged: 0,
+          periodsDischarged: 0,
+          periodsIdle: 0,
+        };
+        if (asset.batteryMode === 'discharge') {
+          batAgg.totalDischargeRevenue += asset.revenueFromDispatch;
+          batAgg.periodsDischarged++;
+        } else if (asset.batteryMode === 'charge') {
+          batAgg.totalChargeCost += asset.chargeCostDollars || 0;
+          batAgg.periodsCharged++;
+        } else {
+          batAgg.periodsIdle++;
+        }
+        batteryAggregates.set(asset.assetDefinitionId, batAgg);
+      }
     }
   }
 
@@ -225,6 +255,32 @@ function buildAssetPerformance(
   for (const [assetId, perf] of assetMap) {
     const def = assetDefs.get(assetId);
     if (!def) continue;
+
+    // Battery-specific assessments using "arbitrage revenue" terminology
+    if (def.type === 'battery') {
+      const batAgg = batteryAggregates.get(assetId);
+      if (batAgg) {
+        const dischRev = Math.round(batAgg.totalDischargeRevenue);
+        const chgCost = Math.round(batAgg.totalChargeCost);
+        const netArbitrage = Math.round(perf.profit);
+        const totalPeriods = batAgg.periodsCharged + batAgg.periodsDischarged + batAgg.periodsIdle;
+
+        if (batAgg.periodsDischarged === 0 && batAgg.periodsCharged === 0) {
+          perf.assessment = `Battery sat idle all round — no arbitrage revenue earned. Look for price spreads between periods to profit from charge/discharge cycles.`;
+        } else if (batAgg.periodsDischarged === 0 && batAgg.periodsCharged > 0) {
+          perf.assessment = `Charged ${batAgg.periodsCharged} period${batAgg.periodsCharged > 1 ? 's' : ''} (cost $${chgCost.toLocaleString()}) but never discharged. You need to sell stored energy at peak prices to earn arbitrage revenue.`;
+        } else if (batAgg.periodsCharged === 0 && batAgg.periodsDischarged > 0) {
+          perf.assessment = `Arbitrage revenue: $${dischRev.toLocaleString()} from discharging ${batAgg.periodsDischarged} period${batAgg.periodsDischarged > 1 ? 's' : ''} (no charging cost). Net profit: $${netArbitrage.toLocaleString()}.`;
+        } else if (netArbitrage > 0) {
+          perf.assessment = `Arbitrage revenue: $${dischRev.toLocaleString()} from discharge, minus $${chgCost.toLocaleString()} charging cost. Net arbitrage profit: $${netArbitrage.toLocaleString()}. Charged ${batAgg.periodsCharged}/${totalPeriods} periods, discharged ${batAgg.periodsDischarged}/${totalPeriods}.`;
+        } else {
+          perf.assessment = `Arbitrage loss: earned $${dischRev.toLocaleString()} from discharge but paid $${chgCost.toLocaleString()} to charge. Net: -$${Math.abs(netArbitrage).toLocaleString()}. Try charging when prices are lower and discharging when they spike.`;
+        }
+      } else {
+        perf.assessment = `Battery was not actively used this round. Set charge/discharge modes to earn arbitrage revenue from price spreads.`;
+      }
+      continue;
+    }
 
     if (!perf.wasDispatched) {
       perf.assessment = `Not dispatched this round. Your bids may have been too high, or this asset type wasn't needed.`;
@@ -275,7 +331,11 @@ function identifyStrengths(
   const profitableAssets = assetPerformance.filter(a => a.profit > 0);
   if (profitableAssets.length > 0) {
     const best = profitableAssets.sort((a, b) => b.profit - a.profit)[0];
-    strengths.push(`${best.assetName} was your best performer, earning $${Math.round(best.profit)} profit.`);
+    if (best.assetType === 'battery') {
+      strengths.push(`${best.assetName} was your best performer, earning $${Math.round(best.profit)} in arbitrage revenue.`);
+    } else {
+      strengths.push(`${best.assetName} was your best performer, earning $${Math.round(best.profit)} profit.`);
+    }
   }
 
   if (strengths.length === 0) {
@@ -303,7 +363,11 @@ function identifyImprovements(
   // Check for loss-making assets
   const lossMakers = assetPerformance.filter(a => a.profit < 0);
   for (const asset of lossMakers) {
-    improvements.push(`${asset.assetName} lost $${Math.round(Math.abs(asset.profit))}. Consider bidding at or above marginal cost to avoid dispatching at a loss.`);
+    if (asset.assetType === 'battery') {
+      improvements.push(`${asset.assetName} had a negative arbitrage result (-$${Math.round(Math.abs(asset.profit))}). Charging cost more than discharge revenue — try charging during lower-priced periods.`);
+    } else {
+      improvements.push(`${asset.assetName} lost $${Math.round(Math.abs(asset.profit))}. Consider bidding at or above marginal cost to avoid dispatching at a loss.`);
+    }
   }
 
   // Check if they bid too high and weren't dispatched
@@ -350,7 +414,14 @@ function buildNextRoundAdvice(
   // Asset-specific advice
   const lossMakers = assetPerformance.filter(a => a.profit < 0);
   if (lossMakers.length > 0) {
-    parts.push(`Watch your ${lossMakers.map(a => a.assetName).join(' and ')} — they lost money. Bid above marginal cost or withdraw capacity in low-demand periods.`);
+    const batteryLosses = lossMakers.filter(a => a.assetType === 'battery');
+    const otherLosses = lossMakers.filter(a => a.assetType !== 'battery');
+    if (batteryLosses.length > 0) {
+      parts.push(`Your battery had negative arbitrage — try charging in cheaper periods and discharging at peak.`);
+    }
+    if (otherLosses.length > 0) {
+      parts.push(`Watch your ${otherLosses.map(a => a.assetName).join(' and ')} — they lost money. Bid above marginal cost or withdraw capacity in low-demand periods.`);
+    }
   }
 
   return parts.join(' ');
@@ -415,9 +486,15 @@ function buildOverallSummary(
     parts.push(`Supply was tight in ${tightPeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')}, driving prices up.`);
   }
 
-  const oversupplyPeriods = periodAnalyses.filter(p => p.reserveMarginPercent > 60);
-  if (oversupplyPeriods.length > 0) {
-    parts.push(`Oversupply in ${oversupplyPeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')} kept prices low.`);
+  // Check for oversupply negative price trigger (3x supply > demand)
+  const negTriggerPeriods = roundResult.periodResults.filter(p => p.oversupplyNegativePriceTriggered);
+  if (negTriggerPeriods.length > 0) {
+    parts.push(`⚡ OVERSUPPLY ALERT: Supply exceeded 3× demand in ${negTriggerPeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')}, crashing the price to -$1,000/MWh! Dispatched generators paid dearly. This mirrors real NEM events where renewable oversupply drives deeply negative prices.`);
+  } else {
+    const oversupplyPeriods = periodAnalyses.filter(p => p.reserveMarginPercent > 60);
+    if (oversupplyPeriods.length > 0) {
+      parts.push(`Oversupply in ${oversupplyPeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')} kept prices low.`);
+    }
   }
 
   return parts.join(' ');
@@ -446,6 +523,12 @@ function buildCollectiveInsight(
     if (highPricePeriods.length > 0) {
       parts.push(`Total market value created was $${Math.round(totalProfit)}. High prices in ${highPricePeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')} drove profits. In the real NEM, these high-price events are controversial — generators need them to be profitable, but consumers pay more.`);
     }
+  }
+
+  // Check for oversupply negative price trigger
+  const negTriggerPeriods = roundResult.periodResults.filter(p => p.oversupplyNegativePriceTriggered);
+  if (negTriggerPeriods.length > 0) {
+    parts.push(`The oversupply crash in ${negTriggerPeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')} is a key NEM lesson: when too many generators (including batteries) flood a low-demand period, prices can go deeply negative. In the real NEM, this happens routinely in spring midday when solar and wind output exceeds grid demand. The winning strategy during oversupply is to withdraw thermal capacity and charge batteries — getting paid to absorb excess power.`);
   }
 
   // Nash equilibrium insight
@@ -494,6 +577,14 @@ function buildKeyTakeaways(
     } else {
       takeaways.push(`New asset types unlocked: ${newNames}. These change the competitive dynamics — learn their cost structures.`);
     }
+  }
+
+  // Negative price takeaway
+  const negTriggerPeriods = roundResult.periodResults.filter(p => p.oversupplyNegativePriceTriggered);
+  if (negTriggerPeriods.length > 0) {
+    takeaways.push(`Oversupply crashed prices to -$1,000/MWh in ${negTriggerPeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')}. In the real NEM, this happens when renewables flood the market. Batteries charging during negative prices get PAID — the smart strategy is to withdraw thermal capacity and absorb cheap power.`);
+  } else if (Math.min(...prices) < 0) {
+    takeaways.push(`Negative prices this round! Dispatched generators lost money in some periods. Batteries can profit by charging during negative prices — getting paid to take power off the grid.`);
   }
 
   // Profit distribution

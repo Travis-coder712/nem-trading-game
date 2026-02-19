@@ -150,7 +150,7 @@ export function getLearnNemHTML(): string {
   <div class="subtitle">National Electricity Market Guide</div>
   <p class="tagline">
     Everything you need to know about how Australia's National Electricity Market works,
-    from the merit order to bidding strategies. Perfect preparation for the NEM Merit Order Training Game.
+    from the merit order to bidding strategies. Perfect preparation for Watt Street.
   </p>
 </div>
 
@@ -158,7 +158,7 @@ export function getLearnNemHTML(): string {
 ${slideHTML}
 
   <div class="footer">
-    <p>NEM Merit Order Training Game &mdash; Learn the NEM Guide &middot; 5 game modes &middot; 7 asset types</p>
+    <p>Watt Street &mdash; Learn the NEM Guide &middot; 5 game modes &middot; 7 asset types</p>
   </div>
 </div>
 

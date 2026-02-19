@@ -70,7 +70,7 @@ export default function MarketSnapshotCard({ roundResults, roundNumber, roundNam
             const isNeg = p.clearingPriceMWh < 0;
             return (
               <div key={p.timePeriod} className="flex-1 flex flex-col items-center">
-                <div className="text-[10px] font-mono font-bold text-electric-300 mb-1">
+                <div className={`text-[10px] font-mono font-bold mb-1 ${isNeg ? 'text-red-400' : 'text-electric-300'}`}>
                   ${formatNumber(p.clearingPriceMWh)}
                 </div>
                 <div

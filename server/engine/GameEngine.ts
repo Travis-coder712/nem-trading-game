@@ -80,7 +80,7 @@ export class GameEngine {
     mode: GameMode,
     teamCount: number,
     balancingEnabled: boolean,
-    biddingGuardrailEnabled: boolean = true,
+    biddingGuardrailEnabled: boolean = false,
     assetConfig?: AssetConfigOverrides,
     assetVariation?: boolean,
   ): GameState {
@@ -333,15 +333,18 @@ export class GameEngine {
     }
 
     // Calculate team profits
-    const teamResults = game.teams.map(team =>
-      calculateTeamResults(
+    const teamResults = game.teams.map(team => {
+      const teamBids = game.currentBids.get(team.id)?.bids || [];
+      return calculateTeamResults(
         team.id,
         team.name,
         periodResults,
         roundConfig.periodDurations,
         gameDefs,
-      )
-    );
+        teamBids,
+        team.assets,
+      );
+    });
 
     // Update cumulative profits
     for (const result of teamResults) {
@@ -853,7 +856,7 @@ export class GameEngine {
             teamId: team.id,
             currentAvailableMW: assetDef.nameplateMW,
             isForceOutage: false,
-            currentStorageMWh: assetDef.maxStorageMWh ? assetDef.maxStorageMWh * 0.5 : undefined,
+            currentStorageMWh: assetDef.maxStorageMWh ? Math.round(assetDef.maxStorageMWh * (0.2 + Math.random() * 0.6)) : undefined,
             maxStorageMWh: assetDef.maxStorageMWh,
           };
         }
@@ -863,7 +866,7 @@ export class GameEngine {
           teamId: team.id,
           currentAvailableMW: assetDef.nameplateMW,
           isForceOutage: false,
-          currentStorageMWh: assetDef.maxStorageMWh ? assetDef.maxStorageMWh * 0.5 : undefined,
+          currentStorageMWh: assetDef.maxStorageMWh ? Math.round(assetDef.maxStorageMWh * (0.2 + Math.random() * 0.6)) : undefined,
           maxStorageMWh: assetDef.maxStorageMWh,
         };
       });
@@ -985,6 +988,21 @@ export class GameEngine {
           }
 
           if (availableMW <= 0) continue;
+
+          // Batteries default to idle (no bid) when team doesn't submit
+          if (def.type === 'battery') {
+            bids.push({
+              assetInstanceId: `${asset.assetDefinitionId}_${team.id}`,
+              assetDefinitionId: asset.assetDefinitionId,
+              teamId: team.id,
+              timePeriod: period as TimePeriod,
+              bands: [],
+              totalOfferedMW: 0,
+              batteryMode: 'idle',
+              submittedAt: Date.now(),
+            });
+            continue;
+          }
 
           // Default: bid everything at SRMC (or $0 for renewables)
           const bidPrice = def.type === 'wind' || def.type === 'solar' ? 0 : def.srmcPerMWh;

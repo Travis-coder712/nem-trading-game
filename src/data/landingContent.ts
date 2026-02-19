@@ -71,7 +71,7 @@ export const EDUCATION_SLIDES: LandingSlide[] = [
   {
     icon: '📈',
     heading: 'The Merit Order',
-    body: "Bids are stacked from lowest to highest price \u2014 this is the **merit order**. Renewables (wind, solar) typically bid at **$0** since their fuel is free. Coal bids around **$25\u201345/MWh**, gas at **$65\u2013160/MWh**. The merit order determines which generators run and which sit idle. Cheaper plants run more often; expensive plants only run when demand is high.",
+    body: "Bids are stacked from lowest to highest price \u2014 this is the **merit order**. Renewables (wind, solar) typically bid at **$0** since their fuel is free. Coal bids around **$25\u201345/MWh**, gas at **$65\u2013160/MWh**. The merit order determines which generators run and which sit idle. Cheaper plants run more often; expensive plants only run when demand is high. When multiple generators bid the **same price** at the margin, dispatch is split **pro-rata** (proportionally by capacity offered).",
   },
   {
     icon: '💰',
@@ -81,7 +81,7 @@ export const EDUCATION_SLIDES: LandingSlide[] = [
   {
     icon: '🏭',
     heading: 'Generator Types',
-    body: "**Coal** \u2014 Large baseload plants, low cost ($25\u201345), slow to start/stop.\n**Gas CCGT** \u2014 Mid-merit, moderate cost ($65\u201385), flexible.\n**Gas Peaker** \u2014 Fast start, high cost ($120\u2013160), runs only at peak times.\n**Hydro** \u2014 Very flexible, low cost ($8), but limited water supply.\n**Wind & Solar** \u2014 Zero fuel cost, but output depends on weather.\n**Battery** \u2014 Charge when cheap, discharge when expensive. Arbitrage profit.",
+    body: "**Coal** \u2014 Large baseload plants, low cost ($25\u201345), slow to start/stop.\n**Gas CCGT** \u2014 Mid-merit, moderate cost ($65\u201385), flexible.\n**Gas Peaker** \u2014 Fast start, high cost ($120\u2013160), runs only at peak times.\n**Hydro** \u2014 Very flexible, low cost ($8), but limited water supply.\n**Wind & Solar** \u2014 Zero fuel cost, but output depends on weather.\n**Battery** \u2014 500 MW / 2,000 MWh, 92% efficiency. Charge when cheap, discharge when expensive. Earns arbitrage revenue from price spreads. Charging adds to market demand.",
   },
   {
     icon: '💲',
@@ -97,12 +97,12 @@ export const EDUCATION_SLIDES: LandingSlide[] = [
   {
     icon: '📉',
     heading: 'Market Dynamics',
-    body: "NEM prices swing from **-$1,000/MWh** (negative! generators pay to stay on) to **$20,000/MWh** (the price cap during scarcity). Key dynamics:\n\u2022 **Negative prices** \u2014 when renewables oversupply, usually midday\n\u2022 **Price spikes** \u2014 during heatwaves, plant outages, or low wind\n\u2022 **The duck curve** \u2014 midday solar suppresses prices, evening demand surges\n\u2022 **Volatility** \u2014 creates opportunities for strategic bidders",
+    body: "NEM prices swing from **-$1,000/MWh** (negative! generators pay to stay on) to **$20,000/MWh** (the price cap during scarcity). Key dynamics:\n\u2022 **Negative prices** \u2014 when supply exceeds 3\u00d7 demand, prices crash to -$1,000/MWh. Batteries get **paid to charge**!\n\u2022 **Price spikes** \u2014 during heatwaves, plant outages, or low wind\n\u2022 **The duck curve** \u2014 midday solar suppresses prices, evening demand surges\n\u2022 **Volatility** \u2014 creates opportunities for strategic bidders",
   },
   {
     icon: '🎯',
     heading: 'Bidding Strategies',
-    body: "**Price Taker** \u2014 Bid $0, guarantee dispatch, accept the clearing price.\n**Marginal Cost Bidder** \u2014 Bid at cost. Rational baseline, covers costs.\n**Price Maker** \u2014 Bid high to push up the clearing price for all your units.\n**Portfolio Optimizer** \u2014 Mix strategies across your different assets.\n**Strategic Withdrawal** \u2014 Withhold capacity to tighten supply and raise prices.\n**Battery Arbitrage** \u2014 Charge cheap, discharge expensive.",
+    body: "**Price Taker** \u2014 Bid $0, guarantee dispatch, accept the clearing price.\n**Marginal Cost Bidder** \u2014 Bid at cost. Rational baseline, covers costs.\n**Price Maker** \u2014 Bid high to push up the clearing price for all your units.\n**Portfolio Optimizer** \u2014 Mix strategies across your different assets.\n**Strategic Withdrawal** \u2014 Withhold capacity to tighten supply and raise prices.\n**Battery Arbitrage** \u2014 Charge cheap, discharge expensive. Arbitrage revenue = discharge earnings minus charging cost.",
   },
   {
     icon: '🎮',

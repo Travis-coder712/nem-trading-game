@@ -60,7 +60,7 @@ export default function Landing() {
             className="font-mono text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-widest mb-1"
             style={{ textShadow: '0 0 40px rgba(71, 167, 255, 0.3), 0 0 80px rgba(71, 167, 255, 0.1)' }}
           >
-            NEM MERIT ORDER
+            WATT STREET
           </motion.h1>
 
           {/* Subtitle with staggered letter reveal */}
@@ -71,7 +71,7 @@ export default function Landing() {
             className="mb-4"
           >
             <h2 className="text-xl md:text-3xl font-medium text-electric-300 tracking-[0.3em] font-mono">
-              {'TRAINING GAME'.split('').map((char, i) => (
+              {'BID. DISPATCH. DOMINATE.'.split('').map((char, i) => (
                 <motion.span
                   key={i}
                   initial={{ opacity: 0, y: 10 }}
@@ -91,8 +91,8 @@ export default function Landing() {
             transition={{ delay: 1.4, duration: 0.8 }}
             className="text-navy-300 text-sm md:text-base max-w-lg mx-auto mb-10"
           >
-            Master Australia's National Electricity Market through live
-            bidding simulation. Experience the energy transition firsthand.
+            Every megawatt has its price. Master Australia&apos;s National Electricity
+            Market through live bidding simulation.
           </motion.p>
 
           {/* Primary action buttons */}

@@ -22,6 +22,8 @@ import type {
   AssetBid, AssetInfo, BidBand, TeamAssetInstance, TimePeriod,
   AssetType, RoundConfig, GameStateSnapshot, WalkthroughSuggestedBid,
 } from '../../../shared/types';
+import BatteryModeToggle from './BatteryModeToggle';
+import type { BatteryMode } from '../../../shared/types';
 
 // ═══════════════════════════════════════════════════════
 //  TYPES
@@ -55,6 +57,18 @@ export interface GuidedBiddingProps {
   // Helpers
   getAssetDef: (assetId: string) => AssetInfo | undefined;
   getBidBands: (assetId: string, period: TimePeriod) => BidBand[];
+
+  // Battery-specific
+  hasBattery?: boolean;
+
+  // Portfolio explainer
+  showPortfolioButton?: boolean;
+  onShowPortfolioExplainer?: () => void;
+  onShowBatteryExplainer?: () => void;
+  batteryModes?: Map<string, BatteryMode>;
+  chargeMWs?: Map<string, number>;
+  onBatteryModeChange?: (assetId: string, period: TimePeriod, mode: BatteryMode) => void;
+  onChargeMWChange?: (assetId: string, period: TimePeriod, mw: number) => void;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -611,93 +625,117 @@ function Step3Bids({
                 </div>
               </div>
 
-              {/* Quick Bid Buttons */}
-              <div className="px-4 py-2 flex gap-2 border-b border-gray-50 bg-gray-50/50">
-                <span className="text-[10px] text-gray-400 self-center mr-1">Quick:</span>
-                <button
-                  onClick={() => onQuickBid(asset.assetDefinitionId, selectedPeriod, 'zero')}
-                  className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200 hover:bg-green-100"
-                >
-                  $0
-                </button>
-                <button
-                  onClick={() => onQuickBid(asset.assetDefinitionId, selectedPeriod, 'srmc')}
-                  className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs rounded border border-blue-200 hover:bg-blue-100 font-medium"
-                >
-                  ${def?.srmcPerMWh ?? '?'} (cost)
-                </button>
-                <button
-                  onClick={() => onQuickBid(asset.assetDefinitionId, selectedPeriod, 'high')}
-                  className="px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded border border-amber-200 hover:bg-amber-100"
-                >
-                  $500
-                </button>
-              </div>
+              {/* Battery Mode Toggle (replaces normal bid inputs for battery assets) */}
+              {def?.type === 'battery' && props.batteryModes && props.onBatteryModeChange && props.onChargeMWChange ? (
+                <div className="px-4 py-3">
+                  <BatteryModeToggle
+                    asset={asset}
+                    assetDef={def as any}
+                    period={selectedPeriod}
+                    mode={props.batteryModes.get(`${asset.assetDefinitionId}_${selectedPeriod}`) || 'idle'}
+                    chargeMW={props.chargeMWs?.get(`${asset.assetDefinitionId}_${selectedPeriod}`) || 0}
+                    bands={bands}
+                    maxBands={maxBands}
+                    onModeChange={(mode) => props.onBatteryModeChange!(asset.assetDefinitionId, selectedPeriod, mode)}
+                    onChargeMWChange={(mw) => props.onChargeMWChange!(asset.assetDefinitionId, selectedPeriod, mw)}
+                    onUpdateBand={(bandIndex, field, value) => onUpdateBand(asset.assetDefinitionId, selectedPeriod, bandIndex, field, value)}
+                    onAddBand={() => onAddBand(asset.assetDefinitionId, selectedPeriod)}
+                    walkthroughExplanation={walkthrough?.suggestedBids
+                      ?.filter(s => s.period === selectedPeriod && (s.assetType === fullTypeKey || s.assetType === typeKey))
+                      ?.[0]?.explanation}
+                  />
+                </div>
+              ) : (
+                <>
+                  {/* Quick Bid Buttons */}
+                  <div className="px-4 py-2 flex gap-2 border-b border-gray-50 bg-gray-50/50">
+                    <span className="text-[10px] text-gray-400 self-center mr-1">Quick:</span>
+                    <button
+                      onClick={() => onQuickBid(asset.assetDefinitionId, selectedPeriod, 'zero')}
+                      className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200 hover:bg-green-100"
+                    >
+                      $0
+                    </button>
+                    <button
+                      onClick={() => onQuickBid(asset.assetDefinitionId, selectedPeriod, 'srmc')}
+                      className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs rounded border border-blue-200 hover:bg-blue-100 font-medium"
+                    >
+                      ${def?.srmcPerMWh ?? '?'} (cost)
+                    </button>
+                    <button
+                      onClick={() => onQuickBid(asset.assetDefinitionId, selectedPeriod, 'high')}
+                      className="px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded border border-amber-200 hover:bg-amber-100"
+                    >
+                      $500
+                    </button>
+                  </div>
 
-              {/* Bid Bands */}
-              <div className="px-4 py-3 space-y-2">
-                {bands.map((band, i) => {
-                  const walkthroughExplanation = walkthrough?.suggestedBids
-                    ?.filter(s => s.period === selectedPeriod && (s.assetType === fullTypeKey || s.assetType === typeKey))
-                    ?.[i]?.explanation;
+                  {/* Bid Bands */}
+                  <div className="px-4 py-3 space-y-2">
+                    {bands.map((band, i) => {
+                      const walkthroughExplanation = walkthrough?.suggestedBids
+                        ?.filter(s => s.period === selectedPeriod && (s.assetType === fullTypeKey || s.assetType === typeKey))
+                        ?.[i]?.explanation;
 
-                  return (
-                    <div key={i}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 w-4">{i + 1}</span>
-                        <div className="flex-1 flex gap-2">
-                          <div className="flex-1">
-                            <label className="text-[10px] text-gray-400">Price $/MWh</label>
-                            <input
-                              type="number"
-                              value={band.pricePerMWh ?? ''}
-                              onChange={e => onUpdateBand(asset.assetDefinitionId, selectedPeriod, i, 'pricePerMWh', parseFloat(e.target.value) || 0)}
-                              onFocus={e => e.target.select()}
-                              placeholder="Price"
-                              className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-                                walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
-                              }`}
-                              min={-1000}
-                              max={20000}
-                            />
+                      return (
+                        <div key={i}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-4">{i + 1}</span>
+                            <div className="flex-1 flex gap-2">
+                              <div className="flex-1">
+                                <label className="text-[10px] text-gray-400">Price $/MWh</label>
+                                <input
+                                  type="number"
+                                  value={band.pricePerMWh ?? ''}
+                                  onChange={e => onUpdateBand(asset.assetDefinitionId, selectedPeriod, i, 'pricePerMWh', parseFloat(e.target.value) || 0)}
+                                  onFocus={e => e.target.select()}
+                                  placeholder="Price"
+                                  className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                                    walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
+                                  }`}
+                                  min={-1000}
+                                  max={20000}
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <label className="text-[10px] text-gray-400">Quantity MW</label>
+                                <input
+                                  type="number"
+                                  value={band.quantityMW ?? ''}
+                                  onChange={e => onUpdateBand(asset.assetDefinitionId, selectedPeriod, i, 'quantityMW', parseFloat(e.target.value) || 0)}
+                                  onFocus={e => e.target.select()}
+                                  placeholder="MW"
+                                  className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                                    walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
+                                  }`}
+                                  min={0}
+                                  max={asset.currentAvailableMW}
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <label className="text-[10px] text-gray-400">Quantity MW</label>
-                            <input
-                              type="number"
-                              value={band.quantityMW ?? ''}
-                              onChange={e => onUpdateBand(asset.assetDefinitionId, selectedPeriod, i, 'quantityMW', parseFloat(e.target.value) || 0)}
-                              onFocus={e => e.target.select()}
-                              placeholder="MW"
-                              className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-                                walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
-                              }`}
-                              min={0}
-                              max={asset.currentAvailableMW}
-                            />
-                          </div>
+                          {walkthroughExplanation && (
+                            <div className="ml-6 mt-1 mb-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
+                              <div className="flex items-start gap-1.5">
+                                <span className="text-purple-500 text-xs mt-0.5">💡</span>
+                                <p className="text-[11px] text-purple-700 leading-relaxed">{walkthroughExplanation}</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      {walkthroughExplanation && (
-                        <div className="ml-6 mt-1 mb-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
-                          <div className="flex items-start gap-1.5">
-                            <span className="text-purple-500 text-xs mt-0.5">💡</span>
-                            <p className="text-[11px] text-purple-700 leading-relaxed">{walkthroughExplanation}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {bands.length < maxBands && (
-                  <button
-                    onClick={() => onAddBand(asset.assetDefinitionId, selectedPeriod)}
-                    className="w-full py-1.5 text-xs text-blue-600 hover:bg-blue-50 rounded border border-dashed border-blue-200"
-                  >
-                    + Add Bid Band
-                  </button>
-                )}
-              </div>
+                      );
+                    })}
+                    {bands.length < maxBands && (
+                      <button
+                        onClick={() => onAddBand(asset.assetDefinitionId, selectedPeriod)}
+                        className="w-full py-1.5 text-xs text-blue-600 hover:bg-blue-50 rounded border border-dashed border-blue-200"
+                      >
+                        + Add Bid Band
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           );
         })}
@@ -742,6 +780,16 @@ export default function GuidedBiddingView(props: GuidedBiddingProps) {
         <button onClick={props.onShowCommonMistakes} className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors shadow-sm">
           <span>⚠️</span> Mistakes
         </button>
+        {props.hasBattery && props.onShowBatteryExplainer && (
+          <button onClick={props.onShowBatteryExplainer} className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-colors shadow-sm">
+            <span>🔋</span> Battery
+          </button>
+        )}
+        {props.showPortfolioButton && props.onShowPortfolioExplainer && (
+          <button onClick={props.onShowPortfolioExplainer} className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors shadow-sm">
+            <span>📊</span> Portfolio
+          </button>
+        )}
       </div>
 
       {/* Step Indicator */}

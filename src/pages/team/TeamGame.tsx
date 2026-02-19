@@ -31,6 +31,10 @@ import NextRoundPreview from '../../components/game/NextRoundPreview';
 import SoundToggle from '../../components/game/SoundToggle';
 import DarkModeToggle from '../../components/game/DarkModeToggle';
 import AudioManager from '../../lib/AudioManager';
+import BatteryExplainer from '../../components/game/BatteryExplainer';
+import BatteryArbitrageMiniGame from '../../components/game/BatteryArbitrageMiniGame';
+import PortfolioExplainer from '../../components/game/PortfolioExplainer';
+import type { BatteryMode } from '../../../shared/types';
 
 export default function TeamGame() {
   const navigate = useNavigate();
@@ -50,6 +54,12 @@ export default function TeamGame() {
   const [showHowToBid, setShowHowToBid] = useState(false);
   const [showRoundBriefing, setShowRoundBriefing] = useState(false);
   const [showCommonMistakes, setShowCommonMistakes] = useState(false);
+  const [showBatteryExplainer, setShowBatteryExplainer] = useState(false);
+  const [showPortfolioExplainer, setShowPortfolioExplainer] = useState(false);
+  const [showBatteryMiniGame, setShowBatteryMiniGame] = useState(false);
+  const [batteryMiniGameCompleted, setBatteryMiniGameCompleted] = useState(false);
+  const [batteryModes, setBatteryModes] = useState<Map<string, BatteryMode>>(new Map()); // key: assetId_period
+  const [chargeMWs, setChargeMWs] = useState<Map<string, number>>(new Map()); // key: assetId_period
   const [useGuidedView, setUseGuidedView] = useState(true); // default to guided step-by-step view
 
   // Derive these early so hooks below can reference them safely (avoids temporal dead zone)
@@ -134,11 +144,20 @@ export default function TeamGame() {
       setStrategyOpen(false);
       setStrategyApplyMode('all');
       setSelectedAssetIds(new Set());
+      setBatteryModes(new Map());
+      setChargeMWs(new Map());
     }
     if (gameState?.phase === 'results') {
       setShowResults(true);
     }
   }, [gameState?.phase, gameState?.currentRound]);
+
+  // Show battery mini-game when round config includes it
+  useEffect(() => {
+    if (gameState?.phase === 'bidding' && roundConfig?.batteryMiniGame && !batteryMiniGameCompleted && !showBatteryMiniGame) {
+      setShowBatteryMiniGame(true);
+    }
+  }, [gameState?.phase, roundConfig?.batteryMiniGame, batteryMiniGameCompleted]);
 
   // Set default selected period
   useEffect(() => {
@@ -164,6 +183,20 @@ export default function TeamGame() {
       if (def) types.add(def.type);
     }
     return Array.from(types);
+  }, [assets, assetDefs]);
+
+  // Check if team has a battery asset
+  const hasBattery = useMemo(() => {
+    return assets.some(a => {
+      const def = getAssetDef(a.assetDefinitionId);
+      return def?.type === 'battery';
+    });
+  }, [assets, assetDefs]);
+
+  // Check if team has 3+ unique asset types (portfolio diversity worth explaining)
+  const hasPortfolio = useMemo(() => {
+    const types = new Set(assets.map(a => getAssetDef(a.assetDefinitionId)?.type).filter(Boolean));
+    return types.size >= 3;
   }, [assets, assetDefs]);
 
   // Filter strategies to only show ones relevant to the team's current asset types
@@ -338,22 +371,21 @@ export default function TeamGame() {
     if (!team || !roundConfig) return;
     setSubmitError(null);
 
-    // Collect all bids
+    // Collect all bids — include zero-MW bids so idle assets are submitted correctly
     const allBids: AssetBid[] = [];
     for (const period of roundConfig.timePeriods) {
       for (const asset of assets) {
         const key = getBidKey(asset.assetDefinitionId, period as TimePeriod);
         const bid = bids.get(key);
-        if (bid && bid.bands.some(b => b.quantityMW > 0)) {
+        if (bid) {
           allBids.push(bid);
         }
       }
     }
 
-    // GUARDRAILS (only when enabled): validate bids and warn about risky strategies
+    // GUARDRAILS (only when enabled): warn about risky strategies (soft warnings, not hard blocks)
     if (gameState?.biddingGuardrailEnabled) {
-      // VALIDATION: Every non-battery asset in every period must have some generation offered.
-      // Batteries are excluded because they can legitimately sit idle in some periods.
+      // Warn about assets with zero generation — these will sit idle and earn nothing
       const missingBids: string[] = [];
       for (const period of roundConfig.timePeriods) {
         for (const asset of assets) {
@@ -371,8 +403,12 @@ export default function TeamGame() {
       }
 
       if (missingBids.length > 0) {
-        setSubmitError(`You must bid some generation for every asset in every period. Missing bids: ${missingBids.join(', ')}`);
-        return;
+        const proceed = window.confirm(
+          `Warning: Some assets have 0 MW bid and will sit idle:\n${missingBids.join(', ')}\n\n` +
+          `These assets won't earn any revenue this period.\n\n` +
+          `Submit anyway?`
+        );
+        if (!proceed) return;
       }
 
       // Warn if too much capacity bid at $0 (risk of $0 clearing price)
@@ -397,6 +433,26 @@ export default function TeamGame() {
           `Submit anyway?`
         );
         if (!proceed) return;
+      }
+    }
+
+    // Stamp battery mode and charge info onto battery bids
+    for (const bid of allBids) {
+      const def = assetDefs.find(d => d.id === bid.assetDefinitionId);
+      if (def?.type === 'battery') {
+        const modeKey = `${bid.assetDefinitionId}_${bid.timePeriod}`;
+        const mode = batteryModes.get(modeKey) || 'idle';
+        bid.batteryMode = mode;
+        if (mode === 'charge') {
+          bid.isBatteryCharging = true;
+          bid.chargeMW = chargeMWs.get(modeKey) || 0;
+          bid.bands = []; // Charging bids don't have dispatch bands
+          bid.totalOfferedMW = 0;
+        } else if (mode === 'idle') {
+          bid.bands = [];
+          bid.totalOfferedMW = 0;
+        }
+        // discharge mode: bid.bands already set from normal bid inputs
       }
     }
 
@@ -781,6 +837,20 @@ export default function TeamGame() {
               onShowCommonMistakes={() => setShowCommonMistakes(true)}
               getAssetDef={getAssetDef}
               getBidBands={getBidBands}
+              hasBattery={hasBattery}
+              onShowBatteryExplainer={() => setShowBatteryExplainer(true)}
+              showPortfolioButton={hasPortfolio}
+              onShowPortfolioExplainer={() => setShowPortfolioExplainer(true)}
+              batteryModes={batteryModes}
+              chargeMWs={chargeMWs}
+              onBatteryModeChange={(assetId: string, period: TimePeriod, mode: BatteryMode) => {
+                const key = `${assetId}_${period}`;
+                setBatteryModes(new Map(batteryModes.set(key, mode)));
+              }}
+              onChargeMWChange={(assetId: string, period: TimePeriod, mw: number) => {
+                const key = `${assetId}_${period}`;
+                setChargeMWs(new Map(chargeMWs.set(key, mw)));
+              }}
             />
           </>
         )}
@@ -834,6 +904,22 @@ export default function TeamGame() {
               >
                 <span>⚠️</span> Common Mistakes
               </button>
+              {hasBattery && (
+                <button
+                  onClick={() => setShowBatteryExplainer(true)}
+                  className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-colors shadow-sm"
+                >
+                  <span>🔋</span> Battery Guide
+                </button>
+              )}
+              {hasPortfolio && (
+                <button
+                  onClick={() => setShowPortfolioExplainer(true)}
+                  className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors shadow-sm"
+                >
+                  <span>📊</span> Portfolio
+                </button>
+              )}
             </div>
 
             {/* Demand Overview Banner - All Periods */}
@@ -1530,12 +1616,19 @@ export default function TeamGame() {
                           {myAnalysis.assetPerformance.map((ap: AssetPerformanceSummary, i: number) => (
                             <div key={i} className="bg-white/60 rounded-lg px-3 py-2 border border-white">
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-xs font-medium text-gray-800">{ap.assetName}</span>
-                                <span className={`text-xs font-mono font-bold ${
-                                  ap.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                  {ap.profit >= 0 ? '+' : ''}{formatCurrency(ap.profit)}
+                                <span className="text-xs font-medium text-gray-800">
+                                  {ap.assetType === 'battery' ? '🔋 ' : ''}{ap.assetName}
                                 </span>
+                                <div className="flex items-center gap-1.5">
+                                  {ap.assetType === 'battery' && (
+                                    <span className="text-[10px] text-gray-500">Arbitrage P&L</span>
+                                  )}
+                                  <span className={`text-xs font-mono font-bold ${
+                                    ap.profit >= 0 ? 'text-green-600' : 'text-red-600'
+                                  }`}>
+                                    {ap.profit >= 0 ? '+' : ''}{formatCurrency(ap.profit)}
+                                  </span>
+                                </div>
                               </div>
                               <p className="text-[11px] text-gray-600 leading-relaxed">{ap.assessment}</p>
                             </div>
@@ -1736,6 +1829,30 @@ export default function TeamGame() {
       {/* Common Mistakes */}
       {showCommonMistakes && (
         <CommonMistakes onClose={() => setShowCommonMistakes(false)} />
+      )}
+
+      {/* Battery Explainer */}
+      {showBatteryExplainer && (
+        <BatteryExplainer onClose={() => setShowBatteryExplainer(false)} />
+      )}
+
+      {/* Portfolio Explainer */}
+      {showPortfolioExplainer && (
+        <PortfolioExplainer onClose={() => setShowPortfolioExplainer(false)} />
+      )}
+
+      {/* Battery Arbitrage Mini-Game */}
+      {showBatteryMiniGame && (
+        <BatteryArbitrageMiniGame
+          onComplete={(result) => {
+            setShowBatteryMiniGame(false);
+            setBatteryMiniGameCompleted(true);
+          }}
+          onSkip={() => {
+            setShowBatteryMiniGame(false);
+            setBatteryMiniGameCompleted(true);
+          }}
+        />
       )}
 
       {/* Cinematic Transitions */}

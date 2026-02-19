@@ -8,9 +8,8 @@
  */
 import type {
   GameState, RoundConfig, AssetType, TimePeriod,
-  SurpriseEventDefinition,
+  SurpriseEventDefinition, AssetDefinition,
 } from '../../shared/types.ts';
-import type { AssetDefinition } from './assets.ts';
 
 export interface SurpriseEventDef extends SurpriseEventDefinition {
   /** Apply this surprise event to the game state. Returns a short summary of what was changed. */

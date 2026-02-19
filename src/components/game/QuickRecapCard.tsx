@@ -61,10 +61,17 @@ export default function QuickRecapCard({ gameState, teamId }: QuickRecapCardProp
 
       {/* Per-period prices inline */}
       <div className="flex gap-1 mb-3">
-        {prices.map(p => (
-          <div key={p.period} className="flex-1 bg-white/50 rounded px-2 py-1 text-center">
-            <div className="text-[9px] text-gray-400">{TIME_PERIOD_SHORT_LABELS[p.period as TimePeriod] || p.period}</div>
-            <div className="text-xs font-mono font-bold text-gray-700">${formatNumber(p.price)}</div>
+        {lastResults.periodResults.map(pr => (
+          <div key={pr.timePeriod} className={`flex-1 rounded px-2 py-1 text-center ${
+            pr.oversupplyNegativePriceTriggered ? 'bg-red-50 border border-red-200' : 'bg-white/50'
+          }`}>
+            <div className="text-[9px] text-gray-400">{TIME_PERIOD_SHORT_LABELS[pr.timePeriod as TimePeriod] || pr.timePeriod}</div>
+            <div className={`text-xs font-mono font-bold ${pr.clearingPriceMWh < 0 ? 'text-red-600' : 'text-gray-700'}`}>
+              ${formatNumber(pr.clearingPriceMWh)}
+            </div>
+            {pr.oversupplyNegativePriceTriggered && (
+              <div className="text-[8px] text-red-500 font-medium">⚡ Oversupply</div>
+            )}
           </div>
         ))}
       </div>

@@ -1,5 +1,5 @@
 import type {
-  AssetBid, AssetInfo, TeamAssetInstance, TimePeriod, AssetType, Season,
+  AssetBid, AssetInfo, TeamAssetInstance, TimePeriod, AssetType, Season, BatteryMode,
 } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 import { ASSET_ICONS } from '../../lib/colors';
@@ -46,11 +46,11 @@ export default function BidReviewModal({
     asset: TeamAssetInstance;
     def: AssetInfo | undefined;
     typeKey: AssetType;
-    periodBids: Record<TimePeriod, { bands: { price: number; mw: number }[]; totalMW: number }>;
+    periodBids: Record<TimePeriod, { bands: { price: number; mw: number }[]; totalMW: number; batteryMode?: BatteryMode; chargeMW?: number }>;
   }[] = assets.map(asset => {
     const def = getAssetDef(asset.assetDefinitionId);
     const typeKey = getFullTypeKey(asset.assetDefinitionId);
-    const periodBids: Record<string, { bands: { price: number; mw: number }[]; totalMW: number }> = {};
+    const periodBids: Record<string, { bands: { price: number; mw: number }[]; totalMW: number; batteryMode?: BatteryMode; chargeMW?: number }> = {};
 
     for (const period of periods) {
       const key = getBidKey(asset.assetDefinitionId, period);
@@ -61,15 +61,19 @@ export default function BidReviewModal({
       periodBids[period] = {
         bands: bands.map(b => ({ price: b.pricePerMWh, mw: b.quantityMW })),
         totalMW,
+        batteryMode: bid?.batteryMode,
+        chargeMW: bid?.chargeMW,
       };
 
-      // Zero MW warning
-      if (totalMW === 0 && !asset.isForceOutage) {
+      // Zero MW info — let players know an asset will sit idle (not a restriction, just info)
+      // Skip batteries in charge/idle mode — those are intentional zero-dispatch states
+      const isBatteryNonDispatch = typeKey === 'battery' && (bid?.batteryMode === 'charge' || bid?.batteryMode === 'idle');
+      if (totalMW === 0 && !asset.isForceOutage && !isBatteryNonDispatch) {
         warnings.push({
           type: 'zero_mw',
           asset: def?.name || typeKey,
           period,
-          message: `${def?.name || ASSET_TYPE_LABELS[typeKey]} has 0 MW bid in ${TIME_PERIOD_SHORT_LABELS[period]}`,
+          message: `${def?.name || ASSET_TYPE_LABELS[typeKey]} will sit idle (0 MW) in ${TIME_PERIOD_SHORT_LABELS[period]}`,
         });
       }
 
@@ -185,6 +189,29 @@ export default function BidReviewModal({
                           }`}>
                             {asset.isForceOutage ? (
                               <span className="text-[10px] text-red-400">OUTAGE</span>
+                            ) : typeKey === 'battery' && pb.batteryMode ? (
+                              <div className="space-y-0.5">
+                                {pb.batteryMode === 'charge' ? (
+                                  <>
+                                    <div className="text-[11px] font-bold text-blue-600">CHARGE</div>
+                                    <div className="text-[10px] text-blue-500">{pb.chargeMW ?? 0} MW</div>
+                                  </>
+                                ) : pb.batteryMode === 'discharge' ? (
+                                  <>
+                                    <div className="text-[11px] font-bold text-green-600">DISCHARGE</div>
+                                    {pb.bands.map((band, i) => (
+                                      <div key={i} className="text-[11px] font-mono text-gray-700">
+                                        ${band.price} &times; {band.mw}MW
+                                      </div>
+                                    ))}
+                                    <div className="text-[10px] font-bold mt-0.5 text-gray-500">
+                                      = {pb.totalMW} MW
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-[11px] font-bold text-gray-400">IDLE</div>
+                                )}
+                              </div>
                             ) : pb.bands.length === 0 ? (
                               <div>
                                 <div className="text-red-500 font-bold text-xs">0 MW</div>

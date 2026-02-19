@@ -135,16 +135,27 @@ export default function RoundSummary({
           return (
             <div
               key={pr.timePeriod}
-              className="bg-white/5 border border-white/10 rounded-2xl p-5 text-center"
+              className={`border rounded-2xl p-5 text-center ${
+                pr.oversupplyNegativePriceTriggered
+                  ? 'bg-red-500/10 border-red-500/30'
+                  : 'bg-white/5 border-white/10'
+              }`}
             >
               <div className="text-sm text-navy-400 mb-1 uppercase tracking-wide">{label}</div>
-              <div className="text-4xl md:text-5xl font-bold font-mono text-electric-300">
+              <div className={`text-4xl md:text-5xl font-bold font-mono ${
+                pr.clearingPriceMWh < 0 ? 'text-red-400' : 'text-electric-300'
+              }`}>
                 ${formatNumber(pr.clearingPriceMWh)}
               </div>
               <div className="text-xs text-navy-500 mt-1">/MWh</div>
               <div className="text-xs text-navy-400 mt-2">
                 {formatMW(pr.demandMW)} demand &bull; {pr.reserveMarginPercent.toFixed(0)}% reserve
               </div>
+              {pr.oversupplyNegativePriceTriggered && (
+                <div className="mt-2 px-2 py-1 bg-red-500/20 rounded-lg text-xs text-red-300 font-medium">
+                  ⚡ Oversupply! Supply {'>'} 3× demand → price floor
+                </div>
+              )}
             </div>
           );
         })}

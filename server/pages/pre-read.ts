@@ -1,5 +1,5 @@
 /**
- * Pre-Read Document for NEM Merit Order Game
+ * Pre-Read Document for Watt Street
  *
  * Served at /api/pre-read — open in browser, then File > Print > Save as PDF
  * to distribute to players before the session.
@@ -10,7 +10,7 @@ export function getPreReadHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEM Merit Order Game — Player Pre-Read</title>
+<title>Watt Street — Player Pre-Read</title>
 <style>
   @page { margin: 1.5cm 2cm; size: A4; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -76,7 +76,7 @@ export function getPreReadHTML(): string {
 <!-- PAGE 1: COVER -->
 <div class="page cover">
   <div class="bolt">&#9889;</div>
-  <h1>NEM Merit Order Game</h1>
+  <h1>Watt Street</h1>
   <div class="subtitle">Player Pre-Read</div>
   <p class="tagline">
     An interactive electricity market simulation where you take on the role of a power generator,
@@ -344,6 +344,16 @@ export function getPreReadHTML(): string {
       <p>Different strategies for different assets. Bid renewables at $0, coal at marginal cost, and peakers aggressively high.</p>
       <p><em>Best when:</em> You have diverse assets and want to maximise across the portfolio.</p>
     </div>
+    <div class="card">
+      <h4>&#128267; Battery Arbitrageur</h4>
+      <p>Charge your battery during cheap off-peak or solar-surplus periods, then discharge at premium during the evening peak. Your profit is the spread minus 8% efficiency loss.</p>
+      <p><em>Best when:</em> There are large price differences between periods (e.g., cheap solar midday, expensive evening).</p>
+    </div>
+    <div class="card">
+      <h4>&#128202; Portfolio Thinker</h4>
+      <p>Don&rsquo;t optimise each asset alone. Think about how your whole fleet works together across the day. Renewables provide cheap guaranteed volume, thermal provides margin in peak periods, and batteries capture the spread.</p>
+      <p><em>Best when:</em> You have 3+ asset types and want to maximise total portfolio profit rather than individual asset returns.</p>
+    </div>
   </div>
 
   <div class="highlight">
@@ -367,11 +377,13 @@ export function getPreReadHTML(): string {
       <p><strong>MWh</strong> &mdash; Megawatt-hour. A measure of energy (power &times; time). What you sell.</p>
       <p><strong>SRMC (Short Run Marginal Cost)</strong> &mdash; Also called marginal cost. The cost to produce one additional MWh. Fuel + variable O&M.</p>
       <p><strong>Reserve Margin</strong> &mdash; How much spare capacity exists above demand. Low margins = high prices.</p>
+      <p><strong>Gentailer</strong> &mdash; A company that both generates and retails electricity. The Big 3 in Australia&rsquo;s NEM (AGL, Origin, EnergyAustralia) are all gentailers.</p>
+      <p><strong>Portfolio Effect</strong> &mdash; When losses on one asset are offset by gains on another, reducing overall risk and smoothing returns.</p>
     </div>
   </div>
 
   <div class="footer" style="margin-top:2rem">
-    <p>NEM Merit Order Game &mdash; Player Pre-Read Document &middot; 5 game modes &middot; 7 asset types</p>
+    <p>Watt Street &mdash; Player Pre-Read Document &middot; 5 game modes &middot; 7 asset types</p>
     <p>Bring your device charged. No installation required. See you at the session!</p>
   </div>
 </div>

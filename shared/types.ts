@@ -1,5 +1,5 @@
 // ============================================================
-// Shared Types for NEM Merit Order Training Game
+// Shared Types for Watt Street — NEM Merit Order Training Game
 // ============================================================
 
 // ---- Enumerations ----
@@ -22,6 +22,8 @@ export type AssetType =
   | 'wind'
   | 'solar'
   | 'battery';
+
+export type BatteryMode = 'charge' | 'discharge' | 'idle';
 
 export type Season = 'summer' | 'autumn' | 'winter' | 'spring';
 
@@ -154,6 +156,8 @@ export interface AssetBid {
   bands: BidBand[];
   totalOfferedMW: number;
   isBatteryCharging?: boolean;
+  batteryMode?: BatteryMode;
+  chargeMW?: number;
   submittedAt: number;
 }
 
@@ -189,6 +193,9 @@ export interface TimePeriodDispatchResult {
   undispatchedBands: DispatchedBand[];
   excessCapacityMW: number;
   reserveMarginPercent: number;
+  totalChargingLoadMW?: number;
+  /** True when massive oversupply forced the price to the floor (-$1,000/MWh) */
+  oversupplyNegativePriceTriggered?: boolean;
 }
 
 export interface RoundDispatchResult {
@@ -227,6 +234,12 @@ export interface AssetPeriodResult {
   variableCost: number;
   startupCost: number;
   profit: number;
+  // Battery-specific fields
+  batteryMode?: BatteryMode;
+  chargeMW?: number;
+  chargeCostDollars?: number;
+  storageAtStartMWh?: number;
+  storageAtEndMWh?: number;
 }
 
 // ---- Game State ----
@@ -423,6 +436,8 @@ export interface RoundConfig {
   hostTeachingNotes?: string[];
   /** UI complexity level for progressive learning mode */
   uiComplexity?: 'minimal' | 'standard' | 'full';
+  /** Whether to show the Battery Arbitrage Mini-Game before this round's bidding */
+  batteryMiniGame?: boolean;
   /** Optional seasonal context shown during briefing to explain how this season affects demand, supply, and bidding */
   seasonalGuidance?: {
     headline: string;     // e.g. "Summer: High demand, strong solar, evening crunch"
@@ -689,6 +704,7 @@ export interface ServerToClientEvents {
   'host:bid_status': (data: Record<string, boolean>) => void;
   'host:team_screen_data': (data: GameStateSnapshot) => void;
   'host:surprises_applied': (data: { appliedIds: string[]; updatedDemand: Record<string, number> }) => void;
+  'game:reset': () => void;
   'error': (message: string) => void;
 }
 

@@ -289,6 +289,7 @@ export const fullGameRounds: RoundConfig[] = [
     demandVariability: 0.1,
     newAssetsUnlocked: ['battery'],
     activeScenarioEvents: [],
+    batteryMiniGame: true,
     biddingTimeLimitSeconds: 300,
     maxBidBandsPerAsset: 10,
     educationalContent: {
@@ -296,15 +297,15 @@ export const fullGameRounds: RoundConfig[] = [
       slides: [
         {
           heading: 'The Battery Revolution',
-          body: '**Battery**: 150 MW / 300 MWh, 85% round-trip efficiency\n\nCharge when prices are low, discharge when high. You need the price spread to exceed the 15% efficiency loss to profit.',
+          body: '**Battery**: 500 MW / 2,000 MWh (4-hour duration), 92% round-trip efficiency\n\nUse the charge/idle/discharge toggle to control your battery each period. Charge when prices are low, discharge when high. Your arbitrage revenue = discharge earnings minus charging cost minus efficiency losses.',
         },
         {
           heading: 'Battery Strategy by Period',
-          body: '🌙 **Overnight**: CHARGE — prices lowest, fill up the battery\n🌅 **Morning**: May continue charging if prices are dropping from solar\n☀️ **Afternoon**: CHARGE during solar surplus (spring) or DISCHARGE in summer peaks\n🌆 **Evening**: DISCHARGE — prime time! Solar gone, demand high, prices peak. This is where batteries earn.\n\nWith 85% efficiency, charging at $20/MWh means you need $24+/MWh to break even on discharge. The bigger the spread, the bigger the profit.',
+          body: '🌙 **Overnight**: CHARGE — prices lowest, fill up the battery\n🌅 **Morning**: May continue charging if prices are dropping from solar\n☀️ **Afternoon**: CHARGE during solar surplus (spring) or DISCHARGE in summer peaks\n🌆 **Evening**: DISCHARGE — prime time! Solar gone, demand high, prices peak. This is where batteries earn.\n\nWith 92% efficiency, charging at $20/MWh means you need ~$22/MWh to break even on discharge. The bigger the spread, the bigger the arbitrage revenue. Remember: your 500 MW of charging adds to market demand!',
         },
         {
           heading: 'Full Portfolio Unlocked',
-          body: 'You now have **10 bid bands** per asset and your complete fleet:\n- Coal (800 MW) — baseload, check your Marginal Cost badge\n- Gas CCGT (350 MW) — mid-merit\n- Gas Peaker (150 MW) — expensive peak-only\n- Wind (300 MW) — variable, $0 marginal cost\n- Solar (200 MW) — daytime only, $0 marginal cost\n- Hydro (250 MW / 1,000 MWh) — limited water\n- Battery (150 MW / 300 MWh) — arbitrage\n\nThink about how each asset performs across periods. Each period description panel on your phone will guide you!',
+          body: 'You now have **10 bid bands** per asset and your complete fleet:\n- Coal (800 MW) — baseload, check your Marginal Cost badge\n- Gas CCGT (350 MW) — mid-merit\n- Gas Peaker (150 MW) — expensive peak-only\n- Wind (300 MW) — variable, $0 marginal cost\n- Solar (200 MW) — daytime only, $0 marginal cost\n- Hydro (250 MW / 1,000 MWh) — limited water\n- Battery (500 MW / 2,000 MWh) — arbitrage via charge/discharge\n\nThink about how each asset performs across periods. Each period description panel on your phone will guide you!',
         },
       ],
     },

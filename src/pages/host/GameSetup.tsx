@@ -75,7 +75,7 @@ export default function GameSetup() {
   const [selectedMode, setSelectedMode] = useState('beginner');
   const [teamCount, setTeamCount] = useState(6);
   const [balancingEnabled, setBalancingEnabled] = useState(true);
-  const [biddingGuardrailEnabled, setBiddingGuardrailEnabled] = useState(true);
+  const [biddingGuardrailEnabled, setBiddingGuardrailEnabled] = useState(false);
 
   // Asset configuration
   const [useCustomConfig, setUseCustomConfig] = useState(false);
@@ -233,7 +233,7 @@ export default function GameSetup() {
             </button>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Game Setup</h1>
-          <p className="text-navy-300">Configure your NEM Merit Order training session</p>
+          <p className="text-navy-300">Configure your Watt Street training session</p>
           <div className={`inline-flex items-center mt-2 px-3 py-1 rounded-full text-xs font-medium ${
             connected ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
           }`}>
@@ -353,7 +353,7 @@ export default function GameSetup() {
             <div>
               <div className="text-sm font-medium text-navy-200">Bidding Guardrail</div>
               <div className="text-xs text-navy-400 mt-1">
-                Warns teams when too much capacity is bid at $0 &mdash; prevents everyone clearing at $0/MWh
+                Shows warnings when assets have 0 MW bids or too much capacity at $0 &mdash; off by default to give teams full freedom
               </div>
             </div>
             <button

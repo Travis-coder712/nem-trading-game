@@ -19,7 +19,7 @@ export default function GameGuide() {
         <div className="text-center mb-10 print:mb-6">
           <div className="text-4xl mb-2 print:text-2xl">⚡</div>
           <h1 className="text-3xl md:text-4xl font-bold print:text-2xl">
-            NEM Merit Order Training Game
+            Watt Street
           </h1>
           <p className="text-navy-300 print:text-gray-600 mt-2 text-lg print:text-sm">
             Quick Reference Guide
@@ -57,7 +57,7 @@ export default function GameGuide() {
                 <AssetRow icon="💧" type="Hydro" capacity="250 MW" srmc="$8" desc="Flexible, cheap, but limited water each round." />
                 <AssetRow icon="🌬️" type="Wind" capacity="300 MW" srmc="$0" desc="Zero fuel cost. Output varies by wind conditions." />
                 <AssetRow icon="☀️" type="Solar" capacity="200 MW" srmc="$0" desc="Zero fuel cost. Daytime only, peak in afternoon." />
-                <AssetRow icon="🔋" type="Battery" capacity="150 MW / 300 MWh" srmc="$0" desc="Charge cheap, discharge expensive. 85% efficiency." />
+                <AssetRow icon="🔋" type="Battery" capacity="500 MW / 2,000 MWh" srmc="$0" desc="Charge cheap, discharge expensive. 92% round-trip efficiency. 4-hour duration." />
               </tbody>
             </table>
           </div>
@@ -82,7 +82,11 @@ export default function GameGuide() {
             <li>The <strong>last (most expensive) bid dispatched</strong> sets the <strong>clearing price</strong></li>
             <li><strong>ALL</strong> dispatched generators receive the clearing price — even if they bid lower</li>
             <li>Generators not dispatched earn nothing (but avoid fuel costs)</li>
+            <li>When multiple teams bid the <strong>same price</strong> at the margin, dispatch is split <strong>pro-rata</strong> (proportionally by capacity offered) — just like the real AEMO NEMDE</li>
           </ol>
+          <div className="bg-navy-800/30 print:bg-blue-50 rounded-lg p-3 mt-3 text-xs">
+            <strong>Pro-rata example:</strong> If 200 MW of demand remains and three teams all bid $75/MWh offering 300, 200, and 100 MW respectively (600 MW total), each gets dispatched proportionally: 100, 67, and 33 MW.
+          </div>
         </Section>
 
         {/* Profit Calculation */}
@@ -95,6 +99,9 @@ export default function GameGuide() {
             <li>If you bid <strong>above</strong> the clearing price → not dispatched, earn nothing</li>
             <li>If you bid <strong>at</strong> your marginal cost → break even (cover costs exactly)</li>
             <li>If clearing price goes <strong>negative</strong> → dispatched generators lose money!</li>
+            <li>If supply exceeds <strong>3× demand</strong> → price crashes to <strong>-$1,000/MWh</strong> (oversupply trigger)</li>
+            <li><strong>Battery arbitrage P&L</strong> = discharge revenue − charging cost − efficiency losses</li>
+            <li>Batteries <strong>get paid to charge</strong> during negative prices — pure profit!</li>
           </ul>
         </Section>
 
@@ -106,7 +113,7 @@ export default function GameGuide() {
             <StrategyCard name="Price Maker" desc="Bid high on some capacity to push up the clearing price for all your dispatched units." />
             <StrategyCard name="Portfolio Optimizer" desc="Mix strategies: $0 on renewables, marginal cost on baseload, high on peakers." />
             <StrategyCard name="Strategic Withdrawal" desc="Withhold 20-30% of capacity to tighten supply and raise prices." />
-            <StrategyCard name="Battery Arbitrage" desc="Charge at negative/low prices, discharge at peak. Profit from price spreads." />
+            <StrategyCard name="Battery Arbitrage" desc="Charge at low prices, discharge at peak. Arbitrage revenue = discharge earnings minus charging cost. Note: charging adds to market demand and can push prices higher." />
           </div>
         </Section>
 
@@ -208,7 +215,7 @@ export default function GameGuide() {
         {/* Footer */}
         <div className="text-center mt-10 pt-6 border-t border-white/10 print:border-gray-300">
           <p className="text-navy-400 print:text-gray-500 text-xs">
-            NEM Merit Order Training Game — 5 game modes, 7 asset types, sound effects, dark mode, spectator mode & more
+            Watt Street — Bid. Dispatch. Dominate. — 5 game modes, 7 asset types, sound effects, dark mode, spectator mode & more
           </p>
         </div>
       </div>

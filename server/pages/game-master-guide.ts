@@ -1,5 +1,5 @@
 /**
- * Game Master's Guide — Comprehensive guide for running the NEM Merit Order Game
+ * Game Master's Guide — Comprehensive guide for running Watt Street
  * Served at /api/game-master-guide
  */
 export function getGameMasterGuideHTML(): string {
@@ -8,7 +8,7 @@ export function getGameMasterGuideHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEM Merit Order Game — Game Master's Guide</title>
+<title>Watt Street — Game Master's Guide</title>
 <style>
   @page { margin: 1.5cm 2cm; size: A4; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -70,7 +70,7 @@ export function getGameMasterGuideHTML(): string {
   <div class="header">
     <div style="font-size: 3rem; margin-bottom: 0.5rem;">&#9889;</div>
     <h1>Game Master&rsquo;s Guide</h1>
-    <div class="subtitle">NEM Merit Order Training Game &mdash; Everything you need to run a great session</div>
+    <div class="subtitle">Watt Street &mdash; Everything you need to run a great session</div>
   </div>
 
   <!-- Table of Contents -->
@@ -90,6 +90,7 @@ export function getGameMasterGuideHTML(): string {
       <li><a href="#scenarios">Scenario Events Reference</a></li>
       <li><a href="#surprise-events">Surprise Events</a></li>
       <li><a href="#strategies">Bidding Strategy Reference</a></li>
+      <li><a href="#portfolio">Portfolio Strategy</a></li>
       <li><a href="#guardrails">Bidding Guardrails</a></li>
       <li><a href="#tips">Tips, Tricks &amp; Facilitation Notes</a></li>
       <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -260,6 +261,7 @@ export function getGameMasterGuideHTML(): string {
       <li>The merit order: cheapest bids dispatched first</li>
       <li>Clearing price: the most expensive dispatched bid sets the price for ALL</li>
       <li>Uniform pricing: even if you bid $0, you receive the clearing price</li>
+      <li>Pro-rata dispatch: when bids are tied at the same price at the margin, dispatch is split proportionally</li>
     </ul>
     <div class="tip"><strong>GM tip:</strong> Walk the room and help teams with the interface. Emphasise that this round is about learning, not winning. Point out the marginal cost badges on each asset card.</div>
   </div>
@@ -325,20 +327,22 @@ export function getGameMasterGuideHTML(): string {
     <h4>Round 5: Battery Storage</h4>
     <div class="round-meta">
       <span class="tag-season">&#127800; Spring</span>
-      <span class="tag-assets">+ Battery (150 MW / 300 MWh)</span>
+      <span class="tag-assets">+ Battery (500 MW / 2,000 MWh, 92% eff.)</span>
       <span class="tag-time">&#9202; 300s</span>
       <span class="tag-time">4 periods</span>
     </div>
-    <p><strong>Purpose:</strong> Introduce energy arbitrage. Batteries charge when prices are low and discharge when prices are high.</p>
+    <p><strong>Purpose:</strong> Introduce energy arbitrage. Batteries toggle between charge, discharge, and idle modes each period.</p>
     <p><strong>Key teaching points:</strong></p>
     <ul>
-      <li>Batteries have 85% round-trip efficiency &mdash; you lose 15% of stored energy</li>
+      <li>Batteries have 92% round-trip efficiency &mdash; you lose 8% of stored energy</li>
+      <li>Use the charge/idle/discharge toggle to control battery mode each period</li>
       <li>Charge during cheap periods (overnight, midday solar surplus)</li>
       <li>Discharge during expensive periods (evening peak)</li>
-      <li>Battery profit = (discharge price &minus; charge price) &times; MW &times; 0.85</li>
-      <li>Batteries can bid at $0 to guarantee dispatch, or bid high to set the price</li>
+      <li>Arbitrage revenue = discharge earnings &minus; charging cost &minus; efficiency losses</li>
+      <li>Battery charging ADDS to market demand &mdash; 500 MW of charging pushes prices higher</li>
+      <li>Watch SOC (State of Charge) &mdash; can&rsquo;t discharge empty or charge full</li>
     </ul>
-    <div class="tip"><strong>GM tip:</strong> Extra bidding time this round (300s) because batteries add complexity. Remind teams that batteries are the &ldquo;secret weapon&rdquo; for volatile markets. The best strategy is usually charge at the cheapest period and discharge at the most expensive.</div>
+    <div class="tip"><strong>GM tip:</strong> Extra bidding time this round (300s) because batteries add complexity. Remind teams that batteries are the &ldquo;secret weapon&rdquo; for volatile markets. The best strategy is usually charge at the cheapest period and discharge at the most expensive. Warn teams that if multiple teams charge simultaneously, the combined load can spike prices dramatically.</div>
   </div>
 
   <div class="round-card">
@@ -484,10 +488,10 @@ export function getGameMasterGuideHTML(): string {
     <h4>Round 8: Battery Storage</h4>
     <div class="round-meta">
       <span class="tag-season">&#127800; Spring</span>
-      <span class="tag-assets">+ Battery (150 MW / 300 MWh, 85% eff.)</span>
+      <span class="tag-assets">+ Battery (500 MW / 2,000 MWh, 92% eff.)</span>
       <span class="tag-time">&#9202; 300s &middot; 4 periods</span>
     </div>
-    <p>Full portfolio now complete. Batteries add arbitrage opportunities: charge cheap, discharge expensive. Spring season creates wide price spreads perfect for battery strategy.</p>
+    <p>Full portfolio now complete. Batteries add arbitrage opportunities: use the charge/idle/discharge toggle each period. Charge cheap, discharge expensive. Arbitrage revenue = discharge earnings minus charging cost. Spring season creates wide price spreads perfect for battery strategy. Remind teams that charging adds to market demand.</p>
   </div>
 
   <h3>Phase 3: Seasons &amp; Scenarios (Rounds 9&ndash;12) &mdash; Real-world challenges</h3>
@@ -648,7 +652,7 @@ export function getGameMasterGuideHTML(): string {
   <div class="round-card">
     <h4>Rounds 5&ndash;6: Renewables &amp; Battery</h4>
     <div class="round-meta"><span class="tag-season">Spring</span><span class="tag-assets">+ Wind, Solar, Hydro, Battery</span><span class="tag-time">4 periods</span></div>
-    <p>Zero-cost renewables reshape the merit order. Hydro has limited water (opportunity cost). Battery completes the portfolio &mdash; charge cheap, discharge at premium. Spring brings low demand + strong renewables = potential oversupply.</p>
+    <p>Zero-cost renewables reshape the merit order. Hydro has limited water (opportunity cost). Battery (500 MW / 2,000 MWh, 92% efficiency) completes the portfolio &mdash; use the charge/idle/discharge toggle each period. Arbitrage revenue = discharge earnings minus charging cost. Spring brings low demand + strong renewables = potential oversupply.</p>
   </div>
 
   <div class="round-card">
@@ -778,9 +782,9 @@ export function getGameMasterGuideHTML(): string {
     <tr>
       <td><strong>Battery</strong></td>
       <td>&#128267;</td>
-      <td>150 MW / 300 MWh</td>
+      <td>500 MW / 2,000 MWh</td>
       <td>$0/MWh</td>
-      <td>Charge cheap, discharge expensive. 85% efficiency. 2-hour duration.</td>
+      <td>Charge cheap, discharge expensive. 92% round-trip efficiency. 4-hour duration. Charging adds to market demand.</td>
       <td>Quick R5 / Full R8</td>
     </tr>
   </table>
@@ -991,17 +995,45 @@ export function getGameMasterGuideHTML(): string {
 
   <div class="round-card">
     <h4>&#129000; Battery Arbitrageur</h4>
-    <p>Focus the strategy around battery storage: charge at $0 during cheap off-peak or solar-surplus periods, then discharge at a premium during evening peaks. Other assets (coal, gas) bid at or near marginal cost to provide stable base revenue while the battery captures the volatile spread.</p>
+    <p>Focus the strategy around battery storage: set the battery to CHARGE during cheap off-peak or solar-surplus periods, then DISCHARGE at a premium during evening peaks. The arbitrage revenue = discharge earnings minus charging cost minus 8% efficiency loss. Other assets (coal, gas) bid at or near marginal cost to provide stable base revenue while the battery captures the volatile spread.</p>
     <p><strong>Relies on:</strong> Meaningful price spreads between periods. If clearing prices are flat across the day, the arbitrage opportunity disappears.</p>
-    <p><strong>Main risk:</strong> If peak prices do not materialise (e.g., mild demand or oversupply in the evening), the battery discharges at a low price and the 15% round-trip efficiency loss erodes any slim margin.</p>
+    <p><strong>Main risk:</strong> Battery charging adds 500 MW of demand to the market, which can push up the very prices you&rsquo;re trying to buy cheap at. If multiple teams charge simultaneously, the combined load can spike clearing prices dramatically. If peak prices do not materialise (e.g., mild demand or oversupply in the evening), the battery discharges at a low price and the 8% round-trip efficiency loss erodes any slim margin.</p>
   </div>
 
   <div class="tip">
     <strong>&#128161; Facilitation note:</strong> Encourage teams to try different strategies across rounds rather than sticking with one approach. The game is designed so that no single strategy dominates every scenario &mdash; the best teams adapt to conditions.
   </div>
 
-  <!-- Section 14: Guardrails -->
-  <h2 id="guardrails">14. Bidding Guardrails</h2>
+  <!-- Section 14: Portfolio Strategy -->
+  <h2 id="portfolio">14. Portfolio Strategy</h2>
+
+  <p>Once teams have 3+ asset types (typically from Round 4 onward in Progressive Learning), portfolio thinking becomes the key differentiator. The best teams stop optimising each asset individually and start thinking about how their whole fleet works together across different market conditions.</p>
+
+  <div class="round-card">
+    <h4>&#127970; Real-World Context: The Gentailer Model</h4>
+    <p>In the real NEM, the &ldquo;Big 3&rdquo; &mdash; <strong>AGL</strong>, <strong>Origin</strong>, and <strong>EnergyAustralia</strong> &mdash; operate as &ldquo;gentailers&rdquo; (generator-retailers). They own diverse portfolios spanning coal, gas, wind, solar, hydro, and battery assets. This diversity is a deliberate hedge: when wholesale prices drop (e.g., midday solar flood), generation earns less but retail profits from cheap supply. When prices spike (e.g., evening peak), peakers and batteries earn premium margins. Teams in the game face the same dynamic.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>&#128200; Three Portfolio Strategies for Teams</h4>
+    <p>Encourage teams to think beyond individual asset bidding. Here are three portfolio-level strategies they can apply:</p>
+
+    <p><strong>1. Baseload + Peaker Squeeze</strong></p>
+    <p>Bid coal at $0 or marginal cost for guaranteed dispatch (stable revenue floor). Bid the peaker at very high prices targeting peak periods. Coal provides volume; the peaker provides margin when demand spikes. When the peaker sets the clearing price, that high price flows to ALL dispatched assets &mdash; including the cheap coal. Best in high-demand summer/winter rounds.</p>
+
+    <p><strong>2. The Renewable Shield</strong></p>
+    <p>Bid renewables at $0 for guaranteed dispatch. During solar-flooded afternoons, the clearing price drops &mdash; but renewables at zero cost are still profitable. Meanwhile, thermal assets are bid higher for the evening when solar drops off. Renewables &ldquo;shield&rdquo; the portfolio during cheap periods; thermals earn during expensive ones. Best in spring/autumn with solar periods.</p>
+
+    <p><strong>3. The Battery Amplifier</strong></p>
+    <p>Use the battery to charge during the renewables&rsquo; cheap periods (buying electricity at low prices), then discharge during the evening peak alongside the peaker (double revenue stream). The portfolio creates its own internal arbitrage: renewables suppress prices &rarr; battery charges cheap &rarr; battery discharges at peak rates. Coal and gas bid at marginal cost for steady baseline revenue. Best in any round with batteries, especially spring where solar creates deep midday price troughs.</p>
+  </div>
+
+  <div class="tip">
+    <strong>&#128161; Teaching tip:</strong> Introduce portfolio thinking at Round 7 (Advanced Strategies) in Progressive Learning. After the round results, ask teams: &ldquo;Which of your assets made a loss this round? Did your portfolio still profit overall?&rdquo; This reframes individual asset losses as portfolio management decisions rather than mistakes. The &ldquo;&#128202; Portfolio&rdquo; help button is available from the bidding screen once teams have 3+ asset types.
+  </div>
+
+  <!-- Section 15: Guardrails -->
+  <h2 id="guardrails">15. Bidding Guardrails</h2>
 
   <table>
     <tr><th>Restriction</th><th>Guardrails ON</th><th>Guardrails OFF</th></tr>
@@ -1035,8 +1067,8 @@ export function getGameMasterGuideHTML(): string {
 
   <div class="tip"><strong>Recommendation:</strong> Use guardrails ON for teams new to the NEM. Switch to OFF for experienced players or the Experienced Replay mode, where strategic withdrawal is a legitimate advanced strategy.</div>
 
-  <!-- Section 15: Tips -->
-  <h2 id="tips">15. Tips, Tricks &amp; Facilitation Notes</h2>
+  <!-- Section 16: Tips -->
+  <h2 id="tips">16. Tips, Tricks &amp; Facilitation Notes</h2>
 
   <h3>Pacing the Session</h3>
   <div class="card">
@@ -1051,7 +1083,7 @@ export function getGameMasterGuideHTML(): string {
 
   <h3>Team Help Buttons</h3>
   <div class="tip">
-    <strong>&#128161; Teams have built-in help:</strong> During bidding, teams can access four help resources from the top of their bidding screen: <strong>&ldquo;&#128214; How to Bid&rdquo;</strong> (interface walkthrough), <strong>&ldquo;&#128202; Round Overview&rdquo;</strong> (current round conditions and demand), <strong>&ldquo;&#129504; Strategies&rdquo;</strong> (the full six-strategy guide), and <strong>&ldquo;&#9888;&#65039; Common Mistakes&rdquo;</strong> (pitfalls to avoid). Remind teams these exist at the start of the session &mdash; they reduce the number of questions you need to field and help slower teams catch up without slowing down the group.
+    <strong>&#128161; Teams have built-in help:</strong> During bidding, teams can access help resources from the top of their bidding screen: <strong>&ldquo;&#128214; How to Bid&rdquo;</strong> (interface walkthrough), <strong>&ldquo;&#128202; Round Overview&rdquo;</strong> (current round conditions and demand), <strong>&ldquo;&#129504; Strategies&rdquo;</strong> (the full six-strategy guide), <strong>&ldquo;&#9888;&#65039; Common Mistakes&rdquo;</strong> (pitfalls to avoid), and <strong>&ldquo;&#128267; Battery&rdquo;</strong> (8-slide battery explainer &mdash; appears when the team has a battery asset). Remind teams these exist at the start of the session &mdash; they reduce the number of questions you need to field and help slower teams catch up without slowing down the group.
   </div>
 
   <div class="tip">
@@ -1064,6 +1096,18 @@ export function getGameMasterGuideHTML(): string {
       <li><strong>Spectator Mode:</strong> Observers can watch at <code>/spectate</code> without taking a team slot.</li>
       <li><strong>Post-Game Report:</strong> After the game, navigate to <code>/report</code> for a printable summary of all standings and clearing prices.</li>
     </ul>
+  </div>
+
+  <h3>Dispatch Mechanics</h3>
+  <div class="card">
+    <p>The game engine mirrors AEMO&rsquo;s NEMDE dispatch process:</p>
+    <ol>
+      <li>All bid bands from all teams are sorted by price (cheapest first)</li>
+      <li>Bands are dispatched up the merit order until demand is met</li>
+      <li>The last (most expensive) band dispatched sets the clearing price</li>
+      <li><strong>Pro-rata dispatch:</strong> When multiple teams bid the same price at the margin, dispatch is split proportionally by capacity offered &mdash; not &ldquo;first come first served&rdquo;. This means if three teams all bid $75 and only some of their combined capacity is needed, each gets a fair share.</li>
+      <li><strong>Battery charging adds to demand:</strong> When batteries charge, their MW is added to consumer demand. This means the merit order must serve more total load, pushing the clearing price higher.</li>
+    </ol>
   </div>
 
   <h3>What to Say Between Rounds</h3>
@@ -1103,9 +1147,9 @@ export function getGameMasterGuideHTML(): string {
         <td>&ldquo;Look at your marginal cost badge. Coal costs $35/MWh &mdash; bidding it at $150 means it won&rsquo;t run unless demand is extreme.&rdquo;</td>
       </tr>
       <tr>
-        <td>Not charging batteries</td>
-        <td>Battery sits idle, misses arbitrage</td>
-        <td>&ldquo;Batteries make money from the SPREAD between charging and discharging prices. Charge cheap, discharge expensive.&rdquo;</td>
+        <td>Not managing battery modes</td>
+        <td>Battery sits idle, misses arbitrage revenue</td>
+        <td>&ldquo;Use the charge/idle/discharge toggle each period. Batteries earn arbitrage revenue from the SPREAD between charging cost and discharge earnings. Charge cheap, discharge expensive. Watch your SOC!&rdquo;</td>
       </tr>
       <tr>
         <td>Same strategy every round</td>
@@ -1167,8 +1211,8 @@ export function getGameMasterGuideHTML(): string {
     </ol>
   </div>
 
-  <!-- Section 16: Troubleshooting -->
-  <h2 id="troubleshooting">16. Troubleshooting</h2>
+  <!-- Section 17: Troubleshooting -->
+  <h2 id="troubleshooting">17. Troubleshooting</h2>
 
   <div class="card">
     <table>
@@ -1217,7 +1261,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <div style="margin-top: 3rem; padding: 1.5rem; text-align: center; color: #718096; font-size: 0.85rem; border-top: 1px solid #e2e8f0;">
-    <p>NEM Merit Order Training Game &mdash; Game Master&rsquo;s Guide</p>
+    <p>Watt Street &mdash; Game Master&rsquo;s Guide</p>
     <p>5 game modes &middot; 7 asset types &middot; sound effects &middot; dark mode &middot; WiFi sharing &middot; spectator mode</p>
     <p>Keep this guide handy during sessions. Good luck and have fun!</p>
   </div>

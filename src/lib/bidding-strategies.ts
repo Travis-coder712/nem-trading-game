@@ -2,7 +2,7 @@
  * Client-side bidding strategy generator.
  * Generates bid bands for ALL assets across ALL periods with intensity control.
  */
-import type { AssetBid, AssetType, BidBand, TeamAssetInstance, TimePeriod, Season } from '../../shared/types';
+import type { AssetBid, AssetType, BatteryMode, BidBand, TeamAssetInstance, TimePeriod, Season } from '../../shared/types';
 
 export type StrategyId =
   | 'price_taker'
@@ -175,7 +175,7 @@ export function generateStrategyBids(
       if (bands.length === 0) continue;
 
       const key = `${asset.assetDefinitionId}_${period}`;
-      newBids.set(key, {
+      const bid: AssetBid = {
         assetInstanceId: `${asset.assetDefinitionId}_${teamId}`,
         assetDefinitionId: asset.assetDefinitionId,
         teamId,
@@ -183,7 +183,23 @@ export function generateStrategyBids(
         bands,
         totalOfferedMW: bands.reduce((s, b) => s + b.quantityMW, 0),
         submittedAt: Date.now(),
-      });
+      };
+
+      // Set battery mode metadata for battery_arbitrageur strategy
+      if (strategyId === 'battery_arbitrageur' && getAssetType(asset.assetDefinitionId) === 'battery') {
+        const isPeak = period === 'day_peak' || period === 'night_peak';
+        if (isPeak) {
+          bid.batteryMode = 'discharge';
+        } else {
+          bid.batteryMode = 'charge';
+          bid.isBatteryCharging = true;
+          bid.chargeMW = asset.currentAvailableMW;
+          bid.bands = [];
+          bid.totalOfferedMW = 0;
+        }
+      }
+
+      newBids.set(key, bid);
     }
   }
 

@@ -8,7 +8,7 @@ export function getVibeCodingNotesHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEM Merit Order Game — How We "Vibe Coded" This Game with AI</title>
+<title>Watt Street — How We "Vibe Coded" This Game with AI</title>
 <style>
   @page { margin: 1.5cm 2cm; size: A4; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -115,7 +115,7 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <h2>The Development Story: How It Actually Happened</h2>
-  <p>The entire game was built across <strong>14+ conversation sessions</strong> over 10 days, with <strong>~220+ human prompts</strong> in total. Here is how it unfolded:</p>
+  <p>The entire game was built across <strong>17+ conversation sessions</strong> over several weeks, with <strong>~250+ human prompts</strong> in total. Here is how it unfolded:</p>
 
   <div class="timeline">
     <div class="timeline-item">
@@ -250,15 +250,47 @@ export function getVibeCodingNotesHTML(): string {
       <div class="ai"><strong>What Claude did:</strong> This was the largest single expansion of the application. Claude built the <strong>Progressive Learning game mode</strong>&mdash;a 10-round pedagogical experience that starts players with just 1 asset (a baseload coal plant) and progressively introduces new generation types round by round, building to the full 7-asset portfolio by the final rounds. Each round includes tailored teaching moments explaining why the new asset changes market dynamics. Claude also added a <strong>WiFi QR code sharing system</strong> so hosts can display network credentials for venue setup, implemented <strong>synthesised sound effects via the Web Audio API</strong> (click feedback, bid confirmations, round transitions&mdash;all generated mathematically with no audio files), built a <strong>dark mode toggle</strong> with persistent preference storage, created <strong>auto-advance logic</strong> that detects when all teams have submitted bids and automatically moves to results, designed <strong>host teaching notes</strong> with checkable talking points for each round phase, built a <strong>market snapshot infographic</strong> summarising key round outcomes visually, added <strong>quick recap cards</strong> showing the previous round&rsquo;s results at the start of each new round, implemented a <strong>price history chart</strong> tracking clearing prices and historical trends across all rounds, created <strong>explain tooltips</strong> for key NEM terminology throughout the interface, built <strong>bid preset buttons</strong> (Price Taker, Cost Recovery, Split Strategy, Aggressive) so teams can quickly apply common bidding strategies, created a <strong>spectator mode</strong> at the /spectate route allowing observers to watch the game without joining a team, built a <strong>post-game printable report</strong> at the /report route with comprehensive game analytics, added <strong>duplicate team name prevention</strong> with real-time validation, and implemented <strong>React.lazy() code splitting</strong> that reduced the main JavaScript bundle from 1180KB down to 432KB&mdash;a 63% reduction in initial load size.</div>
       <div class="highlight"><strong>Key insight:</strong> This phase demonstrated that vibe coding scales beyond initial creation into sustained product evolution. Over 60 prompts across 3 sessions, the application grew by roughly 13,000 lines of code and 50 new files. The Progressive Learning mode alone&mdash;requiring new round data, a modified game engine, progressive asset unlocking logic, and round-by-round teaching content&mdash;went from concept to working implementation within a single session. The performance optimisation work (code splitting reducing the bundle by 63%) shows that AI-assisted development can handle not just feature building but also the technical debt and optimisation work that mature applications require.</div>
     </div>
+
+    <div class="timeline-item">
+      <h3>Phase 9: Battery Mechanics &amp; Market Realism <span class="badge badge-blue">30+ prompts &middot; Sessions 15&ndash;17</span></h3>
+      <p><span class="badge badge-purple">Following weeks</span> The user wanted batteries to become a first-class mechanic&mdash;not just a generator that bids into the market, but a genuine charge/discharge/arbitrage experience. They also wanted the dispatch engine to match real AEMO behaviour for tied bids.</p>
+      <div class="human"><strong>What the human said (examples):</strong></div>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;I want to be able to implement a charge/discharge feature for batteries&rdquo;</li>
+        <li>&ldquo;Build a battery explainer that teaches players how batteries work in the NEM&rdquo;</li>
+        <li>&ldquo;Create a battery arbitrage mini-game where players practise charging and discharging across a 24-hour period&rdquo;</li>
+        <li>&ldquo;The results should label battery earnings as &lsquo;arbitrage revenue&rsquo; not just profit&rdquo;</li>
+        <li>&ldquo;Battery charging should add to market demand&mdash;if you charge 500 MW, that&rsquo;s 500 MW more demand&rdquo;</li>
+        <li>&ldquo;When two teams bid the same price, how is it dispatched? It should be pro-rata, like the real NEM&rdquo;</li>
+        <li>&ldquo;Update all the guides on the main page based upon the changes&rdquo;</li>
+      </ul>
+      <div class="ai"><strong>What Claude did:</strong> This was a major engine and UI overhaul. Claude implemented <strong>full battery charge/discharge mechanics</strong>&mdash;a 3-way mode toggle (Charge/Idle/Discharge) per period, State of Charge (SOC) tracking across periods with a visual bar, 92% round-trip efficiency on charging, and charging cost calculated at the clearing price. The battery was upgraded from 150 MW to <strong>500 MW / 2,000 MWh</strong> (4-hour duration) to match modern grid-scale batteries. Claude built an <strong>8-slide Battery Explainer</strong> modal covering SOC, efficiency, arbitrage, the diurnal price pattern, and how charging adds to market demand. A <strong>Battery Arbitrage Mini-Game</strong> was created&mdash;an interactive 24-hour exercise where players set charge/idle/discharge for each hour against a realistic predispatch price curve, then watch as actual prices are revealed with variability, calculating their real profit versus optimal. Claude also replaced the dispatch engine&rsquo;s random tie-breaking with <strong>pro-rata dispatch</strong>&mdash;when multiple bid bands are at the same price and straddle the margin, dispatch is now split proportionally by capacity offered, matching how AEMO&rsquo;s NEMDE actually works. All educational content was then updated across 10+ files: the Game Guide, Game Master&rsquo;s Guide, Strategy Guide, Common Mistakes, Explain Tooltips, Landing Page educational slides, and more&mdash;adding pro-rata dispatch explanations, updated battery specs, &ldquo;arbitrage revenue&rdquo; terminology, and the concept that battery charging adds to market demand.</div>
+      <div class="highlight"><strong>Key insight:</strong> This phase shows how vibe coding enables deep engine changes to ripple cleanly through an entire application. The battery mechanics required coordinated changes across shared types, the server dispatch engine, profit calculations, client UI components, bidding strategies, and all educational content. In traditional development this would be a multi-sprint epic requiring careful coordination between backend and frontend developers. Here, each change was described in plain English and Claude propagated it consistently across all 15+ affected files.</div>
+    </div>
+
+    <div class="timeline-item">
+      <h3>Phase 10: Rebrand, Market Realism &amp; Portfolio Strategy <span class="badge badge-blue">20+ prompts &middot; Sessions 18&ndash;19</span></h3>
+      <p><span class="badge badge-purple">Following weeks</span> The user wanted to give the game a memorable brand identity, add realistic negative pricing mechanics, and build educational content around portfolio strategy&mdash;a key NEM concept that was implicit in gameplay but never explicitly taught.</p>
+      <div class="human"><strong>What the human said (examples):</strong></div>
+      <ul style="font-size: 0.9rem; color: #4a5568;">
+        <li>&ldquo;Can you suggest some good names for the game?&rdquo;</li>
+        <li>&ldquo;Can you use Watt Street with tagline &lsquo;Bid. Dispatch. Dominate.&rsquo; and update all items including the guides and the movie trailer&rdquo;</li>
+        <li>&ldquo;Add negative pricing / oversupply mechanics&mdash;when supply exceeds 3&times; demand, price drops to -$1,000/MWh&rdquo;</li>
+        <li>&ldquo;Add a portfolio strategy explainer linked to real NEM examples with three in-game strategies&rdquo;</li>
+        <li>&ldquo;Update the guides and vibe coding notes to describe these sessions&rdquo;</li>
+      </ul>
+      <div class="ai"><strong>What Claude did:</strong> This phase combined branding, engine enhancements, and educational content. Claude <strong>rebranded the entire application to &ldquo;Watt Street&rdquo;</strong>, updating 18+ files across the codebase: all HTML guides (cinematic trailer, game master guide, player pre-read, learn NEM, technical notes, vibe coding notes, recommended improvements), client pages (landing page with animated title reveal, dashboard, game setup, post-game report, game guide), package.json, and the server startup message. Seven parallel background agents were used to update the server-rendered HTML pages simultaneously. Claude then implemented <strong>negative pricing / oversupply mechanics</strong> in the dispatch engine: when total supply offered exceeds 3&times; demand, the clearing price crashes to -$1,000/MWh, matching real AEMO market floor behaviour. This was integrated with educational content explaining how oversupply creates opportunities for battery charging. <strong>Three pre-existing TypeScript errors</strong> were diagnosed and fixed: an <code>AssetDefinition</code> import path issue in surprises.ts and a missing <code>game:reset</code> event in the ServerToClientEvents socket interface. Finally, Claude built a <strong>6-slide Portfolio Strategy Explainer</strong> modal teaching portfolio diversification with real NEM context (the gentailer model used by AGL, Origin, and EnergyAustralia) and three concrete in-game strategies: the Baseload + Peaker Squeeze, the Renewable Shield, and the Battery Amplifier. A &ldquo;&#128202; Portfolio&rdquo; help button was added to the bidding screen (visible when teams have 3+ asset types). The Game Master&rsquo;s Guide and Player Pre-Read were updated with new portfolio strategy sections and glossary terms.</div>
+      <div class="highlight"><strong>Key insight:</strong> The rebrand demonstrated a common vibe coding pattern&mdash;a single &ldquo;rename everything&rdquo; request touches 18+ files across the entire stack (HTML templates, React components, config files, console output), which would be tedious manual work but is well-suited to AI-assisted development. The portfolio explainer shows how domain expertise (NEM market knowledge) can be woven into educational game content through iterative conversation, with the AI drawing on real-world examples (specific power stations, company strategies) to make abstract concepts concrete and actionable for players.</div>
+    </div>
   </div>
 
   <h2>The Prompts: What the Human Actually Said</h2>
   <div class="card">
-    <p>Across all 14+ sessions, the human sent <strong>~220+ prompts</strong>. These ranged from a 500-word opening brief to single-word continuations like &ldquo;yes&rdquo; and &ldquo;continue.&rdquo; Here is how they break down by category:</p>
+    <p>Across all 17+ sessions, the human sent <strong>~250+ prompts</strong>. These ranged from a 500-word opening brief to single-word continuations like &ldquo;yes&rdquo; and &ldquo;continue.&rdquo; Here is how they break down by category:</p>
 
     <div class="split" style="margin-top: 1rem;">
       <div>
-        <h3 style="color: #805ad5;">Feature Requests (~80 prompts, 36%)</h3>
+        <h3 style="color: #805ad5;">Feature Requests (~90 prompts, 36%)</h3>
         <p style="font-size: 0.9rem;">New features and capabilities, described in plain English:</p>
         <ul style="font-size: 0.85rem;">
           <li>Game concept and structure (initial 500-word brief)</li>
@@ -286,6 +318,10 @@ export function getVibeCodingNotesHTML(): string {
           <li>Bid presets (Price Taker, Cost Recovery, etc.)</li>
           <li>Spectator mode and post-game report</li>
           <li>Code splitting and performance optimisation</li>
+          <li>Battery charge/discharge/idle mechanics with SOC tracking</li>
+          <li>Battery Explainer (8-slide educational modal)</li>
+          <li>Battery Arbitrage Mini-Game (24-hour exercise)</li>
+          <li>Pro-rata dispatch for tied bids (matching real NEMDE)</li>
         </ul>
       </div>
       <div>
@@ -379,23 +415,25 @@ export function getVibeCodingNotesHTML(): string {
       <div>
         <h3>Scale of Work</h3>
         <ul>
-          <li><strong>~35,000+ lines of code</strong> written</li>
-          <li><strong>~120+ files</strong> created</li>
-          <li><strong>15+ major versions</strong> committed to git</li>
-          <li><strong>~10 days</strong> elapsed, <strong>~8 hours</strong> active human time</li>
+          <li><strong>~40,000+ lines of code</strong> written</li>
+          <li><strong>~130+ files</strong> created</li>
+          <li><strong>20+ major versions</strong> committed to git</li>
+          <li><strong>Several weeks</strong> elapsed, <strong>~10 hours</strong> active human time</li>
           <li><strong>7 asset types</strong> with realistic parameters</li>
           <li><strong>16+ scenario events</strong> (including 6 surprise events)</li>
           <li><strong>5 game modes</strong> (including Progressive Learning)</li>
+          <li><strong>Pro-rata dispatch</strong> matching real AEMO NEMDE</li>
+          <li><strong>Full battery arbitrage</strong> with charge/discharge/SOC</li>
         </ul>
       </div>
       <div>
         <h3>Human Input</h3>
         <ul>
-          <li><strong>~220+ prompts</strong> across 14+ conversation sessions</li>
-          <li><strong>~80 feature requests</strong> (36%)</li>
-          <li><strong>~25 bug reports</strong> (11%)</li>
-          <li><strong>~40 UI/UX improvements</strong> (18%)</li>
-          <li><strong>~75 tooling delegation prompts</strong> (34%): server restarts, git commits, session continuations&mdash;tasks a developer would handle themselves, delegated to the AI by a non-coder</li>
+          <li><strong>~250+ prompts</strong> across 17+ conversation sessions</li>
+          <li><strong>~90 feature requests</strong> (36%)</li>
+          <li><strong>~25 bug reports</strong> (10%)</li>
+          <li><strong>~45 UI/UX improvements</strong> (18%)</li>
+          <li><strong>~90 tooling delegation prompts</strong> (36%): server restarts, git commits, session continuations&mdash;tasks a developer would handle themselves, delegated to the AI by a non-coder</li>
           <li>Longest prompt: <strong>~500 words</strong> (opening game concept)</li>
           <li>Shortest prompt: <strong>1 word</strong> (&ldquo;continue&rdquo;, &ldquo;yes&rdquo;, &ldquo;both&rdquo;)</li>
         </ul>
@@ -410,13 +448,13 @@ export function getVibeCodingNotesHTML(): string {
           <h3 style="color: #38a169; margin-top: 0;">Vibe Coding Approach</h3>
           <ul>
             <li><strong>Team:</strong> 1 person (domain expert + AI)</li>
-            <li><strong>Elapsed time:</strong> ~10 days</li>
-            <li><strong>Human active time:</strong> ~8 hours</li>
-            <li><strong>Equivalent AI dev effort:</strong> ~500 hours</li>
+            <li><strong>Elapsed time:</strong> Several weeks</li>
+            <li><strong>Human active time:</strong> ~10 hours</li>
+            <li><strong>Equivalent AI dev effort:</strong> ~600 hours</li>
             <li><strong>Tooling cost:</strong> Claude Code subscription ~$200/month</li>
-            <li><strong>Total cost:</strong> ~$200 + ~8 hours of the person&rsquo;s time</li>
+            <li><strong>Total cost:</strong> ~$200 + ~10 hours of the person&rsquo;s time</li>
           </ul>
-          <p style="font-size: 0.9rem; margin-top: 0.8rem; color: #4a5568;">The person spent ~8 hours describing features in plain English, testing the game, reporting bugs, and providing domain expertise. Claude delivered the equivalent of ~500 hours of professional development work: 35,000+ lines of code, architecture design, UI, procedural audio engine, performance optimisation, and all documentation. A <strong>60:1 leverage ratio</strong>.</p>
+          <p style="font-size: 0.9rem; margin-top: 0.8rem; color: #4a5568;">The person spent ~10 hours describing features in plain English, testing the game, reporting bugs, and providing domain expertise. Claude delivered the equivalent of ~600 hours of professional development work: 40,000+ lines of code, architecture design, UI, procedural audio engine, battery arbitrage mechanics, pro-rata dispatch, performance optimisation, and all documentation. A <strong>60:1 leverage ratio</strong>.</p>
         </div>
 
         <div class="card" style="border-top: 4px solid #e53e3e; margin: 0;">
@@ -438,16 +476,17 @@ export function getVibeCodingNotesHTML(): string {
         <div class="split">
           <div>
             <ul style="font-size: 0.9rem;">
-              <li><strong>Weeks 1&ndash;2:</strong> Requirements gathering, stakeholder alignment, design sprints</li>
-              <li><strong>Weeks 3&ndash;4:</strong> Architecture design, tech stack selection, environment setup</li>
-              <li><strong>Weeks 5&ndash;8:</strong> Core development (game engine, UI, real-time networking)</li>
+              <li><strong>Weeks 1&ndash;3:</strong> Requirements gathering, stakeholder alignment, design sprints, procurement</li>
+              <li><strong>Weeks 4&ndash;5:</strong> Architecture design, tech stack selection, environment setup, security review</li>
+              <li><strong>Weeks 6&ndash;10:</strong> Core development (game engine, dispatch algorithm, real-time networking, multiplayer UI)</li>
             </ul>
           </div>
           <div>
             <ul style="font-size: 0.9rem;">
-              <li><strong>Weeks 9&ndash;10:</strong> Integration, testing, user acceptance testing</li>
-              <li><strong>Weeks 11&ndash;12:</strong> Bug fixes, polish, deployment, documentation</li>
-              <li><strong>Total: 10&ndash;12 weeks</strong></li>
+              <li><strong>Weeks 11&ndash;13:</strong> Battery mechanics, advanced features, educational content, game balancing</li>
+              <li><strong>Weeks 14&ndash;15:</strong> Integration testing, cross-device QA, user acceptance testing</li>
+              <li><strong>Week 16:</strong> Bug fixes, polish, deployment, documentation</li>
+              <li><strong>Total: 14&ndash;16 weeks</strong></li>
             </ul>
           </div>
         </div>
@@ -456,12 +495,13 @@ export function getVibeCodingNotesHTML(): string {
       <div class="card" style="margin-top: 1rem; border-left: 4px solid #e53e3e;">
         <h3 style="margin-top: 0; color: #e53e3e;">Traditional Cost Estimate</h3>
         <ul style="font-size: 0.9rem;">
-          <li><strong>Core team</strong> (PM + Designer + 2 Devs + QA): ~5 people &times; 12 weeks &times; 5 days &times; $1,400 avg = <strong>~$420,000</strong></li>
-          <li><strong>Part-time specialists</strong> (SME at 0.3 FTE + DevOps at 0.2 FTE): <strong>~$50,000</strong></li>
-          <li><strong>Corporate overhead</strong> (meetings, approvals, change requests, procurement): <strong>+30&ndash;50%</strong></li>
-          <li><strong>Infrastructure and tooling</strong> (cloud environments, CI/CD, licences): <strong>~$5,000&ndash;10,000</strong></li>
+          <li><strong>Core team</strong> (PM + Designer + 2 Devs + QA): ~5 people &times; 16 weeks &times; 5 days &times; $1,400 avg = <strong>~$560,000</strong></li>
+          <li><strong>Part-time specialists</strong> (SME at 0.3 FTE + DevOps at 0.2 FTE): <strong>~$65,000</strong></li>
+          <li><strong>Corporate overhead</strong> (meetings, approvals, change requests, procurement, security reviews): <strong>+40&ndash;60%</strong></li>
+          <li><strong>Infrastructure and tooling</strong> (cloud environments, CI/CD, licences, staging): <strong>~$10,000&ndash;20,000</strong></li>
+          <li><strong>Testing and UAT cycles</strong> (multiplayer testing across devices, game balancing): <strong>~$40,000&ndash;60,000</strong></li>
         </ul>
-        <p style="font-size: 1.1rem; font-weight: 700; color: #e53e3e; margin-top: 0.8rem; text-align: center;">Estimated total: $500,000 &ndash; $750,000</p>
+        <p style="font-size: 1.1rem; font-weight: 700; color: #e53e3e; margin-top: 0.8rem; text-align: center;">Estimated total: $1,000,000 &ndash; $1,300,000</p>
       </div>
 
       <div class="callout" style="margin-top: 1rem;">
@@ -475,10 +515,10 @@ export function getVibeCodingNotesHTML(): string {
       </div>
 
       <div class="highlight" style="margin-top: 1rem;">
-        <p style="font-size: 0.9rem;"><strong>A note on the traditional estimate:</strong> The $500,000&ndash;$750,000 figure may seem high, but consider: corporate IT projects routinely involve procurement processes, security reviews, architectural review boards, multiple environments (dev/staging/prod), accessibility compliance, and documentation requirements that simply do not apply to a weekend vibe-coding session. In many large organisations, even getting a new project approved and a team assembled can take 4&ndash;6 weeks before any code is written.</p>
+        <p style="font-size: 0.9rem;"><strong>A note on the traditional estimate:</strong> The $1,000,000+ figure reflects the reality of corporate IT delivery. Projects of this complexity routinely involve procurement processes, security reviews, architectural review boards, multiple environments (dev/staging/prod), accessibility compliance, cross-device testing matrices, and documentation requirements that simply do not apply to a vibe-coding approach. In many large organisations, even getting a new project approved and a team assembled can take 4&ndash;6 weeks before any code is written. The game&rsquo;s real-time multiplayer architecture, procedural audio engine, battery arbitrage mechanics, pro-rata dispatch algorithm, and 5 game modes represent significant technical scope that would span multiple development sprints.</p>
       </div>
 
-      <p style="margin-top: 1rem;">The vibe coding approach reduced this to <strong>~8 hours of human effort + AI over 10 days, using ~220 plain-English prompts and a $200 subscription</strong>. That&rsquo;s a 60:1 leverage ratio&mdash;every hour the human invested yielded roughly 60 hours of development output.</p>
+      <p style="margin-top: 1rem;">The vibe coding approach reduced this to <strong>~10 hours of human effort + AI over several weeks, using ~250 plain-English prompts and a $200 subscription</strong>. That&rsquo;s a 60:1 leverage ratio&mdash;every hour the human invested yielded roughly 60 hours of development output.</p>
     </div>
   </div>
 
@@ -517,15 +557,15 @@ export function getVibeCodingNotesHTML(): string {
 
   <h2>The Takeaway</h2>
   <div class="callout" style="background: linear-gradient(135deg, #fffbeb 0%, #faf5ff 100%); border: 2px solid #805ad5;">
-    <p style="font-size: 1.15rem; font-weight: 700; color: #553c9a; text-align: center; margin-bottom: 0.8rem;">~8 hours of human effort. ~500 hours of equivalent AI development. $200.</p>
-    <p>The human spent roughly <strong>8 active hours</strong> across 10 days&mdash;describing features, testing the game, reporting bugs, and providing domain expertise. In that same window, Claude delivered the equivalent of <strong>~500 hours of professional developer effort</strong>: 35,000+ lines of code, 120+ files, a real-time multiplayer architecture, a procedural audio engine, cinematic animations, and comprehensive documentation.</p>
+    <p style="font-size: 1.15rem; font-weight: 700; color: #553c9a; text-align: center; margin-bottom: 0.8rem;">~10 hours of human effort. ~600 hours of equivalent AI development. $200.</p>
+    <p>The human spent roughly <strong>10 active hours</strong> across several weeks&mdash;describing features, testing the game, reporting bugs, and providing domain expertise. In that same window, Claude delivered the equivalent of <strong>~600 hours of professional developer effort</strong>: 40,000+ lines of code, 130+ files, a real-time multiplayer architecture, a procedural audio engine, full battery arbitrage mechanics, pro-rata dispatch matching the real AEMO NEMDE, cinematic animations, and comprehensive documentation.</p>
     <p style="margin-top: 0.8rem;">That is a <strong>60:1 leverage ratio</strong>. For every hour the human invested in conversation, the AI delivered roughly 60 hours of development work&mdash;at a total AI cost of ~$200.</p>
     <p style="margin-top: 0.8rem;">That is the power of vibe coding: <strong>ideas become software at the speed of conversation</strong>.</p>
   </div>
 
   <div style="margin-top: 3rem; padding: 1.5rem; text-align: center; color: #718096; font-size: 0.85rem; border-top: 1px solid #e2e8f0;">
-    <p>NEM Merit Order Training Game &mdash; Vibe Coding Notes</p>
-    <p>Built with Claude Code (Anthropic Claude Opus 4.6) + human direction, February 2026</p>
+    <p>Watt Street &mdash; Vibe Coding Notes</p>
+    <p>Built with Claude Code (Anthropic Claude Opus 4.6) + human direction, February&ndash;March 2026</p>
   </div>
 </div>
 </body>

@@ -252,11 +252,12 @@ export const progressiveLearningRounds: RoundConfig[] = [
     demandVariability: 0.1,
     newAssetsUnlocked: ['battery'],
     activeScenarioEvents: [],
+    batteryMiniGame: true,
     biddingTimeLimitSeconds: 300,
     maxBidBandsPerAsset: 10,
     hostTeachingNotes: [
       'Battery is the last new asset — portfolio is now complete',
-      'Explain arbitrage: charge low, sell high. 85% efficiency = need 18% spread to profit',
+      'Explain arbitrage: charge low, sell high. 92% efficiency = need ~9% spread to profit',
       'In spring: charge during afternoon solar surplus, discharge during evening',
       'After results: "Who made the most from their battery? What was the price spread?"',
     ],
@@ -266,11 +267,11 @@ export const progressiveLearningRounds: RoundConfig[] = [
       slides: [
         {
           heading: 'The Arbitrage Machine',
-          body: '**Battery**: ~150 MW / 300 MWh, 85% round-trip efficiency\n\nCharge during low prices, discharge at peaks. The spread must exceed the 15% efficiency loss.\n\nYou now have your full portfolio: Coal, Gas CCGT, Peaker, Wind, Solar, Hydro, Battery.',
+          body: '**Battery**: 500 MW / 2,000 MWh / 4-hour duration / 92% round-trip efficiency\n\nCharge during low prices, discharge at peaks. The spread must exceed the 8% efficiency loss.\n\nYou now have your full portfolio: Coal, Gas CCGT, Peaker, Wind, Solar, Hydro, Battery.',
         },
         {
           heading: 'Battery Strategy by Period',
-          body: '🌙 **Overnight**: CHARGE — prices lowest\n🌅 **Morning**: May continue charging if solar pushes prices down\n☀️ **Afternoon**: CHARGE during solar surplus\n🌆 **Evening**: DISCHARGE — prime time! Solar gone, demand high.\n\nWith 85% efficiency, charging at $20/MWh requires discharge above ~$24/MWh to break even.',
+          body: '🌙 **Overnight**: CHARGE — prices lowest\n🌅 **Morning**: May continue charging if solar pushes prices down\n☀️ **Afternoon**: CHARGE during solar surplus\n🌆 **Evening**: DISCHARGE — prime time! Solar gone, demand high.\n\nWith 92% efficiency, charging at $20/MWh requires discharge above ~$22/MWh to break even.',
         },
       ],
     },

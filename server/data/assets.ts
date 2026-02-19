@@ -158,16 +158,16 @@ export function createAssetDefinitionsForTeam(
         ? `${batteryOverride.name} ${teamIndex + 1}`
         : getBatteryName(teamIndex),
       type: 'battery',
-      nameplateMW: batteryOverride?.nameplateMW ?? 150,
+      nameplateMW: batteryOverride?.nameplateMW ?? 500,
       srmcPerMWh: 0,
       minStableLoadMW: 0,
-      rampRateMWPerMin: 150,
+      rampRateMWPerMin: 500,
       startupCostDollars: 0,
       mustRun: false,
       availableFromRound: 8,
-      maxStorageMWh: Math.round((batteryOverride?.nameplateMW ?? 150) * 2), // 2 hours of storage
-      roundTripEfficiency: 0.85,
-      maxChargeMW: batteryOverride?.nameplateMW ?? 150,
+      maxStorageMWh: Math.round((batteryOverride?.nameplateMW ?? 500) * 4), // 4 hours of storage
+      roundTripEfficiency: 0.92,
+      maxChargeMW: batteryOverride?.nameplateMW ?? 500,
     },
   ];
 }
@@ -186,8 +186,16 @@ export function getAvailableAssets(allAssets: AssetDefinition[], roundNumber: nu
     1: 1, 2: 3, 3: 5, 4: 6, 5: 7, 6: 9, 7: 11, 8: 15,
   };
 
+  // Progressive Learning: 10 rounds that gradually unlock assets
+  // Round 1-3: coal only, Round 4: +gas, Round 5: +wind/solar/hydro, Round 6+: +battery (all)
+  const progressiveModeRoundMap: Record<number, number> = {
+    1: 1, 2: 1, 3: 1, 4: 5, 5: 7, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8,
+  };
+
   const effectiveRound = gameMode === 'quick'
     ? (quickModeRoundMap[roundNumber] || roundNumber)
+    : gameMode === 'progressive'
+    ? (progressiveModeRoundMap[roundNumber] || roundNumber)
     : roundNumber;
 
   return allAssets.filter(a => a.availableFromRound <= effectiveRound);

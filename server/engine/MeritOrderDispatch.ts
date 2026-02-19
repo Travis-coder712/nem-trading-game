@@ -46,11 +46,19 @@ export function dispatchTimePeriod(
   assetDefs: Map<string, AssetDefinition>,
   teamNames: Map<string, string>,
 ): TimePeriodDispatchResult {
-  // Step 1: Flatten all bid bands into a single list
+  // Step 1: Collect battery charging load (not part of supply, batteries pay clearing price)
+  let totalChargingLoadMW = 0;
+  for (const bid of allBids) {
+    if ((bid.batteryMode === 'charge' || bid.isBatteryCharging) && bid.chargeMW && bid.chargeMW > 0) {
+      totalChargingLoadMW += bid.chargeMW;
+    }
+  }
+
+  // Step 2: Flatten all bid bands into a single list (skip charging bids)
   const allBands: DispatchCandidate[] = [];
 
   for (const bid of allBids) {
-    if (bid.isBatteryCharging) continue; // Skip charging bids from dispatch
+    if (bid.isBatteryCharging || bid.batteryMode === 'charge' || bid.batteryMode === 'idle') continue; // Skip charging/idle bids from dispatch
     const assetDef = assetDefs.get(bid.assetDefinitionId);
     if (!assetDef) continue;
 
@@ -76,60 +84,107 @@ export function dispatchTimePeriod(
     }
   }
 
-  // Step 2: Sort by price ascending with tie-breaking
+  // Step 3: Sort by price ascending (deterministic tie-breaking for grouping order only)
   allBands.sort((a, b) => {
     if (a.bidPriceMWh !== b.bidPriceMWh) return a.bidPriceMWh - b.bidPriceMWh;
-    // Tie-break: lower dispatch priority number first (renewables > thermal)
+    // Deterministic tie-break for stable ordering within price groups
+    // (pro-rata dispatch means ordering within a tied group doesn't affect dispatch amounts)
     const prioA = ASSET_TYPE_DISPATCH_PRIORITY[a.assetType] ?? 99;
     const prioB = ASSET_TYPE_DISPATCH_PRIORITY[b.assetType] ?? 99;
     if (prioA !== prioB) return prioA - prioB;
-    // Tie-break: larger quantities first
-    if (a.offeredMW !== b.offeredMW) return b.offeredMW - a.offeredMW;
-    // Final: random
-    return Math.random() - 0.5;
+    if (a.teamId !== b.teamId) return a.teamId.localeCompare(b.teamId);
+    return a.assetDefinitionId.localeCompare(b.assetDefinitionId);
   });
 
-  // Step 3: Walk the merit order
-  let remainingDemand = demandMW;
+  // Step 4: Walk the merit order with pro-rata dispatch for tied bids
+  //
+  // Like the real AEMO NEMDE, when multiple bands are bid at the same price
+  // and they collectively straddle the margin (total capacity > remaining demand),
+  // dispatch is split proportionally across all tied bands rather than arbitrarily
+  // fully dispatching some and partially dispatching one.
+  //
+  // Battery charging adds to demand — generators must serve both consumer load
+  // AND battery charging load. This means if many teams charge simultaneously,
+  // the market tightens and the clearing price rises.
+  const totalDemandMW = demandMW + totalChargingLoadMW;
+  let remainingDemand = totalDemandMW;
   let clearingPrice = 0;
   const dispatchedBands: DispatchedBand[] = [];
   const undispatchedBands: DispatchedBand[] = [];
   let totalOfferedMW = 0;
 
-  for (const band of allBands) {
-    totalOfferedMW += band.offeredMW;
+  // Process bands in price groups for pro-rata dispatch
+  let i = 0;
+  while (i < allBands.length) {
+    // Find all bands at the same price (a "price group")
+    const groupPrice = allBands[i].bidPriceMWh;
+    const groupStart = i;
+    let groupTotalMW = 0;
+    while (i < allBands.length && allBands[i].bidPriceMWh === groupPrice) {
+      groupTotalMW += allBands[i].offeredMW;
+      totalOfferedMW += allBands[i].offeredMW;
+      i++;
+    }
+    const group = allBands.slice(groupStart, i);
 
     if (remainingDemand <= 0) {
-      undispatchedBands.push({
-        teamId: band.teamId,
-        teamName: band.teamName,
-        assetDefinitionId: band.assetDefinitionId,
-        assetName: band.assetName,
-        assetType: band.assetType,
-        bandIndex: band.bandIndex,
-        bidPriceMWh: band.bidPriceMWh,
-        offeredMW: band.offeredMW,
-        dispatchedMW: 0,
-        isPartiallyDispatched: false,
-        isMarginal: false,
-      });
+      // All demand already met — entire group is undispatched
+      for (const band of group) {
+        undispatchedBands.push({
+          teamId: band.teamId,
+          teamName: band.teamName,
+          assetDefinitionId: band.assetDefinitionId,
+          assetName: band.assetName,
+          assetType: band.assetType,
+          bandIndex: band.bandIndex,
+          bidPriceMWh: band.bidPriceMWh,
+          offeredMW: band.offeredMW,
+          dispatchedMW: 0,
+          isPartiallyDispatched: false,
+          isMarginal: false,
+        });
+      }
       continue;
     }
 
-    if (band.offeredMW <= remainingDemand) {
-      // Fully dispatch this band
-      band.dispatchedMW = band.offeredMW;
-      remainingDemand -= band.offeredMW;
-      clearingPrice = band.bidPriceMWh;
-      dispatchedBands.push({ ...band });
+    if (groupTotalMW <= remainingDemand) {
+      // Entire group fits within remaining demand — fully dispatch all bands
+      for (const band of group) {
+        band.dispatchedMW = band.offeredMW;
+        clearingPrice = band.bidPriceMWh;
+        dispatchedBands.push({ ...band });
+      }
+      remainingDemand -= groupTotalMW;
     } else {
-      // Partially dispatch - this is the marginal unit
-      band.dispatchedMW = remainingDemand;
-      band.isPartiallyDispatched = true;
-      band.isMarginal = true;
-      clearingPrice = band.bidPriceMWh;
+      // Pro-rata: this group straddles the margin.
+      // Split remaining demand proportionally across all bands in the group.
+      clearingPrice = groupPrice;
+      const proRataRatio = remainingDemand / groupTotalMW;
+
+      for (const band of group) {
+        const dispatch = Math.round(band.offeredMW * proRataRatio * 100) / 100;
+        if (dispatch > 0) {
+          band.dispatchedMW = dispatch;
+          band.isPartiallyDispatched = dispatch < band.offeredMW;
+          band.isMarginal = true;
+          dispatchedBands.push({ ...band });
+        } else {
+          undispatchedBands.push({
+            teamId: band.teamId,
+            teamName: band.teamName,
+            assetDefinitionId: band.assetDefinitionId,
+            assetName: band.assetName,
+            assetType: band.assetType,
+            bandIndex: band.bandIndex,
+            bidPriceMWh: band.bidPriceMWh,
+            offeredMW: band.offeredMW,
+            dispatchedMW: 0,
+            isPartiallyDispatched: false,
+            isMarginal: false,
+          });
+        }
+      }
       remainingDemand = 0;
-      dispatchedBands.push({ ...band });
     }
   }
 
@@ -138,23 +193,46 @@ export function dispatchTimePeriod(
     dispatchedBands[dispatchedBands.length - 1].isMarginal = true;
   }
 
-  // Step 4: Handle demand exceeding supply
+  // Step 5: Handle demand exceeding supply
   if (remainingDemand > 0) {
     clearingPrice = priceCap;
   }
 
-  const totalDispatchedMW = demandMW - Math.max(0, remainingDemand);
+  const totalDispatchedMW = totalDemandMW - Math.max(0, remainingDemand);
+
+  // Step 6: Oversupply negative price trigger
+  //
+  // When total supply massively exceeds demand (reserve margin > 200%, meaning
+  // supply is 3× demand), force the clearing price to the price floor (-$1,000/MWh).
+  //
+  // This models real NEM dynamics where massive oversupply — from everyone
+  // discharging batteries simultaneously, or renewables flooding during low demand —
+  // drives prices deeply negative. Inflexible generators are effectively "paying
+  // to stay on" because the cost of shutting down and restarting exceeds the
+  // short-term losses from negative prices.
+  //
+  // The threshold is deliberately high (3× supply:demand) so it only triggers
+  // during genuinely extreme oversupply events, not normal surplus conditions.
+  const reserveMarginPercent = totalDemandMW > 0
+    ? Math.round(((totalOfferedMW - totalDemandMW) / totalDemandMW) * 10000) / 100
+    : 0;
+
+  let oversupplyNegativePriceTriggered = false;
+  if (totalDemandMW > 0 && reserveMarginPercent > 200 && clearingPrice > priceFloor) {
+    clearingPrice = priceFloor;
+    oversupplyNegativePriceTriggered = true;
+  }
 
   return {
     timePeriod,
-    demandMW,
+    demandMW: totalDemandMW, // includes charging load — this is what generators must serve
     clearingPriceMWh: Math.round(clearingPrice * 100) / 100,
     totalDispatchedMW,
     meritOrderStack: dispatchedBands,
     undispatchedBands,
-    excessCapacityMW: Math.max(0, totalOfferedMW - demandMW),
-    reserveMarginPercent: demandMW > 0
-      ? Math.round(((totalOfferedMW - demandMW) / demandMW) * 10000) / 100
-      : 0,
+    excessCapacityMW: Math.max(0, totalOfferedMW - totalDemandMW),
+    reserveMarginPercent,
+    totalChargingLoadMW,
+    oversupplyNegativePriceTriggered,
   };
 }

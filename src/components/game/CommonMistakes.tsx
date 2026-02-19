@@ -31,8 +31,8 @@ const MISTAKES: Mistake[] = [
   {
     icon: '😴',
     title: 'Forgetting to Bid Some Assets',
-    whatHappens: 'With guardrails on, your submission gets rejected. With guardrails off, those assets bid 0 MW and sit idle.',
-    tip: 'Make sure you\'ve bid for every asset in every period. Use the review screen before submitting — it highlights missing bids.',
+    whatHappens: 'Those assets bid 0 MW and sit idle — earning no revenue while you still pay fixed costs. With guardrails on, you\'ll get a warning before submitting.',
+    tip: 'Deliberately sitting an asset idle can be a valid strategy (e.g. withdrawing capacity to tighten supply), but make sure it\'s intentional! The review screen highlights any assets with 0 MW bids.',
     category: 'bidding',
   },
   {
@@ -44,10 +44,17 @@ const MISTAKES: Mistake[] = [
   },
   {
     icon: '🔋',
-    title: 'Not Charging Batteries',
-    whatHappens: 'Your battery sits idle and misses the arbitrage opportunity. You earn nothing from it.',
-    tip: 'Batteries make money from the SPREAD between charge and discharge prices. Charge during cheap periods (overnight, midday solar surplus) and discharge when prices peak (evening).',
+    title: 'Not Managing Battery Charge/Discharge',
+    whatHappens: 'Your battery sits idle or you forget to toggle between charge and discharge modes. You miss the arbitrage revenue opportunity and earn nothing from it.',
+    tip: 'Use the charge/discharge toggle to set your battery mode each period. Charge during cheap periods (overnight, midday solar surplus) and discharge when prices peak (evening). Watch your State of Charge (SOC) — you can\'t discharge an empty battery or charge a full one! Remember: your 500 MW of charging adds to market demand, so charge when there\'s excess supply capacity to avoid driving up the price you pay.',
     category: 'assets',
+  },
+  {
+    icon: '📉',
+    title: 'Ignoring Negative Prices',
+    whatHappens: 'Your generators are dispatched during oversupply and you PAY to produce electricity. If total supply exceeds demand by 3× or more, the price crashes to -$1,000/MWh — every dispatched MW costs you dearly.',
+    tip: 'Watch for oversupply signals: spring season, strong renewables, low demand. When supply massively exceeds demand, bid your thermal assets HIGH to avoid dispatch, and set your battery to CHARGE — you get paid to absorb power! The spread between negative daytime prices and positive evening prices is where the real money is.',
+    category: 'strategy',
   },
   {
     icon: '🔄',
