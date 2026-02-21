@@ -15,20 +15,9 @@ interface GuideLink {
 
 const playerGuides: GuideLink[] = [
   {
-    emoji: '📚',
-    title: 'Learn the NEM',
-    description: 'Comprehensive guide to Australia\'s National Electricity Market — merit order, clearing prices, generator types, and bidding strategies.',
-    href: '/api/learn-nem',
-    isExternal: true,
-    color: 'text-electric-300',
-    borderColor: 'border-electric-500/30',
-    hoverBorderColor: 'hover:border-electric-400',
-    hoverBg: 'hover:bg-electric-500/10',
-  },
-  {
     emoji: '📖',
     title: 'Player Pre-Read',
-    description: 'Send to participants before the session. Covers game concept, asset types, bidding basics, round structure, and strategy tips.',
+    description: 'Send to participants before the session. Covers the NEM, merit order, generator types, bidding strategies, scenarios, and glossary — all in one document.',
     href: '/api/pre-read',
     isExternal: true,
     color: 'text-electric-300',
@@ -39,7 +28,7 @@ const playerGuides: GuideLink[] = [
   {
     emoji: '📄',
     title: 'Quick Reference Guide',
-    description: 'One-page printable reference with asset specs, bidding rules, strategies, time periods, and guardrails.',
+    description: 'Printable reference with asset specs, bidding rules, strategies, annotated bidding walkthrough, time periods, and guardrails.',
     href: '/guide',
     isExternal: true,
     color: 'text-navy-300',
@@ -48,10 +37,10 @@ const playerGuides: GuideLink[] = [
     hoverBg: 'hover:bg-white/5',
   },
   {
-    emoji: '🎮',
-    title: 'Gameplay Mechanics',
-    description: 'Detailed mechanics reference — merit order dispatch, pricing (including AEMO intervention), profit formulas, battery/hydro mechanics, and scenarios.',
-    href: '/api/gameplay-summary',
+    emoji: '🎓',
+    title: 'Educational Compendium',
+    description: 'Post-game take-home reference. All educational content from every round, organised by topic — NEM basics, generator types, strategies, scenarios, and the energy transition.',
+    href: '/api/educational-compendium',
     isExternal: true,
     color: 'text-electric-300',
     borderColor: 'border-electric-500/30',
@@ -64,8 +53,19 @@ const hostGuides: GuideLink[] = [
   {
     emoji: '🎯',
     title: 'Game Master\'s Guide',
-    description: 'Everything you need to run a great session — round-by-round walkthroughs for all 5 game modes, facilitation tips, troubleshooting, and surprise events.',
+    description: 'Everything you need to run a great session — round-by-round walkthroughs for all 6 game modes, facilitation techniques, teaching notes, and tips for success.',
     href: '/api/game-master-guide',
+    isExternal: true,
+    color: 'text-amber-300',
+    borderColor: 'border-amber-500/30',
+    hoverBorderColor: 'hover:border-amber-400',
+    hoverBg: 'hover:bg-amber-500/10',
+  },
+  {
+    emoji: '🎮',
+    title: 'Gameplay Mechanics',
+    description: 'Detailed behind-the-scenes reference — merit order dispatch, pricing, profit formulas, battery/hydro mechanics, scenarios, and round-by-round configurations.',
+    href: '/api/gameplay-summary',
     isExternal: true,
     color: 'text-amber-300',
     borderColor: 'border-amber-500/30',
@@ -225,7 +225,7 @@ export default function GuidesPage() {
         >
           <SectionHeading
             title="📖 Player Guides"
-            subtitle="Educational content for participants — distribute before or during the session"
+            subtitle="Educational content for participants — distribute before, during, or after the session"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {playerGuides.map((guide) => (
@@ -243,7 +243,7 @@ export default function GuidesPage() {
         >
           <SectionHeading
             title="🎯 Host / Game Master"
-            subtitle="Facilitation guide with round-by-round walkthroughs for all game modes"
+            subtitle="Facilitation guides with round-by-round walkthroughs, teaching notes, and detailed mechanics"
           />
           <div className="grid grid-cols-1 gap-3">
             {hostGuides.map((guide) => (
@@ -291,7 +291,7 @@ export default function GuidesPage() {
         {/* Footer */}
         <div className="text-center mt-12 pt-6 border-t border-white/10">
           <p className="text-navy-500 text-xs">
-            GridRival — 6 game modes &bull; 7 asset types &bull; 4 bidding modes &bull; Real NEM scenarios
+            GridRival — 6 game modes &bull; 7 asset types &bull; 6 bidding strategies &bull; Real NEM scenarios
           </p>
         </div>
       </div>

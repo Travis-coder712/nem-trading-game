@@ -75,6 +75,245 @@ export default function GameGuide() {
           </ol>
         </Section>
 
+        {/* Bidding Process Walkthrough */}
+        <Section title="Bidding Process Walkthrough">
+          <p className="mb-4">Follow these steps each round. The bidding screen guides you through each asset type.</p>
+
+          {/* Step 1: Review Your Assets */}
+          <WalkthroughStep
+            number={1}
+            title="Review Your Assets"
+            description="Start by checking what assets you have and their costs."
+          >
+            <div className="flex flex-col gap-2">
+              {/* Mock asset cards */}
+              <div className="flex gap-2 flex-wrap">
+                <MockAssetCard icon="🏭" name="Coal" capacity="800 MW" srmc="$35" srmcColor="bg-blue-500/20 text-blue-300 print:bg-blue-100 print:text-blue-700" />
+                <MockAssetCard icon="🔥" name="Gas CCGT" capacity="350 MW" srmc="$75" srmcColor="bg-amber-500/20 text-amber-300 print:bg-amber-100 print:text-amber-700" />
+                <MockAssetCard icon="⚡" name="Peaker" capacity="150 MW" srmc="$145" srmcColor="bg-red-500/20 text-red-300 print:bg-red-100 print:text-red-700" />
+              </div>
+              <div className="flex gap-3 mt-1 text-xs text-navy-400 print:text-gray-500">
+                <span>① Check each asset's <strong className="text-navy-200 print:text-gray-700">capacity</strong> (MW available)</span>
+                <span>② Note the <strong className="text-navy-200 print:text-gray-700">Marginal Cost badge</strong> — your break-even price</span>
+              </div>
+            </div>
+          </WalkthroughStep>
+
+          {/* Step 2: Check Demand */}
+          <WalkthroughStep
+            number={2}
+            title="Check Demand Each Period"
+            description="Higher demand % = tighter market = likely higher prices."
+          >
+            <div className="flex gap-2 flex-wrap">
+              <MockPeriodDemand icon="🌙" period="Overnight" demand="1,200 MW" pct="45%" tight={false} />
+              <MockPeriodDemand icon="🌅" period="Morning" demand="2,100 MW" pct="68%" tight={false} />
+              <MockPeriodDemand icon="☀️" period="Afternoon" demand="2,600 MW" pct="85%" tight={true} />
+              <MockPeriodDemand icon="🌆" period="Evening" demand="2,900 MW" pct="95%" tight={true} />
+            </div>
+            <div className="flex gap-3 mt-2 text-xs text-navy-400 print:text-gray-500">
+              <span>① Demand MW shown per period</span>
+              <span>② <strong className="text-navy-200 print:text-gray-700">% of fleet</strong> tells you how tight supply is</span>
+              <span>③ {">"} 80% = prices likely to be high</span>
+            </div>
+          </WalkthroughStep>
+
+          {/* Step 3: Renewables (auto-bid) */}
+          <WalkthroughStep
+            number={3}
+            title="Renewables — No Action Needed"
+            description="Wind and solar auto-bid at $0. Just check your available output."
+          >
+            <div className="flex gap-2 flex-wrap">
+              <div className="bg-navy-800/50 print:bg-green-50 border border-green-500/20 print:border-green-200 rounded-lg p-2.5 flex-1 min-w-[140px]">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span>🌬️</span>
+                  <span className="font-semibold text-xs text-white print:text-black">Wind Farm</span>
+                  <span className="text-[10px] bg-green-500/20 text-green-300 print:bg-green-100 print:text-green-700 px-1.5 rounded">$0/MWh</span>
+                </div>
+                <div className="text-xs text-navy-300 print:text-gray-600">
+                  <div>🌙 85 MW <span className="text-navy-500 print:text-gray-400">(28%)</span></div>
+                  <div>🌅 120 MW <span className="text-navy-500 print:text-gray-400">(40%)</span></div>
+                  <div>☀️ 90 MW <span className="text-navy-500 print:text-gray-400">(30%)</span></div>
+                  <div>🌆 105 MW <span className="text-navy-500 print:text-gray-400">(35%)</span></div>
+                </div>
+              </div>
+              <div className="bg-navy-800/50 print:bg-yellow-50 border border-yellow-500/20 print:border-yellow-200 rounded-lg p-2.5 flex-1 min-w-[140px]">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span>☀️</span>
+                  <span className="font-semibold text-xs text-white print:text-black">Solar Farm</span>
+                  <span className="text-[10px] bg-green-500/20 text-green-300 print:bg-green-100 print:text-green-700 px-1.5 rounded">$0/MWh</span>
+                </div>
+                <div className="text-xs text-navy-300 print:text-gray-600">
+                  <div>🌙 0 MW <span className="text-navy-500 print:text-gray-400">(0%)</span></div>
+                  <div>🌅 120 MW <span className="text-navy-500 print:text-gray-400">(60%)</span></div>
+                  <div>☀️ 160 MW <span className="text-navy-500 print:text-gray-400">(80%)</span></div>
+                  <div>🌆 20 MW <span className="text-navy-500 print:text-gray-400">(10%)</span></div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-navy-400 print:text-gray-500">
+              ① Availability changes each period — <strong className="text-navy-200 print:text-gray-700">solar is zero overnight</strong>, wind varies.
+              No bids to set — these dispatch automatically.
+            </div>
+          </WalkthroughStep>
+
+          {/* Step 4: Thermal Bidding */}
+          <WalkthroughStep
+            number={4}
+            title="Bid Your Thermal Assets"
+            description="Set price & MW for coal and gas. Use auto-fill strategies or set manually."
+          >
+            <div className="bg-navy-800/50 print:bg-gray-50 border border-white/10 print:border-gray-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span>🏭</span>
+                <span className="font-semibold text-xs text-white print:text-black">Coal — Afternoon</span>
+                <span className="text-[10px] bg-blue-500/20 text-blue-300 print:bg-blue-100 print:text-blue-700 px-1.5 rounded">SRMC: $35</span>
+              </div>
+              {/* Mock bid table */}
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-navy-400 print:text-gray-500 border-b border-white/10 print:border-gray-200">
+                    <th className="text-left py-1 pr-2">Band</th>
+                    <th className="text-right py-1 pr-2">Price $/MWh</th>
+                    <th className="text-right py-1 pr-2">MW</th>
+                    <th className="text-right py-1">% Cap</th>
+                  </tr>
+                </thead>
+                <tbody className="text-navy-200 print:text-gray-700">
+                  <tr className="border-b border-white/5 print:border-gray-100">
+                    <td className="py-1 pr-2">1</td>
+                    <td className="py-1 pr-2 text-right font-mono">$0</td>
+                    <td className="py-1 pr-2 text-right font-mono">400</td>
+                    <td className="py-1 text-right">50%</td>
+                  </tr>
+                  <tr className="border-b border-white/5 print:border-gray-100">
+                    <td className="py-1 pr-2">2</td>
+                    <td className="py-1 pr-2 text-right font-mono">$35</td>
+                    <td className="py-1 pr-2 text-right font-mono">200</td>
+                    <td className="py-1 text-right">25%</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1 pr-2">3</td>
+                    <td className="py-1 pr-2 text-right font-mono">$120</td>
+                    <td className="py-1 pr-2 text-right font-mono">200</td>
+                    <td className="py-1 text-right">25%</td>
+                  </tr>
+                </tbody>
+              </table>
+              {/* Mock strategy buttons */}
+              <div className="flex gap-1.5 mt-2 flex-wrap">
+                <span className="text-[10px] px-2 py-0.5 rounded bg-electric-500/20 text-electric-300 print:bg-blue-100 print:text-blue-700 border border-electric-500/30 print:border-blue-200">Price Taker</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-navy-700/50 text-navy-300 print:bg-gray-100 print:text-gray-600 border border-white/10 print:border-gray-200">SRMC</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-navy-700/50 text-navy-300 print:bg-gray-100 print:text-gray-600 border border-white/10 print:border-gray-200">Split</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-navy-700/50 text-navy-300 print:bg-gray-100 print:text-gray-600 border border-white/10 print:border-gray-200">Aggressive</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1 mt-2 text-xs text-navy-400 print:text-gray-500">
+              <span>① Set <strong className="text-navy-200 print:text-gray-700">price per MWh</strong> and <strong className="text-navy-200 print:text-gray-700">MW to offer</strong> in each band</span>
+              <span>② Use <strong className="text-navy-200 print:text-gray-700">auto-fill strategies</strong> to quickly apply a bidding approach</span>
+              <span>③ Band 1 cheap = guaranteed dispatch. Higher bands = price-setting potential</span>
+            </div>
+          </WalkthroughStep>
+
+          {/* Step 5: Hydro */}
+          <WalkthroughStep
+            number={5}
+            title="Hydro — Pick Your Period"
+            description="Limited water means you can only dispatch in ONE period. Choose the highest-price period."
+          >
+            <div className="bg-navy-800/50 print:bg-gray-50 border border-white/10 print:border-gray-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span>💧</span>
+                <span className="font-semibold text-xs text-white print:text-black">Hydro — 250 MW / 1,000 MWh water</span>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {(['🌙 Overnight', '🌅 Morning', '☀️ Afternoon', '🌆 Evening'] as const).map((p, i) => (
+                  <div key={i} className={`text-xs px-3 py-1.5 rounded-lg border ${i === 3 ? 'bg-electric-500/20 border-electric-500/40 text-electric-300 print:bg-blue-100 print:border-blue-300 print:text-blue-700 font-semibold' : 'bg-navy-700/30 border-white/10 text-navy-400 print:bg-gray-100 print:border-gray-200 print:text-gray-500'}`}>
+                    {p} {i === 3 && '← SELECTED'}
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs text-navy-400 print:text-gray-500 mt-2">Set bid price: <span className="font-mono text-navy-200 print:text-gray-700">$85/MWh</span></div>
+            </div>
+            <div className="mt-2 text-xs text-navy-400 print:text-gray-500">
+              ① Select the period with highest expected prices (usually <strong className="text-navy-200 print:text-gray-700">Evening</strong>).
+              ② Set your bid price above your $8 SRMC but below expected clearing price.
+            </div>
+          </WalkthroughStep>
+
+          {/* Step 6: Battery Controls */}
+          <WalkthroughStep
+            number={6}
+            title="Battery — Charge, Idle, or Discharge"
+            description="Toggle mode each period. Charge when cheap, discharge when expensive."
+          >
+            <div className="bg-navy-800/50 print:bg-gray-50 border border-white/10 print:border-gray-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span>🔋</span>
+                <span className="font-semibold text-xs text-white print:text-black">Battery — 500 MW / 3,000 MWh</span>
+                <span className="text-[10px] bg-green-500/20 text-green-300 print:bg-green-100 print:text-green-700 px-1.5 rounded">SOC: 50%</span>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <MockBatteryPeriod icon="🌙" period="Overnight" mode="charge" soc="→ 80%" />
+                <MockBatteryPeriod icon="🌅" period="Morning" mode="charge" soc="→ 100%" />
+                <MockBatteryPeriod icon="☀️" period="Afternoon" mode="idle" soc="100%" />
+                <MockBatteryPeriod icon="🌆" period="Evening" mode="discharge" soc="→ 40%" />
+              </div>
+              {/* SOC target buttons */}
+              <div className="flex gap-1.5 mt-2 flex-wrap">
+                <span className="text-[10px] px-2 py-0.5 rounded bg-navy-700/50 text-navy-300 print:bg-gray-100 print:text-gray-600 border border-white/10 print:border-gray-200">25%</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-navy-700/50 text-navy-300 print:bg-gray-100 print:text-gray-600 border border-white/10 print:border-gray-200">50%</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-navy-700/50 text-navy-300 print:bg-gray-100 print:text-gray-600 border border-white/10 print:border-gray-200">75%</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-electric-500/20 text-electric-300 print:bg-blue-100 print:text-blue-700 border border-electric-500/30 print:border-blue-200">100%</span>
+                <span className="text-[10px] text-navy-500 print:text-gray-400 ml-1">← Target SOC buttons</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1 mt-2 text-xs text-navy-400 print:text-gray-500">
+              <span>① <strong className="text-green-300 print:text-green-700">Charge</strong> during low/negative price periods (Overnight, solar surplus)</span>
+              <span>② <strong className="text-red-300 print:text-red-700">Discharge</strong> during high-price periods (Evening peak)</span>
+              <span>③ Watch your <strong className="text-navy-200 print:text-gray-700">SOC bar</strong> — can't discharge below 0% or charge above 100%</span>
+            </div>
+          </WalkthroughStep>
+
+          {/* Step 7: Review & Submit */}
+          <WalkthroughStep
+            number={7}
+            title="Review & Submit"
+            description="Check the bid review summary for warnings before confirming."
+          >
+            <div className="bg-navy-800/50 print:bg-gray-50 border border-white/10 print:border-gray-200 rounded-lg p-3">
+              <div className="text-xs font-semibold text-white print:text-black mb-2">Bid Review Summary</div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-green-400 print:text-green-600">✓</span>
+                  <span className="text-navy-300 print:text-gray-600">Coal — 800 MW across 3 bands</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-green-400 print:text-green-600">✓</span>
+                  <span className="text-navy-300 print:text-gray-600">Gas CCGT — 350 MW, $75 SRMC bid</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-amber-400 print:text-amber-600">⚠</span>
+                  <span className="text-navy-300 print:text-gray-600">Peaker — 60% bid below marginal cost</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-green-400 print:text-green-600">✓</span>
+                  <span className="text-navy-300 print:text-gray-600">Battery — Charge overnight, discharge evening</span>
+                </div>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <span className="text-[10px] px-4 py-1.5 rounded-lg bg-electric-500 text-white print:bg-blue-600 font-semibold">Submit Bids</span>
+                <span className="text-[10px] px-3 py-1.5 rounded-lg bg-navy-700 text-navy-300 print:bg-gray-200 print:text-gray-600">Edit</span>
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-navy-400 print:text-gray-500">
+              ① Check for <strong className="text-amber-300 print:text-amber-700">⚠ warnings</strong> — bidding below SRMC means potential losses.
+              ② Hit <strong className="text-navy-200 print:text-gray-700">Submit</strong> before the timer expires!
+            </div>
+          </WalkthroughStep>
+        </Section>
+
         {/* Merit Order Dispatch */}
         <Section title="Merit Order Dispatch">
           <ol className="list-decimal list-inside space-y-2 ml-2">
@@ -182,8 +421,9 @@ export default function GameGuide() {
         {/* Game Modes */}
         <Section title="Game Modes">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 print:gap-2">
-            <StrategyCard name="🎓 Beginner Intro (1 round, 10-15 min)" desc="One guided round with 2 assets (coal + gas). Perfect for first-timers who've never seen an electricity market." />
-            <StrategyCard name="📈 Progressive Learning (10 rounds, 90-120 min)" desc="Builds complexity gradually: 1 asset → full portfolio over 10 rounds. Best for a single 2-hour session with new learners." />
+            <StrategyCard name="🎯 First Run (8 rounds, 45-60 min)" desc="Lean portfolio (4 assets). Best starting point for groups new to the NEM. Progressive unlock with teaching notes." />
+            <StrategyCard name="🎓 Beginner Intro (1 round, 10-15 min)" desc="One guided round with 2 assets (coal + gas). Perfect for quick demos." />
+            <StrategyCard name="📈 Progressive Learning (10 rounds, 90-120 min)" desc="Builds complexity gradually: 1 asset → full portfolio over 10 rounds. Best for 2-hour sessions." />
             <StrategyCard name="⚡ Quick Game (8 rounds, 60-90 min)" desc="Compressed version covering all key concepts. Great for time-limited workshops." />
             <StrategyCard name="🏆 Full Game (15 rounds, 2.5-3.5 hours)" desc="Complete learning journey from coal basics to full NEM simulation with all scenarios." />
             <StrategyCard name="🔄 Experienced Replay (4 rounds, 30-45 min)" desc="One round per season with full portfolio. For participants who want to try different strategies." />
@@ -217,7 +457,7 @@ export default function GameGuide() {
         {/* Footer */}
         <div className="text-center mt-10 pt-6 border-t border-white/10 print:border-gray-300">
           <p className="text-navy-400 print:text-gray-500 text-xs">
-            GridRival — Bid. Dispatch. DOMINATE. — Every Megawatt has its price. — 5 game modes, 7 asset types, 4 bidding modes, sound effects, dark mode, spectator mode & more
+            GridRival — Bid. Dispatch. DOMINATE. — Every Megawatt has its price. — 6 game modes, 7 asset types, 6 bidding strategies, sound effects, dark mode, spectator mode & more
           </p>
         </div>
       </div>
@@ -277,6 +517,88 @@ function RefCard({ label, value }: { label: string; value: string }) {
     <div className="bg-navy-800/50 print:bg-gray-50 rounded-lg p-3 print:border print:border-gray-200">
       <div className="text-navy-400 print:text-gray-500 text-xs">{label}</div>
       <div className="font-mono font-bold text-white print:text-black text-sm mt-0.5">{value}</div>
+    </div>
+  );
+}
+
+// ── Bidding Walkthrough Helper Components ──
+
+function WalkthroughStep({ number, title, description, children }: {
+  number: number;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mb-5 print:mb-3">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-electric-500/20 print:bg-blue-100 flex items-center justify-center text-electric-400 print:text-blue-700 text-xs font-bold border border-electric-500/30 print:border-blue-300">
+          {number}
+        </span>
+        <h3 className="font-semibold text-white print:text-black text-sm">{title}</h3>
+      </div>
+      <p className="text-xs text-navy-400 print:text-gray-500 mb-2 ml-8">{description}</p>
+      <div className="ml-8">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function MockAssetCard({ icon, name, capacity, srmc, srmcColor }: {
+  icon: string;
+  name: string;
+  capacity: string;
+  srmc: string;
+  srmcColor: string;
+}) {
+  return (
+    <div className="bg-navy-800/50 print:bg-gray-50 border border-white/10 print:border-gray-200 rounded-lg p-2 flex items-center gap-2 min-w-[120px]">
+      <span className="text-lg">{icon}</span>
+      <div>
+        <div className="font-semibold text-xs text-white print:text-black">{name}</div>
+        <div className="text-[10px] text-navy-400 print:text-gray-500">{capacity}</div>
+      </div>
+      <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ml-auto ${srmcColor}`}>{srmc}</span>
+    </div>
+  );
+}
+
+function MockPeriodDemand({ icon, period, demand, pct, tight }: {
+  icon: string;
+  period: string;
+  demand: string;
+  pct: string;
+  tight: boolean;
+}) {
+  return (
+    <div className={`bg-navy-800/50 print:bg-gray-50 border rounded-lg p-2 text-center min-w-[80px] flex-1 ${tight ? 'border-red-500/30 print:border-red-200' : 'border-white/10 print:border-gray-200'}`}>
+      <div className="text-lg">{icon}</div>
+      <div className="text-[10px] text-navy-400 print:text-gray-500">{period}</div>
+      <div className="font-mono font-bold text-xs text-white print:text-black">{demand}</div>
+      <div className={`text-[10px] font-semibold ${tight ? 'text-red-400 print:text-red-600' : 'text-navy-400 print:text-gray-500'}`}>{pct}</div>
+    </div>
+  );
+}
+
+function MockBatteryPeriod({ icon, period, mode, soc }: {
+  icon: string;
+  period: string;
+  mode: 'charge' | 'idle' | 'discharge';
+  soc: string;
+}) {
+  const modeStyles = {
+    charge: 'bg-green-500/20 text-green-300 border-green-500/30 print:bg-green-100 print:text-green-700 print:border-green-200',
+    idle: 'bg-navy-700/30 text-navy-400 border-white/10 print:bg-gray-100 print:text-gray-500 print:border-gray-200',
+    discharge: 'bg-red-500/20 text-red-300 border-red-500/30 print:bg-red-100 print:text-red-700 print:border-red-200',
+  };
+  const modeLabels = { charge: '⬇ CHARGE', idle: '— IDLE', discharge: '⬆ DISCHARGE' };
+
+  return (
+    <div className={`border rounded-lg p-2 text-center min-w-[80px] flex-1 ${modeStyles[mode]}`}>
+      <div className="text-xs">{icon} {period}</div>
+      <div className="text-[10px] font-bold mt-0.5">{modeLabels[mode]}</div>
+      <div className="text-[10px] font-mono mt-0.5">{soc}</div>
     </div>
   );
 }

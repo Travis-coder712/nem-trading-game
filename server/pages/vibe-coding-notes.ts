@@ -115,7 +115,7 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <h2>The Development Story: How It Actually Happened</h2>
-  <p>The entire game was built across <strong>21+ conversation sessions</strong> over several weeks, with <strong>~280+ human prompts</strong> in total. Here is how it unfolded:</p>
+  <p>The entire game was built across <strong>23+ conversation sessions</strong> over several weeks, with <strong>~320+ human prompts</strong> in total. Here is how it unfolded:</p>
 
   <div class="timeline">
     <div class="timeline-item">
@@ -298,15 +298,23 @@ export function getVibeCodingNotesHTML(): string {
       <div class="ai"><strong>What Claude did:</strong> This was a major bidding system overhaul touching 15+ files. Claude implemented <strong>4 distinct bidding modes</strong> grouped by asset type: <strong>Thermal</strong> (coal, gas) with traditional price + quantity bid bands; <strong>Renewables</strong> (wind, solar) with auto-bid at $0/MWh showing read-only capacity cards per period; <strong>Hydro</strong> with a strategic single-period dispatch selector, water level bar, and storage-capped MW; and <strong>Battery</strong> with upgraded 6-hour duration (nameplateMW &times; 6), target SOC controls (&ldquo;Charge to 50%&rdquo;, &ldquo;Discharge to 0%&rdquo;), and a 4-slide post-minigame explainer bridging hourly play to 6-hour period bidding. Claude also built <strong>independent strategy layers</strong> so Battery Arbitrageur only affects battery settings (all periods) while thermal strategies (Price Taker, Marginal Cost, etc.) only affect coal/gas/hydro with a per-period or all-periods toggle. A <strong>hydro SOC tracking system</strong> was added to the profit calculator, parallel to the existing battery SOC. The asset category breakdown was expanded from 3 to 4 categories (renewables, battery, hydro, fossil). Multiple guardrails were updated to handle the new bidding modes correctly. The <strong>landing page was decluttered</strong> by moving all guide and educational links into a dedicated <code>/guides</code> page with organised sections (Player Guides, Host, Tools, Development). All existing guides (Gameplay Summary, Game Master&rsquo;s Guide, Vibe Coding Notes, Pre-Read, Quick Reference, Learn the NEM) were updated to reflect the new mechanics.</div>
       <div class="highlight"><strong>Key insight:</strong> This phase demonstrates how a domain expert&rsquo;s understanding of real-world energy market mechanics translates directly into game design improvements. Each of the four bidding modes matches how that asset type actually operates in the NEM: renewables bid at $0 and are dispatched first; hydro operators choose strategically when to release limited water; batteries arbitrage price differences; and thermal plants make conventional price/quantity bids. The independent strategy layers were designed so that a team could apply &ldquo;Battery Arbitrageur&rdquo; and then separately apply &ldquo;Price Maker&rdquo; to their thermal assets without either overriding the other&mdash;a UI pattern that required careful state management across the bidding form, strategy system, and submission logic.</div>
     </div>
+
+    <div class="timeline-item">
+      <h3>Phase 12: Documentation Restructure &amp; Teaching Content <span class="badge badge-blue">40+ prompts &middot; Sessions 22&ndash;23</span></h3>
+      <p><span class="badge badge-purple">Following week</span> With the game mechanics now mature, the user wanted to rationalise the documentation ecosystem&mdash;8 overlapping server-side HTML pages plus several frontend components, produced at different development stages&mdash;into a coherent library where each document has a clear audience and purpose.</p>
+      <div class="human"><strong>What the human said:</strong> &ldquo;The guides were produced at different stages. I want to restructure the whole documentation set: merge overlapping content, add what&rsquo;s missing, build a post-game educational compendium, and make sure every round in every mode has host teaching notes.&rdquo;</div>
+      <div class="ai"><strong>What Claude did:</strong> This was a comprehensive documentation overhaul touching 17 files. Claude <strong>merged the Learn the NEM and Player Pre-Read</strong> into a single 8-page pre-session document with NEM basics, generator profiles, bidding strategies, and a glossary. The <strong>Quick Reference Guide</strong> gained a 7-step annotated bidding walkthrough with mock UI diagrams for each asset type. An entirely new <strong>Educational Compendium</strong> was created&mdash;a 14-page post-game take-home reference covering merit order mechanics, generator cost structures, seasonal demand, battery arbitrage formulas, all 6 bidding strategies, 8 market scenarios, and a glossary. A <strong>Round Bidding Guide</strong> overlay component was built for the team game interface, dynamically detecting what changed from the previous round (new assets, more periods, season changes, scenario events, battery introduction) and presenting it in an animated card stack. <strong>hostTeachingNotes</strong> were added to all rounds across all 6 game modes&mdash;beginner (1 round), quick (8 rounds), full (15 rounds), and experienced replay (4 rounds) had been missing these entirely. The <strong>Game Master&rsquo;s Guide</strong> was enhanced with a complete First Run round-by-round guide and a Facilitation Techniques section covering pause timing, surprise events, dominant/disengaged team management, and discussion questions. The <strong>Gameplay Summary</strong> was updated with UI Complexity Levels and Walkthrough Mode documentation. The <strong>Recommended Improvements</strong> page was rewritten from scratch into three categories (IT/Infrastructure, UX, Gameplay) with a game mode rationalisation analysis. The <strong>Guides index page</strong> was restructured into Player, Host, Tools, and Development sections. All route registrations and imports were updated.</div>
+      <div class="highlight"><strong>Key insight:</strong> This phase illustrates a distinctive challenge of AI-assisted development: documentation sprawl. When features are built rapidly over many sessions, guides and docs accumulate organically. The restructure required understanding the <em>information architecture</em> of the entire project&mdash;who reads what, when, and why&mdash;and reorganising accordingly. Claude managed this across 17 files simultaneously, including server-side HTML templates, React components, round configuration data, and route registrations, keeping everything consistent.</div>
+    </div>
   </div>
 
   <h2>The Prompts: What the Human Actually Said</h2>
   <div class="card">
-    <p>Across all 21+ sessions, the human sent <strong>~280+ prompts</strong>. These ranged from a 500-word opening brief to single-word continuations like &ldquo;yes&rdquo; and &ldquo;continue.&rdquo; Here is how they break down by category:</p>
+    <p>Across all 23+ sessions, the human sent <strong>~320+ prompts</strong>. These ranged from a 500-word opening brief to single-word continuations like &ldquo;yes&rdquo; and &ldquo;continue.&rdquo; Here is how they break down by category:</p>
 
     <div class="split" style="margin-top: 1rem;">
       <div>
-        <h3 style="color: #805ad5;">Feature Requests (~110 prompts, 36%)</h3>
+        <h3 style="color: #805ad5;">Feature Requests (~130 prompts, 40%)</h3>
         <p style="font-size: 0.9rem;">New features and capabilities, described in plain English:</p>
         <ul style="font-size: 0.85rem;">
           <li>Game concept and structure (initial 500-word brief)</li>
@@ -341,7 +349,7 @@ export function getVibeCodingNotesHTML(): string {
         </ul>
       </div>
       <div>
-        <h3 style="color: #e53e3e;">Bug Reports (~25 prompts, 11%)</h3>
+        <h3 style="color: #e53e3e;">Bug Reports (~25 prompts, 8%)</h3>
         <p style="font-size: 0.9rem;">Issues discovered through testing:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;$0 is not showing in bids&rdquo;</li>
@@ -358,7 +366,7 @@ export function getVibeCodingNotesHTML(): string {
     </div>
     <div class="split" style="margin-top: 1rem;">
       <div>
-        <h3 style="color: #3182ce;">UI/UX Improvements (~40 prompts, 18%)</h3>
+        <h3 style="color: #3182ce;">UI/UX Improvements (~45 prompts, 14%)</h3>
         <p style="font-size: 0.9rem;">Visual and usability refinements:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;make the SRMC badges bigger&rdquo;</li>
@@ -374,7 +382,7 @@ export function getVibeCodingNotesHTML(): string {
         </ul>
       </div>
       <div>
-        <h3 style="color: #718096;">Tooling Delegation (~90 prompts, 34%)</h3>
+        <h3 style="color: #718096;">Tooling Delegation (~90 prompts, 28%)</h3>
         <p style="font-size: 0.9rem;">Tasks a developer would do themselves, delegated to the AI:</p>
         <ul style="font-size: 0.85rem;">
           <li>&ldquo;give me a link to click to start&rdquo; (&times;8)</li>
@@ -390,7 +398,7 @@ export function getVibeCodingNotesHTML(): string {
   </div>
 
   <div class="callout" style="margin-top: 1.5rem;">
-    <p><strong>What&rsquo;s striking:</strong> Only <strong>36%</strong> of prompts were feature requests&mdash;the creative, directional input. Another <strong>11%</strong> were bug reports and <strong>18%</strong> were UI/UX refinements. The remaining <strong>34%</strong> were what we call <strong>&ldquo;tooling delegation&rdquo;</strong>&mdash;tasks like starting the server, committing to git, generating a clickable link, or managing conversation sessions. A professional developer would do these things themselves without thinking; they&rsquo;re not really &ldquo;operational&rdquo; prompts so much as a non-coder <em>delegating the mechanics of software development</em> to the AI. This is a distinctive feature of vibe coding by non-developers: the AI isn&rsquo;t just writing the code, it&rsquo;s also handling all the tooling around it.</p>
+    <p><strong>What&rsquo;s striking:</strong> Only <strong>40%</strong> of prompts were feature requests&mdash;the creative, directional input. Another <strong>8%</strong> were bug reports and <strong>14%</strong> were UI/UX refinements. The remaining <strong>28%</strong> were what we call <strong>&ldquo;tooling delegation&rdquo;</strong>&mdash;tasks like starting the server, committing to git, generating a clickable link, or managing conversation sessions. A professional developer would do these things themselves without thinking; they&rsquo;re not really &ldquo;operational&rdquo; prompts so much as a non-coder <em>delegating the mechanics of software development</em> to the AI. This is a distinctive feature of vibe coding by non-developers: the AI isn&rsquo;t just writing the code, it&rsquo;s also handling all the tooling around it.</p>
   </div>
 
   <h2>What Did Claude Already Know?</h2>
@@ -431,13 +439,13 @@ export function getVibeCodingNotesHTML(): string {
       <div>
         <h3>Scale of Work</h3>
         <ul>
-          <li><strong>~45,000+ lines of code</strong> written</li>
-          <li><strong>~140+ files</strong> created</li>
-          <li><strong>20+ major versions</strong> committed to git</li>
+          <li><strong>~50,000+ lines of code</strong> written</li>
+          <li><strong>~150+ files</strong> created</li>
+          <li><strong>22+ major versions</strong> committed to git</li>
           <li><strong>Several weeks</strong> elapsed, <strong>~10 hours</strong> active human time</li>
           <li><strong>7 asset types</strong> with realistic parameters</li>
           <li><strong>16+ scenario events</strong> (including 6 surprise events)</li>
-          <li><strong>5 game modes</strong> (including Progressive Learning)</li>
+          <li><strong>6 game modes</strong> (including Progressive Learning)</li>
           <li><strong>Pro-rata dispatch</strong> matching real AEMO NEMDE</li>
           <li><strong>Full battery arbitrage</strong> with charge/discharge/SOC</li>
         </ul>
@@ -445,11 +453,11 @@ export function getVibeCodingNotesHTML(): string {
       <div>
         <h3>Human Input</h3>
         <ul>
-          <li><strong>~280+ prompts</strong> across 21+ conversation sessions</li>
-          <li><strong>~110 feature requests</strong> (36%)</li>
-          <li><strong>~25 bug reports</strong> (10%)</li>
-          <li><strong>~45 UI/UX improvements</strong> (18%)</li>
-          <li><strong>~90 tooling delegation prompts</strong> (36%): server restarts, git commits, session continuations&mdash;tasks a developer would handle themselves, delegated to the AI by a non-coder</li>
+          <li><strong>~320+ prompts</strong> across 23+ conversation sessions</li>
+          <li><strong>~130 feature requests</strong> (40%)</li>
+          <li><strong>~25 bug reports</strong> (8%)</li>
+          <li><strong>~45 UI/UX improvements</strong> (14%)</li>
+          <li><strong>~90 tooling delegation prompts</strong> (28%): server restarts, git commits, session continuations&mdash;tasks a developer would handle themselves, delegated to the AI by a non-coder</li>
           <li>Longest prompt: <strong>~500 words</strong> (opening game concept)</li>
           <li>Shortest prompt: <strong>1 word</strong> (&ldquo;continue&rdquo;, &ldquo;yes&rdquo;, &ldquo;both&rdquo;)</li>
         </ul>
@@ -466,11 +474,11 @@ export function getVibeCodingNotesHTML(): string {
             <li><strong>Team:</strong> 1 person (domain expert + AI)</li>
             <li><strong>Elapsed time:</strong> Several weeks</li>
             <li><strong>Human active time:</strong> ~10 hours</li>
-            <li><strong>Equivalent AI dev effort:</strong> ~600 hours</li>
+            <li><strong>Equivalent AI dev effort:</strong> ~700 hours</li>
             <li><strong>Tooling cost:</strong> Claude Code subscription ~$200/month</li>
             <li><strong>Total cost:</strong> ~$200 + ~10 hours of the person&rsquo;s time</li>
           </ul>
-          <p style="font-size: 0.9rem; margin-top: 0.8rem; color: #4a5568;">The person spent ~10 hours describing features in plain English, testing the game, reporting bugs, and providing domain expertise. Claude delivered the equivalent of ~600 hours of professional development work: 45,000+ lines of code, architecture design, UI, procedural audio engine, battery arbitrage mechanics, pro-rata dispatch, performance optimisation, and all documentation. A <strong>60:1 leverage ratio</strong>.</p>
+          <p style="font-size: 0.9rem; margin-top: 0.8rem; color: #4a5568;">The person spent ~10 hours describing features in plain English, testing the game, reporting bugs, and providing domain expertise. Claude delivered the equivalent of ~700 hours of professional development work: 50,000+ lines of code, architecture design, UI, procedural audio engine, battery arbitrage mechanics, pro-rata dispatch, performance optimisation, and all documentation. A <strong>70:1 leverage ratio</strong>.</p>
         </div>
 
         <div class="card" style="border-top: 4px solid #e53e3e; margin: 0;">
@@ -531,10 +539,10 @@ export function getVibeCodingNotesHTML(): string {
       </div>
 
       <div class="highlight" style="margin-top: 1rem;">
-        <p style="font-size: 0.9rem;"><strong>A note on the traditional estimate:</strong> The $1,000,000+ figure reflects the reality of corporate IT delivery. Projects of this complexity routinely involve procurement processes, security reviews, architectural review boards, multiple environments (dev/staging/prod), accessibility compliance, cross-device testing matrices, and documentation requirements that simply do not apply to a vibe-coding approach. In many large organisations, even getting a new project approved and a team assembled can take 4&ndash;6 weeks before any code is written. The game&rsquo;s real-time multiplayer architecture, procedural audio engine, battery arbitrage mechanics, pro-rata dispatch algorithm, and 5 game modes represent significant technical scope that would span multiple development sprints.</p>
+        <p style="font-size: 0.9rem;"><strong>A note on the traditional estimate:</strong> The $1,000,000+ figure reflects the reality of corporate IT delivery. Projects of this complexity routinely involve procurement processes, security reviews, architectural review boards, multiple environments (dev/staging/prod), accessibility compliance, cross-device testing matrices, and documentation requirements that simply do not apply to a vibe-coding approach. In many large organisations, even getting a new project approved and a team assembled can take 4&ndash;6 weeks before any code is written. The game&rsquo;s real-time multiplayer architecture, procedural audio engine, battery arbitrage mechanics, pro-rata dispatch algorithm, and 6 game modes represent significant technical scope that would span multiple development sprints.</p>
       </div>
 
-      <p style="margin-top: 1rem;">The vibe coding approach reduced this to <strong>~10 hours of human effort + AI over several weeks, using ~280 plain-English prompts and a $200 subscription</strong>. That&rsquo;s a 60:1 leverage ratio&mdash;every hour the human invested yielded roughly 60 hours of development output.</p>
+      <p style="margin-top: 1rem;">The vibe coding approach reduced this to <strong>~10 hours of human effort + AI over several weeks, using ~320 plain-English prompts and a $200 subscription</strong>. That&rsquo;s a 70:1 leverage ratio&mdash;every hour the human invested yielded roughly 70 hours of development output.</p>
     </div>
   </div>
 
@@ -573,9 +581,9 @@ export function getVibeCodingNotesHTML(): string {
 
   <h2>The Takeaway</h2>
   <div class="callout" style="background: linear-gradient(135deg, #fffbeb 0%, #faf5ff 100%); border: 2px solid #805ad5;">
-    <p style="font-size: 1.15rem; font-weight: 700; color: #553c9a; text-align: center; margin-bottom: 0.8rem;">~10 hours of human effort. ~600 hours of equivalent AI development. $200.</p>
-    <p>The human spent roughly <strong>10 active hours</strong> across several weeks&mdash;describing features, testing the game, reporting bugs, and providing domain expertise. In that same window, Claude delivered the equivalent of <strong>~600 hours of professional developer effort</strong>: 45,000+ lines of code, 140+ files, a real-time multiplayer architecture, a procedural audio engine, full battery arbitrage mechanics, pro-rata dispatch matching the real AEMO NEMDE, cinematic animations, and comprehensive documentation.</p>
-    <p style="margin-top: 0.8rem;">That is a <strong>60:1 leverage ratio</strong>. For every hour the human invested in conversation, the AI delivered roughly 60 hours of development work&mdash;at a total AI cost of ~$200.</p>
+    <p style="font-size: 1.15rem; font-weight: 700; color: #553c9a; text-align: center; margin-bottom: 0.8rem;">~10 hours of human effort. ~700 hours of equivalent AI development. $200.</p>
+    <p>The human spent roughly <strong>10 active hours</strong> across several weeks&mdash;describing features, testing the game, reporting bugs, and providing domain expertise. In that same window, Claude delivered the equivalent of <strong>~700 hours of professional developer effort</strong>: 50,000+ lines of code, 150+ files, a real-time multiplayer architecture, a procedural audio engine, full battery arbitrage mechanics, pro-rata dispatch matching the real AEMO NEMDE, cinematic animations, and comprehensive documentation.</p>
+    <p style="margin-top: 0.8rem;">That is a <strong>70:1 leverage ratio</strong>. For every hour the human invested in conversation, the AI delivered roughly 70 hours of development work&mdash;at a total AI cost of ~$200.</p>
     <p style="margin-top: 0.8rem;">That is the power of vibe coding: <strong>ideas become software at the speed of conversation</strong>.</p>
   </div>
 

@@ -21,6 +21,13 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: [],
     biddingTimeLimitSeconds: 300,
     maxBidBandsPerAsset: 3,
+    hostTeachingNotes: [
+      'This is a guided walkthrough — teams see pre-filled bids on their devices',
+      'Explain: a bid = price + quantity. The merit order stacks all bids cheapest first.',
+      'Key insight: ALL dispatched generators earn the clearing price, not their bid price. This surprises most people!',
+      'Walk through the suggested bids: Band 1 at $0 guarantees dispatch, Band 2 at $100 tries to set the price.',
+      'After results: trace through the merit order chart on screen. Show where each team sits in the stack and how the clearing price was determined.',
+    ],
     educationalContent: {
       title: 'How the NEM Merit Order Works',
       slides: [
@@ -81,6 +88,13 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: [],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 3,
+    hostTeachingNotes: [
+      'First unguided round — teams bid independently for the first time with 2 periods',
+      'Highlight the demand difference: Morning is moderate, Afternoon is higher. Ask teams to think about how that should affect their bids.',
+      'Watch for teams that bid identically in both periods vs those that adapt — this is a great teaching moment.',
+      'After results: "Which period had the higher clearing price? Why?" Draw the connection between demand level and price.',
+      'Discussion: "Did anyone change their strategy between periods? What did you do differently?"',
+    ],
     educationalContent: {
       title: 'Understanding Demand Patterns',
       slides: [
@@ -113,6 +127,13 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: [],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 5,
+    hostTeachingNotes: [
+      'First full-day round — 4 periods with 5 bid bands. This is a significant step up in complexity.',
+      'Introduce the three main strategies: price taker (bid $0 everywhere), marginal cost bidder (bid at SRMC), and price maker (bid high on some capacity to push up prices).',
+      'Remind teams: coal has shutdown costs ($50K+), so it makes sense to bid low to stay dispatched even in Overnight.',
+      'After results: compare team strategies across periods. Who adapted well? Who used the same bids everywhere?',
+      'Discussion: "What strategy did your team use? Did bidding high on some capacity pay off or did you miss dispatch?"',
+    ],
     educationalContent: {
       title: 'The 24-Hour Cycle',
       slides: [
@@ -145,6 +166,13 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: [],
     biddingTimeLimitSeconds: 210,
     maxBidBandsPerAsset: 5,
+    hostTeachingNotes: [
+      'Introduce strategic bidding concepts: market power, price-making, and capacity withdrawal.',
+      'Different SRMCs across teams create natural strategy differences — some teams are low-cost and can undercut, others must bid higher.',
+      'Watch for: teams withholding capacity to tighten supply. Point this out after results if it happens.',
+      'After results: "Did anyone withhold capacity? What happened to prices when they did?"',
+      'Discussion: "Is strategic withdrawal good or bad for the market? In the real NEM, the ACCC monitors for this."',
+    ],
     educationalContent: {
       title: 'Bidding Strategies',
       slides: [
@@ -185,6 +213,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: [],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 5,
+    hostTeachingNotes: [
+      'Two new gas assets per team: CCGT (350 MW, ~$75/MWh SRMC) and Peaker (150 MW, ~$145/MWh SRMC).',
+      'Key concept: gas only profits when the clearing price exceeds its marginal cost. In low-demand periods, gas may sit idle.',
+      'Explain the CCGT vs Peaker difference: CCGT is efficient mid-merit; Peaker is expensive but fast-start for emergencies.',
+      'Season is autumn with moderate demand — gas will mostly be needed in Afternoon and Evening only.',
+      'After results: "When was gas dispatched vs sitting idle? Did anyone bid gas into low-demand periods and lose money?"',
+      'Discussion: "Why do we need expensive peakers if they barely run? What happens without them?"',
+    ],
     educationalContent: {
       title: 'Gas Generation in the NEM',
       slides: [
@@ -223,6 +259,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: [],
     biddingTimeLimitSeconds: 270,
     maxBidBandsPerAsset: 7,
+    hostTeachingNotes: [
+      'Wind ($0 SRMC, 300 MW) and Solar ($0 SRMC, 200 MW) arrive — zero-cost generation reshapes the merit order.',
+      'Renewables auto-bid at $0 because they have no fuel cost. Teams still need to bid their thermal and set quantities based on available capacity.',
+      'Season is spring — low demand + strong renewables = possible oversupply during Afternoon. Warn teams about this.',
+      'Explain the "duck curve": low prices during solar hours, prices snap back up in the Evening when solar disappears.',
+      'After results: "How did renewables affect the clearing price? Compare Afternoon (solar flooding) vs Evening (solar gone)."',
+      'Discussion: "If renewables push prices to $0, how do thermal plants survive? This is the real challenge in the NEM today."',
+    ],
     educationalContent: {
       title: 'The Renewable Energy Transformation',
       slides: [
@@ -259,6 +303,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: [],
     biddingTimeLimitSeconds: 270,
     maxBidBandsPerAsset: 7,
+    hostTeachingNotes: [
+      'Hydro: 250 MW capacity, 1,000 MWh of stored water, $8/MWh SRMC. Limited water means teams must pick when to generate.',
+      'Key concept: opportunity cost — water used in a cheap period cannot be used later in an expensive period.',
+      'Advise teams: "Don\'t bid hydro in every period. Save it for the highest-price period to maximise value."',
+      'In the real NEM, Snowy Hydro are among the most sophisticated traders — they optimise water across weeks and months.',
+      'After results: "Where did you deploy your hydro? Was it the right call? Compare teams that spread hydro vs those that concentrated it."',
+      'Discussion: "Should hydro bid at its marginal cost ($8) or at the expected clearing price? Why?"',
+    ],
     educationalContent: {
       title: 'Hydro Power & Water Value',
       slides: [
@@ -292,6 +344,14 @@ export const fullGameRounds: RoundConfig[] = [
     batteryMiniGame: true,
     biddingTimeLimitSeconds: 300,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'Battery unlocked: 500 MW / 2,000 MWh / 4-hour duration / 92% round-trip efficiency. Teams use Charge/Idle/Discharge toggles per period.',
+      'Explain arbitrage: buy low (charge when prices are cheap), sell high (discharge when prices are expensive). The 8% efficiency loss means you need a price spread of ~9% to profit.',
+      'Season is spring — charge during solar surplus in the Afternoon (prices may be very low or negative), then discharge in the Evening.',
+      'Full portfolio is now complete with 10 bid bands per asset. This is the most complex bidding screen yet — give teams extra time.',
+      'After results: "Who made the most from battery arbitrage? What was the price spread between charge and discharge periods?"',
+      'Discussion: "Why are batteries growing so fast in the real NEM? What happens to the duck curve when everyone has batteries?"',
+    ],
     educationalContent: {
       title: 'Grid-Scale Batteries',
       slides: [
@@ -336,6 +396,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: ['heatwave_extreme'],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'First scenario event! Heatwave: demand +40% in Afternoon, coal derated 10% from high cooling water temperatures.',
+      'Big strategy flip from spring oversupply to summer scarcity — teams need to completely rethink their approach.',
+      'The Evening "solar cliff" is where stress peaks: solar drops off but demand stays extreme from AC running all night.',
+      'Remind teams: batteries and hydro should target the Evening for discharge. Gas peakers will likely set the clearing price.',
+      'Real-world connection: this mirrors SA/VIC heatwave events where prices hit $15,000/MWh and load shedding occurred.',
+      'After results: "Which period had the highest clearing price? Did anyone underestimate the Evening crunch?"',
+    ],
     educationalContent: {
       title: 'Summer Extremes',
       slides: [
@@ -374,6 +442,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: ['cold_snap'],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'Cold snap scenario: winter demand driven by heating, especially the Evening peak (6-9pm) when everyone comes home.',
+      'Wind can be strong in winter (cold fronts bring wind), so it may help more than teams expect.',
+      'Evening is the critical period: heating demand peaks, NO solar at all, and short winter days mean solar drops off earlier than other seasons.',
+      'Advise teams: batteries, hydro, and gas should all target the Evening. Don\'t waste limited resources on low-price daytime periods.',
+      'After results: "How did winter demand patterns differ from summer? Which period was tightest?"',
+      'Discussion: "In winter, the evening peak has replaced the afternoon peak as the NEM\'s stress point. Why?"',
+    ],
     educationalContent: {
       title: 'Winter Challenges',
       slides: [
@@ -408,6 +484,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: ['negative_prices'],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'Negative prices are likely during the Afternoon solar surplus — supply crushes demand when renewables flood in.',
+      'Coal dilemma: shutdown costs ($50K+) vs losing money at negative prices. Teams must decide whether to bid negative to stay on or withdraw.',
+      'Battery opportunity: teams get PAID to charge during negative prices. This is a real NEM phenomenon.',
+      'The Evening is the profit window — solar disappears, demand picks up, prices snap back. Concentrate gas, hydro, and battery discharge there.',
+      'After results: "Did anyone profit from negative prices? How? Did any team lose money by keeping coal running?"',
+      'Discussion: "Is coal viable in a high-renewables system? What happens to coal plants when this occurs every spring day?"',
+    ],
     educationalContent: {
       title: 'When Too Much is a Problem',
       slides: [
@@ -436,6 +520,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: ['drought', 'fuel_price_spike'],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'Drought halves hydro capacity to 50%. Gas prices spike +60% from LNG export demand — check updated Marginal Cost badges.',
+      'Real-world parallel: this mirrors the 2022 energy crisis when global gas prices spiked and the AEMC had to intervene with administered pricing.',
+      'Key teaching point: fuel price changes ripple through the entire merit order. Higher gas costs push up clearing prices even for coal.',
+      'Hydro teams now have even less water — every MWh is precious. Focus on the highest-price period only.',
+      'After results: "How did the fuel price changes affect your strategy? Did anyone adjust their gas bids to reflect the new costs?"',
+      'Discussion: "What does energy security mean when we depend on international gas markets? How does this affect the case for renewables?"',
+    ],
     educationalContent: {
       title: 'Resource Constraints',
       slides: [
@@ -472,6 +564,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: ['dunkelflaute'],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'Dunkelflaute: worst case for renewables — wind at 10% of normal, solar at 40% through heavy cloud cover.',
+      'Winter + no renewables = thermal must carry almost everything. Coal and gas are essential this round.',
+      'Batteries only have 2 hours of effective storage — they cannot bridge a multi-day renewable drought. Make this point clearly.',
+      'Peakers will likely be dispatched in multiple periods, not just Evening. Every period is tight.',
+      'After results: "What role did dispatchable generation (coal, gas, hydro) play? Could batteries have covered the gap?"',
+      'Discussion: "What is the role of dispatchable generation in a high-renewable grid? Is 100% renewables possible without long-duration storage?"',
+    ],
     educationalContent: {
       title: 'Dark Doldrums - Dunkelflaute',
       slides: [
@@ -510,6 +610,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: ['carbon_price', 'demand_response'],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      '$50/tonne CO2 price: coal +$45/MWh (0.9t/MWh), gas CCGT +$20/MWh (0.4t/MWh), gas peaker +$25/MWh (0.5t/MWh).',
+      'Merit order is reshuffled: coal may now be MORE expensive than gas CCGT. Check the updated Marginal Cost badges!',
+      'Renewables, hydro, and batteries are unaffected — zero emissions means they become even more competitive.',
+      'This is summer, so demand is high. Teams must grapple with high thermal costs AND high demand at the same time.',
+      'After results: "How did carbon pricing change the merit order? Did coal still get dispatched? At what price?"',
+      'Discussion: "Australia had a carbon price from 2012-2014. How would a permanent carbon price change investment decisions in the NEM?"',
+    ],
     educationalContent: {
       title: 'Carbon Pricing & the Energy Transition',
       slides: [
@@ -548,6 +656,14 @@ export const fullGameRounds: RoundConfig[] = [
     activeScenarioEvents: ['heatwave_moderate', 'plant_outage_random'],
     biddingTimeLimitSeconds: 300,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'Final round! Summer heatwave + random plant outage = maximum complexity. Everything teams have learned comes together.',
+      'Encourage teams to apply all their strategies: arbitrage, opportunity cost, merit order positioning, and scenario awareness.',
+      'The plant outage is random — one team may lose a key asset. Watch for how they adapt their remaining portfolio.',
+      'After results: run a full debrief. Show the leaderboard and walk through the winning team\'s strategy.',
+      'Discussion: "What was your most profitable round across the whole game? What was your biggest lesson?"',
+      'Highlight: these dynamics — heatwaves, outages, renewable variability, scarcity pricing — play out daily in the real NEM.',
+    ],
     educationalContent: {
       title: 'The Ultimate Challenge',
       slides: [

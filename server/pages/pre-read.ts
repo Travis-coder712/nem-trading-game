@@ -1,8 +1,12 @@
 /**
- * Pre-Read Document for GridRival
+ * Pre-Read Document for GridRival — Your Pre-Session Guide
  *
  * Served at /api/pre-read — open in browser, then File > Print > Save as PDF
  * to distribute to players before the session.
+ *
+ * This is the SINGLE pre-session document for all game modes.
+ * Covers NEM basics, game mechanics, generator types, strategies, and glossary.
+ * Replaces the previous learn-nem.ts + pre-read.ts split.
  */
 export function getPreReadHTML(): string {
   return `<!DOCTYPE html>
@@ -10,7 +14,7 @@ export function getPreReadHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GridRival — Player Pre-Read</title>
+<title>GridRival — Your Pre-Session Guide</title>
 <style>
   @page { margin: 1.5cm 2cm; size: A4; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,21 +41,25 @@ export function getPreReadHTML(): string {
   .content { padding: 0.5rem 0; }
   .highlight { background: #ebf8ff; border-left: 4px solid #3182ce; padding: 0.8rem 1rem; border-radius: 0 8px 8px 0; margin: 0.8rem 0; }
   .highlight-amber { background: #fffbeb; border-left: 4px solid #d69e2e; padding: 0.8rem 1rem; border-radius: 0 8px 8px 0; margin: 0.8rem 0; }
+  .highlight-green { background: #f0fff4; border-left: 4px solid #38a169; padding: 0.8rem 1rem; border-radius: 0 8px 8px 0; margin: 0.8rem 0; }
   .key-concept { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 0.8rem 1rem; margin: 0.8rem 0; }
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.8rem 0; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; margin: 0.8rem 0; }
   .card { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.8rem; }
   .card h4 { margin-top: 0; }
-  .era { margin-bottom: 1.5rem; }
-  .era-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-  .era-badge { display: inline-block; background: #3182ce; color: white; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 20px; }
-  .era-badge.green { background: #38a169; }
-  .era-badge.amber { background: #d69e2e; }
-  .era-badge.purple { background: #805ad5; }
-  .era-badge.red { background: #e53e3e; }
   .stat { display: inline-block; background: #edf2f7; border-radius: 6px; padding: 0.15rem 0.5rem; font-family: monospace; font-weight: 600; font-size: 0.9rem; color: #2d3748; }
   ul { padding-left: 1.5rem; margin-bottom: 0.6rem; }
   li { margin-bottom: 0.3rem; }
   .footer { text-align: center; color: #a0aec0; font-size: 0.75rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; margin-top: auto; }
+  .toc { columns: 2; column-gap: 2rem; margin: 1rem 0; }
+  .toc-item { margin-bottom: 0.3rem; font-size: 0.9rem; }
+  .toc-item a { color: #3182ce; text-decoration: none; }
+  .gen-card { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.7rem; margin-bottom: 0.6rem; }
+  .gen-card .gen-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; }
+  .gen-card .gen-icon { font-size: 1.4rem; }
+  .gen-card .gen-name { font-weight: 700; color: #1e3a5f; font-size: 1rem; }
+  .gen-card .gen-stats { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.3rem; }
+  .gen-card .gen-desc { font-size: 0.85rem; color: #4a5568; }
   .no-print { background: #1e3a5f; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
   .no-print a { color: #63b3ed; text-decoration: none; font-size: 14px; font-weight: 500; }
   .no-print a:hover { color: #90cdf4; }
@@ -62,7 +70,7 @@ export function getPreReadHTML(): string {
     .no-print { display: none !important; }
     .page { page-break-after: always; }
     .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .highlight, .highlight-amber, .key-concept, .card, .era-badge, .stat, .cover .prep-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .highlight, .highlight-amber, .highlight-green, .key-concept, .card, .gen-card, .stat, .cover .prep-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
@@ -77,12 +85,12 @@ export function getPreReadHTML(): string {
 <div class="page cover">
   <div class="bolt">&#9889;</div>
   <h1>GridRival</h1>
-  <div class="subtitle">Player Pre-Read</div>
+  <div class="subtitle">Your Pre-Session Guide</div>
   <p class="tagline">
     An interactive electricity market simulation where you take on the role of a power generator,
     bidding your assets into the National Electricity Market.
-    Compete against other teams to maximise profit across multiple rounds that mirror
-    three decades of change in Australia's energy system.
+    Compete against other teams to maximise profit as you navigate
+    Australia's energy transition.
   </p>
   <div class="prep-box">
     <h3>Before You Arrive</h3>
@@ -92,289 +100,345 @@ export function getPreReadHTML(): string {
       <li>No software installation required &mdash; it runs in your browser</li>
       <li>Teams of 2&ndash;4 people work best</li>
       <li>Read this document to understand the basics</li>
-      <li>Session runs approximately 90&ndash;120 minutes</li>
-      <li>Your host may display a WiFi QR code &mdash; scan it with your phone camera to connect to the venue WiFi automatically, then scan the game QR code to join</li>
+      <li>Session runs approximately 45&ndash;120 minutes depending on mode</li>
+      <li>Your host may display a WiFi QR code &mdash; scan it to connect automatically</li>
     </ul>
   </div>
 </div>
 
-<!-- PAGE 2: HOW THE GAME WORKS -->
+<!-- PAGE 2: THE NEM IN 60 SECONDS -->
 <div class="page content">
-  <h2>How the Game Works</h2>
+  <h2>1. The NEM in 60 Seconds</h2>
+
+  <p>The <strong>National Electricity Market (NEM)</strong> is one of the world's longest interconnected power systems,
+  spanning <strong>5,000 km</strong> down eastern Australia. Established in 1998, it connects five regions
+  (Queensland, New South Wales, Victoria, South Australia, and Tasmania) and serves over 10 million customers,
+  trading approximately <strong>200 TWh</strong> of electricity annually.</p>
+
+  <h3>How the Market Works</h3>
+  <p>Every <strong>5 minutes</strong> in the real NEM (and each round in our game), generators submit <strong>bids</strong>
+  to AEMO (Australian Energy Market Operator) offering to supply electricity at various prices. AEMO then runs a
+  dispatch engine to determine who generates.</p>
+
+  <h3>The Merit Order</h3>
+  <p>AEMO stacks ALL bids from ALL generators from <strong>cheapest to most expensive</strong> &mdash; this is the
+  <strong>merit order</strong>. Starting from the cheapest, generators are dispatched one by one until total supply meets demand.</p>
+
+  <div class="highlight">
+    <strong>The Key Insight &mdash; Uniform Pricing:</strong> The price of the LAST (most expensive) generator dispatched
+    sets the <strong>clearing price</strong>. ALL dispatched generators receive this same price &mdash; even if they bid much lower!
+    This means bidding low gets you dispatched, but you still earn the higher clearing price.
+  </div>
+
+  <h3>Understanding Costs</h3>
+  <p><strong>Short Run Marginal Cost (SRMC)</strong> is the cost to generate one additional MWh. It includes fuel and
+  variable operations &amp; maintenance but NOT capital costs. In the game, each asset shows its SRMC with a
+  coloured <strong>Marginal Cost badge</strong> so you always know your break-even price.</p>
+
+  <div class="key-concept">
+    <strong>Your Profit = (Clearing Price &minus; Your Marginal Cost) &times; Dispatched MW &times; Hours</strong><br>
+    <small>Bid low to get dispatched. Earn the clearing price set by the most expensive generator needed.</small>
+  </div>
+
+  <h3>Market Price Range</h3>
+  <p>NEM prices swing from <span class="stat">-$1,000/MWh</span> (negative! generators pay to stay on)
+  to <span class="stat">$20,000/MWh</span> (the price cap during scarcity). This extreme range creates
+  opportunities for strategic bidders &mdash; and makes electricity markets one of the most volatile
+  commodity markets in the world.</p>
+</div>
+
+<!-- PAGE 3: HOW THE GAME WORKS -->
+<div class="page content">
+  <h2>2. How the Game Works</h2>
 
   <p>You and your team own a portfolio of power generation assets &mdash; coal plants, gas turbines,
   wind farms, solar farms, hydro, and batteries. Each round, you submit <strong>bids</strong> to sell
   your electricity into the market.</p>
 
-  <h3>The Bidding Process</h3>
+  <h3>Round Structure</h3>
+  <p>Each round follows four phases:</p>
+  <div class="two-col">
+    <div class="card">
+      <h4>&#128214; 1. Briefing</h4>
+      <p>Learn what's new this round &mdash; new assets, scenarios, seasonal changes. Your host will explain the key concepts.</p>
+    </div>
+    <div class="card">
+      <h4>&#128176; 2. Bidding</h4>
+      <p>Set prices and quantities for each asset across time periods. You have a countdown timer &mdash; submit before it expires!</p>
+    </div>
+    <div class="card">
+      <h4>&#9889; 3. Dispatch</h4>
+      <p>The game engine runs the merit order, dispatching cheapest bids first until demand is met. Watch the merit order chart!</p>
+    </div>
+    <div class="card">
+      <h4>&#128200; 4. Results</h4>
+      <p>See the clearing price, who was dispatched, and your profit/loss. Compare strategies across teams.</p>
+    </div>
+  </div>
+
+  <h3>Time Periods</h3>
+  <p>Each round represents a day, divided into up to four 6-hour periods:</p>
+  <div class="two-col">
+    <div class="card">
+      <h4>&#127769; Overnight (12am&ndash;6am)</h4>
+      <p>Lowest demand. Baseload generation only. Potential for oversupply with wind.</p>
+    </div>
+    <div class="card">
+      <h4>&#127749; Morning (6am&ndash;12pm)</h4>
+      <p>Rising demand. Industry starts up. Solar begins generating.</p>
+    </div>
+    <div class="card">
+      <h4>&#9728;&#65039; Afternoon (12pm&ndash;6pm)</h4>
+      <p>Peak solar. Can see oversupply in mild weather, or extreme demand in summer.</p>
+    </div>
+    <div class="card">
+      <h4>&#127750; Evening (6pm&ndash;12am)</h4>
+      <p>Solar gone. Residential peak. Often the highest prices &mdash; the "solar cliff" period.</p>
+    </div>
+  </div>
+  <p><em>Early rounds may start with fewer periods (1 or 2) and expand as you learn.</em></p>
+
+  <h3>The Bid</h3>
   <p>A bid has two parts:</p>
   <div class="two-col">
     <div class="card">
       <h4>Price ($/MWh)</h4>
-      <p>The minimum price you'll accept to generate. You can bid from <span class="stat">-$1,000</span> to <span class="stat">$20,000</span> per MWh.</p>
+      <p>The minimum price you'll accept to generate. Range: <span class="stat">-$1,000</span> to <span class="stat">$20,000</span> per MWh.</p>
     </div>
     <div class="card">
       <h4>Quantity (MW)</h4>
-      <p>How many megawatts you're offering from each asset. You can split capacity across multiple bid bands at different prices.</p>
-    </div>
-  </div>
-
-  <h3>Bidding by Asset Type</h3>
-  <p>Different assets bid differently, just like the real NEM:</p>
-  <div class="two-col">
-    <div class="card">
-      <h4>&#127981; Thermal (Coal, Gas)</h4>
-      <p>Normal bidding. Set a price and quantity for each period. Strategy auto-fill available.</p>
-    </div>
-    <div class="card">
-      <h4>&#9728;&#65039;&#128168; Renewables (Solar, Wind)</h4>
-      <p>Auto-bid at <span class="stat">$0/MWh</span>. Capacity set by weather. No action needed &mdash; shown as read-only info cards.</p>
-    </div>
-    <div class="card">
-      <h4>&#128167; Hydro</h4>
-      <p>Choose <strong>ONE period</strong> to dispatch. Limited water &mdash; use it when prices are highest. Set your own bid price.</p>
-    </div>
-    <div class="card">
-      <h4>&#128267; Battery</h4>
-      <p>Toggle <strong>Charge / Idle / Discharge</strong> each period. 6-hour battery. Use &ldquo;Charge to X%&rdquo; target buttons.</p>
-    </div>
-  </div>
-
-  <h3>Merit Order Dispatch</h3>
-  <p>AEMO (the Australian Energy Market Operator) collects ALL bids from ALL teams and sorts them cheapest to most expensive &mdash; this is the <strong>merit order</strong>.</p>
-  <div class="highlight">
-    <strong>Key Rule:</strong> Starting from the cheapest bid, AEMO dispatches generators one by one until total supply meets demand.
-    The <strong>clearing price</strong> is set by the LAST generator dispatched (the most expensive one needed).
-    <strong>ALL dispatched generators receive this same price</strong>, even if they bid lower!
-  </div>
-
-  <h3>Your Profit</h3>
-  <div class="key-concept">
-    <strong>Profit = (Clearing Price &minus; Your Marginal Cost) &times; Dispatched MW &times; Hours</strong><br>
-    <small>Marginal Cost = Short Run Marginal Cost (your cost to produce each MWh of electricity)</small>
-  </div>
-  <p>Each asset type has a different marginal cost. Wind and solar have <span class="stat">$0</span> marginal cost.
-  Coal is around <span class="stat">$28&ndash;42</span>, gas CCGT <span class="stat">$68&ndash;82</span>, and peakers <span class="stat">$130&ndash;155</span>.</p>
-
-  <h3>Round Structure</h3>
-  <p>Each round represents a day, divided into four 6-hour periods:</p>
-  <div class="two-col">
-    <div class="card">
-      <h4>&#127769; Overnight (12am&ndash;6am)</h4>
-      <p>Lowest demand. Baseload generation.</p>
-    </div>
-    <div class="card">
-      <h4>&#127749; Morning (6am&ndash;12pm)</h4>
-      <p>Rising demand. Industry starts up.</p>
-    </div>
-    <div class="card">
-      <h4>&#9728;&#65039; Afternoon (12pm&ndash;6pm)</h4>
-      <p>Peak solar. Can see oversupply or extreme heat demand.</p>
-    </div>
-    <div class="card">
-      <h4>&#127750; Evening (6pm&ndash;12am)</h4>
-      <p>Solar gone. Residential peak. Often highest prices.</p>
+      <p>How many megawatts you're offering. You can split capacity across multiple <strong>bid bands</strong> at different prices.</p>
     </div>
   </div>
 
   <h3>Progressive Complexity</h3>
-  <p>The game starts simple and builds up:</p>
+  <p>The game starts simple and builds up over successive rounds:</p>
   <ul>
-    <li><strong>Rounds 1&ndash;2:</strong> Coal only &mdash; learn the basics of bidding and merit order</li>
-    <li><strong>Rounds 3:</strong> Gas enters &mdash; different cost structures, peak pricing</li>
-    <li><strong>Rounds 4:</strong> Renewables &amp; hydro &mdash; zero-cost generation reshapes the market</li>
-    <li><strong>Rounds 5:</strong> Batteries &mdash; buy low, sell high arbitrage</li>
-    <li><strong>Rounds 6&ndash;8:</strong> Scenarios &mdash; heatwaves, oversupply, plant outages</li>
+    <li><strong>Early rounds:</strong> Coal only &mdash; learn the basics of bidding and the merit order</li>
+    <li><strong>Mid rounds:</strong> Gas enters &mdash; different cost structures, peak pricing dynamics</li>
+    <li><strong>Later rounds:</strong> Renewables &amp; hydro &mdash; zero-cost generation reshapes the market</li>
+    <li><strong>Advanced rounds:</strong> Batteries &mdash; buy low, sell high energy arbitrage</li>
+    <li><strong>Scenario rounds:</strong> Heatwaves, oversupply, plant outages, carbon pricing &mdash; real-world challenges</li>
   </ul>
+  <p><em>The exact progression depends on the game mode your host selects (45 minutes to 3+ hours).</em></p>
+</div>
 
-  <div class="highlight">
-    <strong>&#128200; Progressive Learning (10 rounds, 90&ndash;120 min)</strong> &mdash; Builds from 1 asset to full portfolio gradually. Best for 2-hour sessions.
+<!-- PAGE 4: GENERATOR TYPES -->
+<div class="page content">
+  <h2>3. Generator Types</h2>
+  <p>Each generator type has unique characteristics, costs, and bidding approaches. You'll unlock these progressively through the game.</p>
+
+  <div class="gen-card">
+    <div class="gen-header">
+      <span class="gen-icon">&#127981;</span>
+      <span class="gen-name">Coal</span>
+    </div>
+    <div class="gen-stats">
+      <span class="stat">~400&ndash;800 MW</span>
+      <span class="stat">SRMC: $28&ndash;$42/MWh</span>
+    </div>
+    <div class="gen-desc">
+      Large baseload plant. Low cost but slow to start and stop (shutting down costs $50,000+).
+      Runs 24/7 as the backbone of the fleet. In hot weather, output may be <strong>derated</strong> (reduced)
+      due to cooling water temperature limits. Coal is cheap to run but inflexible &mdash; it can't easily
+      respond to rapid demand changes. Bidding: set your price and quantity per period.
+    </div>
   </div>
 
-  <h3>During the Game</h3>
+  <div class="gen-card">
+    <div class="gen-header">
+      <span class="gen-icon">&#128293;</span>
+      <span class="gen-name">Gas CCGT (Combined Cycle)</span>
+    </div>
+    <div class="gen-stats">
+      <span class="stat">~200&ndash;350 MW</span>
+      <span class="stat">SRMC: $68&ndash;$82/MWh</span>
+    </div>
+    <div class="gen-desc">
+      Mid-merit plant. Moderate cost, good flexibility. Dispatched when demand exceeds baseload capacity.
+      Profitable when clearing prices are above its SRMC. Bidding: set your price and quantity per period.
+    </div>
+  </div>
+
+  <div class="gen-card">
+    <div class="gen-header">
+      <span class="gen-icon">&#9889;</span>
+      <span class="gen-name">Gas Peaker (Open Cycle)</span>
+    </div>
+    <div class="gen-stats">
+      <span class="stat">~100&ndash;150 MW</span>
+      <span class="stat">SRMC: $130&ndash;$155/MWh</span>
+    </div>
+    <div class="gen-desc">
+      Fast-start, expensive plant. Only runs during peak demand or supply shortages.
+      Can start in minutes (vs hours for coal). Earns its keep during price spikes.
+      Bidding: set your price and quantity per period.
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="gen-card">
+      <div class="gen-header">
+        <span class="gen-icon">&#127788;&#65039;</span>
+        <span class="gen-name">Wind</span>
+      </div>
+      <div class="gen-stats">
+        <span class="stat">~200&ndash;300 MW</span>
+        <span class="stat">SRMC: $0/MWh</span>
+      </div>
+      <div class="gen-desc">
+        Zero fuel cost. Output varies by wind conditions and time of day &mdash; can produce 24/7 but availability
+        changes each period. <strong>Auto-bids at $0</strong>. No team action needed &mdash; shown as read-only info cards.
+      </div>
+    </div>
+    <div class="gen-card">
+      <div class="gen-header">
+        <span class="gen-icon">&#9728;&#65039;</span>
+        <span class="gen-name">Solar</span>
+      </div>
+      <div class="gen-stats">
+        <span class="stat">~150&ndash;200 MW</span>
+        <span class="stat">SRMC: $0/MWh</span>
+      </div>
+      <div class="gen-desc">
+        Zero fuel cost. Daytime only &mdash; zero output overnight. Strong in the afternoon, ramps up in the morning.
+        Output varies by season (strongest in summer). <strong>Auto-bids at $0</strong>. No team action needed.
+      </div>
+    </div>
+  </div>
+
+  <div class="gen-card">
+    <div class="gen-header">
+      <span class="gen-icon">&#128167;</span>
+      <span class="gen-name">Hydro</span>
+    </div>
+    <div class="gen-stats">
+      <span class="stat">~250 MW</span>
+      <span class="stat">SRMC: $8/MWh</span>
+      <span class="stat">1,000 MWh water</span>
+    </div>
+    <div class="gen-desc">
+      Very flexible and cheap, but <strong>limited water</strong>. Can only dispatch in <strong>ONE period</strong>
+      per round &mdash; choose wisely! Water used now cannot be used later, creating an <strong>opportunity cost</strong>.
+      Save water for the highest-price period. Real-world operators like Snowy Hydro are among the NEM's most sophisticated traders.
+    </div>
+  </div>
+
+  <div class="gen-card">
+    <div class="gen-header">
+      <span class="gen-icon">&#128267;</span>
+      <span class="gen-name">Battery</span>
+    </div>
+    <div class="gen-stats">
+      <span class="stat">~200&ndash;500 MW</span>
+      <span class="stat">4&ndash;6 hour duration</span>
+      <span class="stat">92% efficiency</span>
+    </div>
+    <div class="gen-desc">
+      The ultimate arbitrage machine. Toggle <strong>Charge / Idle / Discharge</strong> each period.
+      Charge when prices are low or negative (you get <em>paid</em> to charge during negative prices!),
+      discharge when prices are high. 92% round-trip efficiency means you need the spread to exceed ~8%
+      to profit. Use target SOC (State of Charge) buttons to set charge levels.
+      Batteries earn from the <strong>price spread</strong> between cheap and expensive periods.
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 5: THE ENERGY TRANSITION -->
+<div class="page content">
+  <h2>4. The Energy Transition</h2>
+  <p>The game's progression mirrors the real transformation of Australia's electricity system over three decades.</p>
+
+  <h3>&#127981; The Coal Era (1998&ndash;2008)</h3>
+  <p>Coal dominated, providing around <span class="stat">85%</span> of generation. Prices were relatively stable at
+  <span class="stat">$25&ndash;40/MWh</span> base. The NEM operated as a uniform-price auction &mdash; the same mechanism you'll use in the game.</p>
+
+  <h3>&#127793; The Transition Begins (2009&ndash;2017)</h3>
+  <p>The Renewable Energy Target drove wind and solar investment. Key milestones: carbon pricing trial (2012&ndash;14),
+  South Australia's last coal plant closes (2016), Hazelwood closes in Victoria (2017, 1,600 MW),
+  Tesla's Big Battery installed in SA. Gas prices rose as LNG exports competed for domestic supply.</p>
+
+  <h3>&#9889; The Renewable Surge (2018&ndash;Present)</h3>
+  <p>Renewables became the cheapest new generation. By 2024, over <span class="stat">20 GW</span> of wind and solar
+  connected to the NEM. Negative daytime prices became routine in spring. Grid-scale batteries grew from near zero
+  to over <span class="stat">4 GW</span>. Coal economics deteriorated as running hours and average prices fell.
+  The 2022 energy crisis saw record prices and AEMO suspended the spot market for the first time.</p>
+
+  <h3>&#128302; Looking Forward (2025&ndash;2035)</h3>
   <ul>
-    <li><strong>Sound Effects:</strong> You&rsquo;ll hear countdown beeps and result chimes (mute with &#128266; button)</li>
-    <li><strong>Dark Mode:</strong> Toggle with &#127769; button if the room lighting is dim</li>
-    <li><strong>Quick Recap:</strong> Each round starts with a summary of your last round results</li>
-    <li><strong>Bid Presets:</strong> Use one-click strategy presets (Price Taker, Cost Recovery, etc.) if you&rsquo;re unsure what to bid</li>
+    <li><strong>Coal exits accelerating:</strong> Most remaining plants setting closure dates</li>
+    <li><strong>Storage explosion:</strong> Pumped hydro (Snowy 2.0) and continued battery deployment</li>
+    <li><strong>Renewable Energy Zones:</strong> Coordinated transmission and generation corridors</li>
+    <li><strong>Electrification:</strong> EVs, heat pumps, and industry electrifying &mdash; total demand may rise 50%+</li>
+    <li><strong>Market redesign:</strong> New capacity markets and ancillary services for a renewables-dominated grid</li>
   </ul>
 
-  <h3>What You'll Learn</h3>
   <div class="highlight-amber">
-    By the end of the game, you'll understand how electricity prices are set in Australia, why prices spike during heatwaves,
-    how renewables push down daytime prices, and why batteries and flexible generation are becoming increasingly valuable.
-  </div>
-</div>
-
-<!-- PAGE 3: NEM HISTORY - ERA 1 -->
-<div class="page content">
-  <h2>The National Electricity Market: Three Decades of Change</h2>
-  <p>The game's rounds mirror the real transformation of Australia's electricity system. Here's the real-world context.</p>
-
-  <div class="era">
-    <div class="era-header">
-      <span class="era-badge">1998&ndash;2008</span>
-      <h3 style="margin:0">The Coal Era</h3>
-    </div>
-    <p>The NEM launched on 13 December 1998, connecting Queensland, New South Wales, Victoria, and South Australia
-    into a single wholesale electricity market. Tasmania joined in 2005 via the Basslink interconnector.</p>
-
-    <h4>Market Structure</h4>
-    <p>Coal dominated, providing around <span class="stat">85%</span> of generation. Large state-owned generators
-    were privatised or corporatised. The wholesale market operated as a uniform-price auction &mdash; the same mechanism
-    you'll use in the game.</p>
-
-    <h4>Key Events</h4>
-    <ul>
-      <li><strong>2004:</strong> National Electricity Law established, creating the Australian Energy Market Commission (AEMC) and the Australian Energy Regulator (AER)</li>
-      <li><strong>2005:</strong> Tasmania joins via Basslink &mdash; hydro resources connect to the mainland</li>
-      <li><strong>2007:</strong> Drought impacts: major water shortages reduced hydro generation across the Snowy scheme and Tasmania. Coal plants reliant on cooling water were also affected</li>
-      <li><strong>2007-08:</strong> Gas prices begin rising as LNG export demand builds from Queensland</li>
-    </ul>
-
-    <h4>Bidding Dynamics</h4>
-    <p>With coal the dominant fuel, prices were relatively stable. Base prices were low (<span class="stat">$25&ndash;40</span>/MWh)
-    but generators learned to exercise market power during peak periods by withdrawing capacity or bidding high,
-    creating occasional price spikes to the cap (then <span class="stat">$10,000</span>/MWh).</p>
-
-    <div class="highlight">
-      <strong>Game Connection:</strong> Rounds 1&ndash;2 mirror this era. You'll start with only coal assets and learn
-      how the merit order works with a homogeneous fleet.
-    </div>
+    <strong>The Big Question:</strong> How do you maintain reliable supply and reasonable prices while transitioning to a
+    zero-emissions electricity system? The same tension you'll experience in the game &mdash; balancing competition,
+    profitability, and market outcomes &mdash; is the central challenge facing Australia's real energy policymakers today.
   </div>
 
-  <div class="era">
-    <div class="era-header">
-      <span class="era-badge green">2009&ndash;2017</span>
-      <h3 style="margin:0">The Transition Begins</h3>
+  <h3>Key Market Dynamics You'll Experience</h3>
+  <div class="two-col">
+    <div class="card">
+      <h4>&#128200; Negative Prices</h4>
+      <p>When renewables oversupply the market (usually midday in spring), prices go negative.
+      Generators PAY to stay on. Batteries get paid to charge!</p>
     </div>
-    <p>Australia's electricity system began its most dramatic transformation. Government policy drove renewable investment
-    while the economics of coal started to deteriorate.</p>
-
-    <h4>Policy Drivers</h4>
-    <ul>
-      <li><strong>Renewable Energy Target (RET):</strong> Mandatory target of 20% renewables by 2020, later set at 33,000 GWh by 2020. Created the Large-scale Generation Certificate (LGC) market that subsidised wind and solar investment</li>
-      <li><strong>Carbon Pricing:</strong> The Clean Energy Act 2011 introduced a carbon price (July 2012&ndash;July 2014) at <span class="stat">$23/tonne</span>. This directly increased coal marginal cost by ~$20/MWh, making gas more competitive. The scheme was repealed in 2014</li>
-      <li><strong>State schemes:</strong> Various state-based feed-in tariffs and renewable auctions further accelerated deployment</li>
-    </ul>
-
-    <h4>Key Events</h4>
-    <ul>
-      <li><strong>2012:</strong> Carbon price takes effect &mdash; wholesale prices jump, gas becomes mid-merit</li>
-      <li><strong>2014:</strong> Northern Power Station (SA) and Wallerawang (NSW) close &mdash; first major coal retirements</li>
-      <li><strong>2016:</strong> South Australia's last coal plant (Playford/Northern) closes. SA becomes dependent on wind, gas, and the interconnector</li>
-      <li><strong>Sept 2016:</strong> SA system black event &mdash; a state-wide blackout triggered by a severe storm, transmission tower collapse, and wind farm protection settings. A turning point for energy policy</li>
-      <li><strong>2017:</strong> Hazelwood (VIC) closes &mdash; 1,600 MW of brown coal exits, causing Victorian wholesale prices to jump 85%</li>
-      <li><strong>2017:</strong> Tesla Big Battery (Hornsdale Power Reserve) installed in SA in under 100 days &mdash; the world's largest lithium-ion battery at the time</li>
-    </ul>
-
-    <div class="highlight">
-      <strong>Game Connection:</strong> Rounds 3&ndash;5 introduce gas, renewables, and batteries &mdash; mirroring
-      how the real market became more complex with diverse generation technologies competing.
+    <div class="card">
+      <h4>&#128293; Price Spikes</h4>
+      <p>During heatwaves, plant outages, or low wind, prices can hit the
+      <span class="stat">$20,000/MWh</span> cap. Every MW of capacity matters.</p>
+    </div>
+    <div class="card">
+      <h4>&#128024; The Duck Curve</h4>
+      <p>Solar suppresses midday prices, creating a "belly." When solar drops off in the evening,
+      prices surge &mdash; the "solar cliff."</p>
+    </div>
+    <div class="card">
+      <h4>&#127780; Dunkelflaute</h4>
+      <p>German for "dark doldrums" &mdash; extended low wind AND low solar. Thermal generation
+      becomes critical. Batteries can't bridge multi-day gaps.</p>
     </div>
   </div>
 </div>
 
-<!-- PAGE 4: NEM HISTORY - ERA 3 -->
+<!-- PAGE 6: BIDDING STRATEGIES -->
 <div class="page content">
-  <div class="era">
-    <div class="era-header">
-      <span class="era-badge purple">2018&ndash;2025</span>
-      <h3 style="margin:0">The Renewable Surge</h3>
-    </div>
-    <p>Renewables became the cheapest form of new generation. The NEM entered an era of rapid change,
-    with new challenges around grid stability, negative prices, and the "duck curve."</p>
-
-    <h4>Market Transformation</h4>
-    <ul>
-      <li><strong>Record renewable deployment:</strong> By 2024, over <span class="stat">20 GW</span> of wind and solar connected to the NEM. In 2024, renewables provided ~40% of NEM generation</li>
-      <li><strong>Negative prices:</strong> Daytime prices regularly went negative in spring and autumn as solar flooded the market. Some coal units paid to stay online rather than face expensive restart costs</li>
-      <li><strong>Battery boom:</strong> Grid-scale batteries grew from 200 MW in 2020 to over <span class="stat">4 GW</span> by 2025. Revenue from arbitrage (charging cheap, discharging at peak) and FCAS markets</li>
-      <li><strong>Coal economics deteriorate:</strong> Lower average prices and reduced running hours made coal increasingly uneconomic. Liddell (NSW) closed 2023, Eraring announced early closure (since deferred)</li>
-    </ul>
-
-    <h4>Key Events</h4>
-    <ul>
-      <li><strong>2019&ndash;20:</strong> Black Summer bushfires, followed by energy crisis with multiple coal unit failures</li>
-      <li><strong>2022:</strong> Energy crisis &mdash; global fuel price spike post-Ukraine. NEM wholesale prices hit record highs. AEMO suspended the spot market for the first time in history (June 2022)</li>
-      <li><strong>2023:</strong> Liddell closes. Origin initially announced Eraring (Australia's largest coal plant, 2,880 MW) would close in 2025</li>
-      <li><strong>2023&ndash;24:</strong> Capacity Investment Scheme launched &mdash; Commonwealth tenders for renewable and storage capacity</li>
-      <li><strong>2024:</strong> Record rooftop solar pushes minimum demand to near-zero in SA and VIC during spring days</li>
-    </ul>
-
-    <div class="highlight">
-      <strong>Game Connection:</strong> Rounds 6&ndash;8 simulate extreme scenarios from this era &mdash; summer heatwaves with record demand,
-      spring oversupply with negative prices, and plant outages that test every team's portfolio management.
-    </div>
-  </div>
-
-  <div class="era">
-    <div class="era-header">
-      <span class="era-badge red">2025&ndash;2035</span>
-      <h3 style="margin:0">Looking Forward</h3>
-    </div>
-
-    <h4>The Next 5 Years (2025&ndash;2030)</h4>
-    <ul>
-      <li><strong>Coal exits accelerate:</strong> Most remaining coal plants expected to set closure dates. The Integrated System Plan maps an orderly transition</li>
-      <li><strong>Storage explosion:</strong> Major pumped hydro (Snowy 2.0, Borumba, Pioneer-Burdekin) and continued battery deployment. Target of <span class="stat">10+ GW</span> of dispatchable storage</li>
-      <li><strong>Renewable Energy Zones (REZs):</strong> Coordinated transmission and generation build in designated corridors</li>
-      <li><strong>5-minute settlement:</strong> Already implemented &mdash; rewards fast-response assets (batteries) and penalises slow ones</li>
-      <li><strong>Demand flexibility:</strong> Electric vehicles, smart hot water, and industrial load shifting become grid resources</li>
-    </ul>
-
-    <h4>The Next 10 Years (2030&ndash;2035)</h4>
-    <ul>
-      <li><strong>Near-zero emissions grid:</strong> Australia targets 82% renewables by 2030. By 2035, remaining fossil fuel generation primarily gas peakers for reliability</li>
-      <li><strong>Green hydrogen:</strong> Electrolysis for industrial use and export, creating new flexible demand</li>
-      <li><strong>Offshore wind:</strong> First projects expected in VIC's Gippsland region, adding a more consistent renewable source</li>
-      <li><strong>Market redesign:</strong> Capacity markets, operating reserves, and new ancillary services to maintain reliability in a renewables-dominated system</li>
-      <li><strong>Electrification:</strong> Transport, heating, and industry electrify &mdash; total electricity demand may increase 50%+ even as energy efficiency improves</li>
-    </ul>
-
-    <div class="highlight-amber">
-      <strong>The Big Question:</strong> How do you maintain reliable supply and reasonable prices while transitioning to a
-      zero-emissions electricity system? The same tension you'll experience in the game &mdash; balancing competition,
-      profitability, and market outcomes &mdash; is the central challenge facing Australia's real energy policymakers today.
-    </div>
-  </div>
-</div>
-
-<!-- PAGE 5: STRATEGY TIPS & GLOSSARY -->
-<div class="page content">
-  <h2>Strategy Tips for the Game</h2>
+  <h2>5. Bidding Strategies</h2>
+  <p>The game offers one-click strategy presets, or you can set your own prices manually. Here are the six core approaches:</p>
 
   <div class="two-col">
     <div class="card">
       <h4>&#127919; Price Taker</h4>
       <p>Bid at $0 to guarantee dispatch. You'll earn whatever the clearing price is. Low risk, but you can't influence prices.</p>
-      <p><em>Best when:</em> You want certainty, or supply is tight and you'll be dispatched anyway.</p>
+      <p><em>Best when:</em> You want certainty, or supply is already tight and you'll be dispatched regardless.</p>
     </div>
     <div class="card">
-      <h4>&#128200; Marginal Cost Bidder</h4>
+      <h4>&#128200; Marginal Cost Bidder (SRMC)</h4>
       <p>Bid at your marginal cost. Classic economic theory says this is the "efficient" strategy in competitive markets.</p>
-      <p><em>Best when:</em> You want a balance of risk and reward.</p>
+      <p><em>Best when:</em> You want a safe balance of risk and reward. Covers your costs, earns when prices are high.</p>
     </div>
     <div class="card">
       <h4>&#128176; Price Maker</h4>
       <p>Bid some capacity high to push up the clearing price. All your dispatched capacity benefits from the higher price.</p>
-      <p><em>Best when:</em> Supply is tight, and your bid might set the clearing price.</p>
+      <p><em>Best when:</em> Supply is tight and your bid might set the clearing price. Risk: bid too high and miss dispatch.</p>
     </div>
     <div class="card">
       <h4>&#128161; Portfolio Optimiser</h4>
-      <p>Different strategies for different assets. Bid renewables at $0, coal at marginal cost, and peakers aggressively high.</p>
-      <p><em>Best when:</em> You have diverse assets and want to maximise across the portfolio.</p>
+      <p>Different strategies for different assets. Bid renewables at $0, coal at SRMC, and peakers aggressively high.</p>
+      <p><em>Best when:</em> You have diverse assets and want to maximise total portfolio profit rather than per-asset.</p>
+    </div>
+    <div class="card">
+      <h4>&#128683; Strategic Withdrawal</h4>
+      <p>Withhold 20&ndash;30% of capacity from the market to tighten supply and raise prices for your remaining dispatched units.</p>
+      <p><em>Best when:</em> You have significant market share and supply is near demand. Risky &mdash; other teams may undercut you.</p>
     </div>
     <div class="card">
       <h4>&#128267; Battery Arbitrageur</h4>
-      <p>Charge your 6-hour battery during cheap off-peak or solar-surplus periods, then discharge at premium during the evening peak. Use target SOC controls to set charge levels. Your profit is the spread minus 8% efficiency loss.</p>
-      <p><em>Best when:</em> There are large price differences between periods (e.g., cheap solar midday, expensive evening).</p>
-      <p><em>Note:</em> Battery strategies work independently from thermal strategies &mdash; you can combine them.</p>
-    </div>
-    <div class="card">
-      <h4>&#128202; Portfolio Thinker</h4>
-      <p>Don&rsquo;t optimise each asset alone. Think about how your whole fleet works together across the day. Renewables provide cheap guaranteed volume, thermal provides margin in peak periods, and batteries capture the spread.</p>
-      <p><em>Best when:</em> You have 3+ asset types and want to maximise total portfolio profit rather than individual asset returns.</p>
+      <p>Charge during cheap or negative-price periods, discharge at premium evening prices. Profit = spread minus efficiency loss.</p>
+      <p><em>Best when:</em> Large price differences exist between periods (e.g., cheap solar midday, expensive evening).</p>
     </div>
   </div>
 
@@ -384,30 +448,133 @@ export function getPreReadHTML(): string {
     electricity markets fascinating &mdash; and difficult to regulate.
   </div>
 
-  <h2 style="margin-top:1.5rem">Key Terms</h2>
+  <h3>Bidding by Asset Type</h3>
+  <p>Different assets bid differently, just like the real NEM:</p>
   <div class="two-col">
-    <div>
-      <p><strong>AEMO</strong> &mdash; Australian Energy Market Operator. Runs the NEM dispatch engine.</p>
-      <p><strong>Bid Band</strong> &mdash; A price/quantity pair. You can submit multiple bands per asset.</p>
-      <p><strong>Clearing Price</strong> &mdash; The price of the last (most expensive) dispatched generator. Everyone dispatched receives this price.</p>
-      <p><strong>Dispatch</strong> &mdash; The process of AEMO selecting which generators run to meet demand.</p>
-      <p><strong>Market Cap</strong> &mdash; Maximum price: $20,000/MWh. Floor: -$1,000/MWh.</p>
-      <p><strong>SOC (State of Charge)</strong> &mdash; How full a battery or hydro dam is, shown as a percentage bar. Tracks across periods within a round.</p>
+    <div class="card">
+      <h4>&#127981; Thermal (Coal, Gas)</h4>
+      <p>Normal bidding. Set a price and quantity for each period. Use the strategy auto-fill panel for quick presets.</p>
     </div>
-    <div>
-      <p><strong>Merit Order</strong> &mdash; Bids sorted cheapest to most expensive. AEMO dispatches up the stack.</p>
-      <p><strong>MW</strong> &mdash; Megawatt. A measure of power (capacity). Your plant's size.</p>
-      <p><strong>MWh</strong> &mdash; Megawatt-hour. A measure of energy (power &times; time). What you sell.</p>
-      <p><strong>SRMC (Short Run Marginal Cost)</strong> &mdash; Also called marginal cost. The cost to produce one additional MWh. Fuel + variable O&M.</p>
-      <p><strong>Reserve Margin</strong> &mdash; How much spare capacity exists above demand. Low margins = high prices.</p>
-      <p><strong>Gentailer</strong> &mdash; A company that both generates and retails electricity. The Big 3 in Australia&rsquo;s NEM (AGL, Origin, EnergyAustralia) are all gentailers.</p>
-      <p><strong>Portfolio Effect</strong> &mdash; When losses on one asset are offset by gains on another, reducing overall risk and smoothing returns.</p>
-      <p><strong>Auto-bid</strong> &mdash; Renewable assets (wind, solar) automatically bid at $0/MWh. No team action needed.</p>
+    <div class="card">
+      <h4>&#9728;&#65039;&#128168; Renewables (Solar, Wind)</h4>
+      <p>Auto-bid at <span class="stat">$0/MWh</span>. Capacity set by weather conditions. No action needed &mdash; shown as read-only info cards.</p>
+    </div>
+    <div class="card">
+      <h4>&#128167; Hydro</h4>
+      <p>Choose <strong>ONE period</strong> to dispatch. Limited water &mdash; save it for when prices are highest. Set your own bid price.</p>
+    </div>
+    <div class="card">
+      <h4>&#128267; Battery</h4>
+      <p>Toggle <strong>Charge / Idle / Discharge</strong> each period. Use &ldquo;Charge to X%&rdquo; target SOC buttons.
+      Battery strategy works independently from thermal strategies &mdash; you can combine them.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 7: WHAT TO EXPECT + SCENARIOS -->
+<div class="page content">
+  <h2>6. What to Expect</h2>
+
+  <h3>Seasons &amp; Demand Patterns</h3>
+  <p>The game cycles through Australia's seasons, each creating different market conditions:</p>
+  <div class="two-col">
+    <div class="card">
+      <h4>&#127810; Autumn</h4>
+      <p>Mild demand. The "Goldilocks" season &mdash; not too hot, not too cold. Good for learning the basics.</p>
+    </div>
+    <div class="card">
+      <h4>&#10052;&#65039; Winter</h4>
+      <p>Heating demand elevates evening peak. Short days reduce solar. Wind can be strong from cold fronts.</p>
+    </div>
+    <div class="card">
+      <h4>&#127800; Spring</h4>
+      <p>Lowest demand meets strongest renewables. Oversupply risk. Negative prices likely during solar peak.</p>
+    </div>
+    <div class="card">
+      <h4>&#9728;&#65039; Summer</h4>
+      <p>Highest demand from air conditioning. Solar helps but the evening "solar cliff" creates extreme scarcity.</p>
     </div>
   </div>
 
+  <h3>Surprise Events</h3>
+  <p>Your host may trigger surprise events during the game that change market conditions:</p>
+  <ul>
+    <li><strong>Heatwave:</strong> Demand surges +40%, coal derated 10%</li>
+    <li><strong>Plant Outage:</strong> A random asset goes offline &mdash; losing capacity when you need it most</li>
+    <li><strong>Oversupply:</strong> Renewables flood the market, driving prices negative</li>
+    <li><strong>Carbon Price:</strong> Adds ~$45/MWh to coal costs, reshuffling the merit order</li>
+    <li><strong>Drought:</strong> Hydro capacity halved due to low water levels</li>
+    <li><strong>Dunkelflaute:</strong> Wind at 10% and solar at 40% &mdash; thermal must carry the load</li>
+  </ul>
+
+  <h3>During the Game</h3>
+  <div class="two-col">
+    <div class="card">
+      <h4>&#128266; Sound Effects</h4>
+      <p>Countdown beeps and result chimes. Mute with the &#128266; button if needed.</p>
+    </div>
+    <div class="card">
+      <h4>&#127769; Dark Mode</h4>
+      <p>Toggle with the &#127769; button if the room lighting is dim.</p>
+    </div>
+    <div class="card">
+      <h4>&#128203; Quick Recap</h4>
+      <p>Each round starts with a summary of your last round results so you can refine your strategy.</p>
+    </div>
+    <div class="card">
+      <h4>&#127919; Bid Presets</h4>
+      <p>Use one-click strategy presets (Price Taker, SRMC, Aggressive, etc.) if you're unsure what to bid.</p>
+    </div>
+  </div>
+
+  <div class="highlight-green">
+    <strong>What You'll Learn:</strong> By the end of the game, you'll understand how electricity prices are set in Australia,
+    why prices spike during heatwaves, how renewables push down daytime prices, why the evening "solar cliff" matters,
+    and why batteries and flexible generation are becoming increasingly valuable.
+  </div>
+</div>
+
+<!-- PAGE 8: GLOSSARY + CHECKLIST -->
+<div class="page content">
+  <h2>7. Glossary</h2>
+  <div class="two-col">
+    <div>
+      <p><strong>AEMO</strong> &mdash; Australian Energy Market Operator. Runs the NEM dispatch engine and ensures system reliability.</p>
+      <p><strong>Bid Band</strong> &mdash; A price/quantity pair. You can submit multiple bands per asset to split your capacity at different prices.</p>
+      <p><strong>Capacity Factor</strong> &mdash; The percentage of nameplate capacity available at any time. Solar at 80% means only 80% of the panel's rated MW is available.</p>
+      <p><strong>Clearing Price</strong> &mdash; The price of the last (most expensive) dispatched generator. All dispatched generators receive this price.</p>
+      <p><strong>Dispatch</strong> &mdash; AEMO selecting which generators run to meet demand. Cheapest bids dispatched first.</p>
+      <p><strong>Duck Curve</strong> &mdash; The demand-minus-solar shape: low midday (solar surplus), steep evening ramp (solar cliff).</p>
+      <p><strong>Dunkelflaute</strong> &mdash; "Dark doldrums" &mdash; extended periods of low wind AND low solar output.</p>
+      <p><strong>Gentailer</strong> &mdash; A company that both generates and retails electricity. The Big 3 (AGL, Origin, EnergyAustralia) are all gentailers.</p>
+    </div>
+    <div>
+      <p><strong>Market Cap / Floor</strong> &mdash; Maximum price: $20,000/MWh. Floor: -$1,000/MWh.</p>
+      <p><strong>Merit Order</strong> &mdash; All bids sorted cheapest to most expensive. AEMO dispatches up the stack until demand is met.</p>
+      <p><strong>MW (Megawatt)</strong> &mdash; A measure of power (capacity). Your plant's size.</p>
+      <p><strong>MWh (Megawatt-hour)</strong> &mdash; A measure of energy (power &times; time). What you sell.</p>
+      <p><strong>Portfolio Effect</strong> &mdash; When losses on one asset are offset by gains on another, reducing overall risk.</p>
+      <p><strong>Pro-rata Dispatch</strong> &mdash; When multiple generators bid the same price at the margin, capacity is split proportionally.</p>
+      <p><strong>Reserve Margin</strong> &mdash; Spare capacity above demand. Low margins = tight supply = high prices.</p>
+      <p><strong>SOC (State of Charge)</strong> &mdash; How full a battery is, shown as a percentage. Tracks across periods within a round.</p>
+      <p><strong>SRMC (Short Run Marginal Cost)</strong> &mdash; The cost to produce one additional MWh. Fuel + variable O&amp;M. Also called marginal cost.</p>
+    </div>
+  </div>
+
+  <h2 style="margin-top:1.5rem">8. Pre-Session Checklist</h2>
+  <div class="highlight">
+    <ul style="list-style: none; padding-left: 0;">
+      <li style="margin-bottom: 0.5rem;">&#9745; <strong>Read this document</strong> &mdash; understand merit order, clearing price, and your generator types</li>
+      <li style="margin-bottom: 0.5rem;">&#9745; <strong>Bring a charged device</strong> &mdash; laptop, tablet, or smartphone with a modern browser</li>
+      <li style="margin-bottom: 0.5rem;">&#9745; <strong>No installation needed</strong> &mdash; everything runs in your browser</li>
+      <li style="margin-bottom: 0.5rem;">&#9745; <strong>WiFi access</strong> &mdash; your host will share connection details (possibly via QR code)</li>
+      <li style="margin-bottom: 0.5rem;">&#9745; <strong>Team up</strong> &mdash; groups of 2&ndash;4 people work best. One device per team.</li>
+      <li style="margin-bottom: 0.5rem;">&#9745; <strong>Come with questions!</strong> &mdash; the best learning happens through discussion and experimentation</li>
+    </ul>
+  </div>
+
   <div class="footer" style="margin-top:2rem">
-    <p>GridRival &mdash; Player Pre-Read Document &middot; 5 game modes &middot; 7 asset types</p>
+    <p>GridRival &mdash; Your Pre-Session Guide &middot; 6 game modes &middot; 7 asset types &middot; Real NEM scenarios</p>
     <p>Bring your device charged. No installation required. See you at the session!</p>
   </div>
 </div>

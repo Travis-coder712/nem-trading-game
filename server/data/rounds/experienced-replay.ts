@@ -24,6 +24,14 @@ export const experiencedReplayRounds: RoundConfig[] = [
     activeScenarioEvents: ['drought', 'fuel_price_spike'],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'Experienced replay starts at full complexity — all assets, all periods, dual scenarios',
+      'Check your updated Marginal Cost badges — gas costs have jumped 60% due to the LNG crisis',
+      'Hydro is halved by drought — every MWh of water is precious. Target the highest-price period.',
+      'This is autumn so demand is moderate, but supply constraints make it feel tighter',
+      'After results: "How did the fuel price spike change your gas bidding strategy?"',
+      'Discussion: "The 2022 real-world energy crisis saw similar dynamics — what policy responses would you suggest?"',
+    ],
     educationalContent: {
       title: 'Autumn Challenge',
       slides: [
@@ -57,6 +65,14 @@ export const experiencedReplayRounds: RoundConfig[] = [
     activeScenarioEvents: ['dunkelflaute', 'cold_snap'],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'From autumn drought to winter dunkelflaute — completely different scenario',
+      'Wind at 10%, solar at 40%, plus cold snap heating demand. Thermal carries everything.',
+      'Batteries have just 2 hours of storage — can help at peaks but can\'t sustain through the day',
+      'Every period is tight — there\'s no "cheap" time to charge batteries',
+      'After results: "How did you change your strategy from autumn to winter?"',
+      'Discussion: "What investment would you make to protect against dunkelflaute?"',
+    ],
     educationalContent: {
       title: 'Winter Dunkelflaute',
       slides: [
@@ -90,6 +106,14 @@ export const experiencedReplayRounds: RoundConfig[] = [
     activeScenarioEvents: ['negative_prices'],
     biddingTimeLimitSeconds: 240,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'From winter thermal-heavy to spring oversupply — total strategy reversal needed',
+      'Negative prices likely during Afternoon. Coal will lose money during the day.',
+      'Batteries get PAID to charge during negative prices — the ultimate arbitrage opportunity',
+      'Evening is the profit window: solar gone, demand picks up, prices snap back',
+      'After results: "Who made money in a negative-price environment? How?"',
+      'Discussion: "Can a portfolio survive the transition from winter scarcity to spring oversupply?"',
+    ],
     educationalContent: {
       title: 'Spring Oversupply',
       slides: [
@@ -123,6 +147,14 @@ export const experiencedReplayRounds: RoundConfig[] = [
     activeScenarioEvents: ['heatwave_extreme', 'plant_outage_random'],
     biddingTimeLimitSeconds: 300,
     maxBidBandsPerAsset: 10,
+    hostTeachingNotes: [
+      'Final round! Summer crisis: extreme heatwave + plant outage. Maximum stress.',
+      'From spring minimum to summer maximum — demand surges 40%+ from air conditioning',
+      'The plant outage removes critical capacity. The solar cliff in Evening is the crunch point.',
+      'Every MW of generation is valuable. Bid aggressively on all assets.',
+      'After results: full debrief — "Which season was most profitable? Which was hardest?"',
+      'Discussion: "Having played through all four seasons, what does a balanced energy portfolio look like?"',
+    ],
     educationalContent: {
       title: 'The Final Challenge',
       slides: [

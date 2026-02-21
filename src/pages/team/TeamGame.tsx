@@ -36,7 +36,8 @@ import BatteryArbitrageMiniGame from '../../components/game/BatteryArbitrageMini
 import BatteryBiddingExplainer from '../../components/game/BatteryBiddingExplainer';
 import PortfolioExplainer from '../../components/game/PortfolioExplainer';
 import ZeroCapacityWarningModal from '../../components/game/ZeroCapacityWarningModal';
-import type { BatteryMode } from '../../../shared/types';
+import RoundBiddingGuide from '../../components/game/RoundBiddingGuide';
+import type { BatteryMode, RoundConfig } from '../../../shared/types';
 
 export default function TeamGame() {
   const navigate = useNavigate();
@@ -100,6 +101,11 @@ export default function TeamGame() {
   const shownTransitionsRef = useRef<Set<string>>(new Set());
   const prevPhaseRef = useRef<string | null>(null);
 
+  // Round Bidding Guide — tracks previous round config to detect changes
+  const [showRoundBiddingGuide, setShowRoundBiddingGuide] = useState(false);
+  const prevRoundConfigRef = useRef<RoundConfig | null>(null);
+  const currentRoundForGuideRef = useRef<number>(0);
+
   useEffect(() => {
     const phase = gameState?.phase;
     const round = gameState?.currentRound ?? 0;
@@ -139,6 +145,19 @@ export default function TeamGame() {
     else if (phase === 'results') AudioManager.clearingPriceReveal();
     else if (phase === 'final') AudioManager.gameOver();
   }, [phase]);
+
+  // Show Round Bidding Guide when bidding phase starts
+  useEffect(() => {
+    const currentRound = gameState?.currentRound ?? 0;
+    if (phase === 'bidding' && roundConfig && currentRound !== currentRoundForGuideRef.current) {
+      currentRoundForGuideRef.current = currentRound;
+      setShowRoundBiddingGuide(true);
+    }
+    // Update previous round config when leaving bidding/results (for next round comparison)
+    if (phase === 'results' && roundConfig) {
+      prevRoundConfigRef.current = roundConfig;
+    }
+  }, [phase, gameState?.currentRound, roundConfig]);
 
   // Reset bids when new round starts
   useEffect(() => {
@@ -2063,6 +2082,26 @@ export default function TeamGame() {
             setBatteryMiniGameCompleted(true);
             notifyMinigameCompleted();
           }}
+        />
+      )}
+
+      {/* Round Bidding Guide — shows what changed this round */}
+      {showRoundBiddingGuide && roundConfig && (
+        <RoundBiddingGuide
+          currentRound={gameState?.currentRound || 1}
+          previousRound={prevRoundConfigRef.current ? (gameState?.currentRound || 1) - 1 : null}
+          periodCount={roundConfig.timePeriods.length}
+          previousPeriodCount={prevRoundConfigRef.current?.timePeriods.length ?? null}
+          newAssetTypes={roundConfig.newAssetsUnlocked || []}
+          maxBidBands={roundConfig.maxBidBandsPerAsset || 10}
+          previousMaxBidBands={prevRoundConfigRef.current?.maxBidBandsPerAsset ?? null}
+          season={roundConfig.season || 'autumn'}
+          previousSeason={prevRoundConfigRef.current?.season ?? null}
+          hasScenarioEvents={(roundConfig.activeScenarioEvents || []).length > 0}
+          scenarioEventNames={roundConfig.activeScenarioEvents || []}
+          hasBattery={(assets || []).some(a => a.type === 'battery')}
+          previousHasBattery={(assets || []).some(a => a.type === 'battery') && !(roundConfig.newAssetsUnlocked || []).includes('battery')}
+          onDismiss={() => setShowRoundBiddingGuide(false)}
         />
       )}
 

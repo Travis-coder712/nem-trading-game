@@ -235,6 +235,8 @@ export function getGameplaySummaryHTML(): string {
       <li><a href="#scenarios">Scenario Events</a></li>
       <li><a href="#withdrawal">Strategic Withdrawal Detection</a></li>
       <li><a href="#strategy">Key Strategic Insights</a></li>
+      <li><a href="#ui-complexity">UI Complexity Levels</a></li>
+      <li><a href="#walkthrough">Walkthrough Mode &amp; Guided Rounds</a></li>
       <li><a href="#round-configs">Round-by-Round Configurations</a></li>
     </ol>
   </div>
@@ -758,8 +760,102 @@ export function getGameplaySummaryHTML(): string {
   </section>
 
   <!-- ─────────────────────────────────────────── -->
+  <section>
+    <h2>14. UI Complexity Levels</h2>
+    <p>
+      The First Run mode uses a <strong>progressive UI complexity</strong> system to avoid overwhelming
+      new players. Each round specifies a <code>uiComplexity</code> setting that controls which interface
+      elements are visible on the team&rsquo;s bidding screen.
+    </p>
+    <table>
+      <tr><th>Level</th><th>Visible Elements</th><th>Used In</th></tr>
+      <tr>
+        <td><strong>minimal</strong></td>
+        <td>Basic bid table only. No strategy panel, no period descriptions, no demand % indicators. Simple, clean interface focused on price + quantity inputs.</td>
+        <td>First Run Rounds 1&ndash;2</td>
+      </tr>
+      <tr>
+        <td><strong>standard</strong></td>
+        <td>Adds strategy auto-fill panel, period demand descriptions, and demand % indicators. More context to inform bidding decisions.</td>
+        <td>First Run Rounds 3&ndash;5</td>
+      </tr>
+      <tr>
+        <td><strong>full</strong></td>
+        <td>All elements visible: strategy panel, demand info, seasonal guidance, battery controls, hydro selector, portfolio explainer access. Full interface.</td>
+        <td>First Run Rounds 6&ndash;8, all other modes</td>
+      </tr>
+    </table>
+    <div class="tip">
+      <strong>Implementation note:</strong> The <code>uiComplexity</code> field is only set in First Run mode.
+      All other modes default to &ldquo;full&rdquo; complexity &mdash; showing all interface elements from round 1.
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────── -->
+  <section>
+    <h2>15. Walkthrough Mode &amp; Guided Rounds</h2>
+    <p>
+      Certain rounds (typically round 1 in Beginner, First Run, and Full Game modes) include a
+      <strong>walkthrough</strong> configuration that pre-fills suggested bids for teams with explanations.
+    </p>
+    <h3>Walkthrough Structure</h3>
+    <table>
+      <tr><th>Field</th><th>Description</th></tr>
+      <tr>
+        <td><code>introText</code></td>
+        <td>Displayed at the top of the bidding screen explaining the guided round.</td>
+      </tr>
+      <tr>
+        <td><code>suggestedBids[]</code></td>
+        <td>Array of pre-filled bids. Each entry specifies the <code>assetType</code>, <code>period</code>,
+        <code>suggestedPrice</code>, <code>suggestedQuantityPercent</code>, and an <code>explanation</code>
+        text that appears alongside the bid to explain the strategy.</td>
+      </tr>
+      <tr>
+        <td><code>afterSubmitExplanation</code></td>
+        <td>Text shown after the team submits, explaining what to watch for during dispatch and results.</td>
+      </tr>
+    </table>
+    <div class="tip">
+      <strong>Host tip:</strong> In walkthrough rounds, encourage teams to read the explanations but feel
+      free to adjust the numbers. The suggested bids are starting points, not requirements. Teams that
+      modify the suggestions and compare their results to the defaults learn the most.
+    </div>
+
+    <h3>Other Guided Features</h3>
+    <table>
+      <tr><th>Feature</th><th>Description</th><th>Available In</th></tr>
+      <tr>
+        <td><strong>hostTeachingNotes</strong></td>
+        <td>Array of bullet points for the host displayed in a purple card during briefing. What to explain, what to watch for, discussion questions.</td>
+        <td>All modes (all rounds)</td>
+      </tr>
+      <tr>
+        <td><strong>educationalContent</strong></td>
+        <td>Title + slides with heading/body shown to teams during briefing. Covers the concept being introduced that round.</td>
+        <td>All modes (all rounds)</td>
+      </tr>
+      <tr>
+        <td><strong>seasonalGuidance</strong></td>
+        <td>Season-specific advice with headline, demand context, supply context, and bidding advice. Shown in the period selector area.</td>
+        <td>Rounds with seasonal scenarios (varies by mode)</td>
+      </tr>
+      <tr>
+        <td><strong>batteryMiniGame</strong></td>
+        <td>When <code>true</code>, enables the interactive battery arbitrage mini-game before the first battery round.</td>
+        <td>Battery introduction rounds</td>
+      </tr>
+      <tr>
+        <td><strong>portfolioExplainer</strong></td>
+        <td>When <code>true</code>, enables the portfolio strategy explainer overlay accessible from the bidding screen.</td>
+        <td>First Run Round 7</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- ─────────────────────────────────────────── -->
   <section id="round-configs">
-    <h2>14. Round-by-Round Configurations</h2>
+    <h2>16. Round-by-Round Configurations</h2>
     <p>
       Each game mode follows a carefully designed progression. Below is the full
       round-by-round breakdown for every mode, showing what happens each round.

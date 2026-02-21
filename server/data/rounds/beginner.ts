@@ -28,6 +28,14 @@ export const beginnerRounds: RoundConfig[] = [
     activeScenarioEvents: [],
     biddingTimeLimitSeconds: 360, // 6 minutes — plenty of time for beginners
     maxBidBandsPerAsset: 2, // keep it simple
+    hostTeachingNotes: [
+      'This is a single-round guided demo — ideal for first-timers or short sessions',
+      'Teams see pre-filled bids with explanations. Walk through what a bid is before they submit.',
+      'Key concept: the merit order stacks bids cheapest first. The LAST generator dispatched sets the clearing price.',
+      'Critical insight: ALL dispatched generators earn the clearing price, not their bid price — this surprises most people!',
+      'After results: show the merit order chart and trace where each team sits. Ask "Who set the clearing price?"',
+      'Discussion prompt: "If you bid $0, why didn\'t you earn $0?" — this cements the uniform pricing concept',
+    ],
     educationalContent: {
       title: 'How Electricity Markets Work',
       slides: [

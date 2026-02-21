@@ -80,11 +80,13 @@ export function getGameMasterGuideHTML(): string {
       <li><a href="#before">Before the Session</a></li>
       <li><a href="#setup">Game Setup &amp; Configuration</a></li>
       <li><a href="#modes">Choosing a Game Mode</a></li>
+      <li><a href="#firstrun-rounds">First Run &mdash; Round-by-Round Guide (Recommended)</a></li>
       <li><a href="#quick-rounds">Quick Game &mdash; Round-by-Round Guide</a></li>
       <li><a href="#full-rounds">Full Game &mdash; Round-by-Round Guide</a></li>
       <li><a href="#experienced-rounds">Experienced Replay &mdash; Round-by-Round Guide</a></li>
       <li><a href="#beginner-round">Beginner Mode</a></li>
       <li><a href="#progressive-rounds">Progressive Learning &mdash; Round-by-Round Guide</a></li>
+      <li><a href="#facilitation">Facilitation Techniques</a></li>
       <li><a href="#features">Game Features (WiFi, Sound, Dark Mode, Spectator, etc.)</a></li>
       <li><a href="#assets">Asset Reference</a></li>
       <li><a href="#scenarios">Scenario Events Reference</a></li>
@@ -194,11 +196,17 @@ export function getGameMasterGuideHTML(): string {
       <th>Duration</th>
       <th>Best For</th>
     </tr>
+    <tr style="background: #f0fff4;">
+      <td><strong>&#127919; First Run (Recommended)</strong></td>
+      <td>8</td>
+      <td>45&ndash;60 min</td>
+      <td>Best starting mode for most groups. Lean portfolio (1 coal + 1 gas + 1 renewable + 1 battery per team). Progressive unlock with guided first round, teaching notes, and seasonal guidance. Diverse portfolios create natural discussion.</td>
+    </tr>
     <tr>
       <td><strong>Beginner</strong></td>
       <td>1</td>
       <td>15&ndash;20 min</td>
-      <td>First-timers who need to understand the basic concept before playing a full game. Use as a warm-up before Quick or Full mode.</td>
+      <td>Single guided round with 2 assets. Quick demos only. Use as a warm-up or when time is very limited.</td>
     </tr>
     <tr>
       <td><strong>Quick Game</strong></td>
@@ -226,25 +234,150 @@ export function getGameMasterGuideHTML(): string {
     </tr>
   </table>
 
+  <div class="highlight">
+    <h4 style="margin-top: 0;">&#127919; First Run &mdash; The Recommended Starting Mode</h4>
+    <p>First Run is the best starting mode for most groups with 45&ndash;90 minutes. Each team gets a <strong>lean portfolio</strong> of 4 assets (coal + gas + renewable + battery), with different gas and renewable types per team to create natural discussion. Progressive unlock over 8 rounds covers the full energy mix journey:</p>
+    <ul>
+      <li><strong>Rounds 1&ndash;3:</strong> Coal only &mdash; learn merit order, time periods, and bidding strategies</li>
+      <li><strong>Round 4:</strong> Gas enters &mdash; teams get either CCGT or Peaker (compare strategies!)</li>
+      <li><strong>Round 5:</strong> Renewables &mdash; teams get either Wind or Solar (different patterns!)</li>
+      <li><strong>Round 6:</strong> Battery &mdash; complete portfolio, arbitrage mechanics</li>
+      <li><strong>Rounds 7&ndash;8:</strong> Scenarios &mdash; summer heatwave, then crisis with plant outage</li>
+    </ul>
+    <p><strong>Why First Run works:</strong> Smaller portfolios mean faster bidding, less cognitive overload, and more time for discussion. Different assets per team creates natural comparison (&ldquo;Solar teams vs Wind teams&rdquo;). All rounds have host teaching notes.</p>
+  </div>
+
   <div class="card">
     <h4>&#128200; Progressive Learning (10 rounds, 90&ndash;120 min)</h4>
-    <p>The recommended mode for a single 2-hour session with new learners. Builds complexity gradually from 1 asset and 1 period to a full portfolio with crises. Each round introduces new concepts with host teaching notes and educational content.</p>
+    <p>Best for a dedicated 2-hour session. Builds from 1 asset/1 period to full portfolio with crises. Each round has host teaching notes and educational content.</p>
     <ul>
       <li>Rounds 1&ndash;3: Coal only, increasing from 1 to 4 periods</li>
-      <li>Rounds 4: Gas enters (CCGT + Peaker)</li>
+      <li>Round 4: Gas enters (CCGT + Peaker)</li>
       <li>Rounds 5&ndash;6: Renewables, hydro, and batteries</li>
-      <li>Rounds 7: Full portfolio strategy practice</li>
+      <li>Round 7: Full portfolio strategy practice</li>
       <li>Rounds 8&ndash;10: Crisis scenarios (heatwave, negative prices, outage)</li>
     </ul>
     <p><strong>Ideal for:</strong> University tutorials, corporate training, workshop days</p>
   </div>
 
   <div class="tip">
-    <strong>&#128161; Recommendation:</strong> For a half-day workshop (3&ndash;4 hours), start with <strong>Beginner</strong> mode as an ice-breaker (15 min), then run the <strong>Quick Game</strong> (75 min), with a break in between. If time permits, finish with the <strong>Experienced Replay</strong> (40 min) so teams can apply what they&rsquo;ve learned. For a single 2-hour session with new learners, use <strong>Progressive Learning</strong> &mdash; it gradually introduces concepts and assets over 10 rounds with built-in teaching prompts.
+    <strong>&#128161; Choosing the Right Mode:</strong>
+    <ul>
+      <li><strong>45&ndash;60 min, new group:</strong> First Run (recommended default)</li>
+      <li><strong>90&ndash;120 min, new learners:</strong> Progressive Learning</li>
+      <li><strong>60&ndash;90 min, some experience:</strong> Quick Game</li>
+      <li><strong>Half-day workshop (3&ndash;4 hrs):</strong> Start with Beginner as ice-breaker (15 min), then First Run or Quick Game (75 min), break, then Experienced Replay (40 min)</li>
+      <li><strong>Deep-dive training (3+ hrs):</strong> Full Game</li>
+      <li><strong>Quick demo (10&ndash;15 min):</strong> Beginner</li>
+      <li><strong>Returning players:</strong> Experienced Replay</li>
+    </ul>
   </div>
 
-  <!-- Section 4: Quick Game Rounds -->
-  <h2 id="quick-rounds">4. Quick Game &mdash; Round-by-Round Guide (8 Rounds)</h2>
+  <!-- Section 4: First Run Rounds -->
+  <h2 id="firstrun-rounds">4. First Run &mdash; Round-by-Round Guide (8 Rounds, Recommended)</h2>
+
+  <div class="tip">
+    <strong>&#127919; First Run Key Feature:</strong> Each team gets a lean portfolio of just 4 assets, with <strong>different</strong> gas and renewable types per team. Some teams get a CCGT, others a Peaker. Some get Wind, others Solar. This creates natural comparison and discussion between teams.
+  </div>
+
+  <div class="round-card">
+    <h4>Round 1: Your First Bid (Guided Walkthrough)</h4>
+    <div class="round-meta">
+      <span class="tag-season">&#127810; Autumn</span>
+      <span class="tag-assets">Coal only</span>
+      <span class="tag-time">1 period (Afternoon)</span>
+    </div>
+    <p><strong>What happens:</strong> Teams see pre-filled bids with explanations. Walk them through what a bid is before they submit.</p>
+    <p><strong>Key teaching:</strong> A bid = price + quantity. The merit order stacks bids cheapest first. The LAST generator dispatched sets the clearing price. ALL dispatched generators earn this price &mdash; not their bid price.</p>
+    <p><strong>After results:</strong> Trace through the merit order chart. Ask: &ldquo;Who set the clearing price? If you bid $0, why didn&rsquo;t you earn $0?&rdquo;</p>
+    <p><strong>In First Run:</strong> Each team has a smaller coal plant (~400 MW). UI is minimal &mdash; just the essentials.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Round 2: Morning &amp; Afternoon</h4>
+    <div class="round-meta">
+      <span class="tag-season">&#127810; Autumn</span>
+      <span class="tag-time">2 periods, 3 bands</span>
+    </div>
+    <p><strong>What happens:</strong> First unguided round. Teams bid independently across 2 periods.</p>
+    <p><strong>Key teaching:</strong> Demand differs between Morning (lower) and Afternoon (higher). Should you bid the same in both?</p>
+    <p><strong>After results:</strong> Compare who adapted their strategy across periods vs who bid the same everywhere.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Round 3: Full Day Trading</h4>
+    <div class="round-meta">
+      <span class="tag-season">&#127810; Autumn</span>
+      <span class="tag-time">4 periods, 5 bands</span>
+    </div>
+    <p><strong>What happens:</strong> First full-day round &mdash; Overnight, Morning, Afternoon, Evening.</p>
+    <p><strong>Key teaching:</strong> Introduce strategy options: price taker ($0), SRMC, price maker, strategic withdrawal.</p>
+    <p><strong>After results:</strong> Compare team strategies. &ldquo;Who adapted well to each period? Who bid the same everywhere?&rdquo;</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Round 4: Gas Power Enters</h4>
+    <div class="round-meta">
+      <span class="tag-season">&#127810; Autumn</span>
+      <span class="tag-assets">+ Gas (CCGT or Peaker)</span>
+      <span class="tag-time">4 periods, 5 bands</span>
+    </div>
+    <p><strong>What happens:</strong> Each team receives EITHER a CCGT (~200 MW, ~$75/MWh) OR a Peaker (~100 MW, ~$145/MWh) &mdash; not both!</p>
+    <p><strong>Key teaching:</strong> Different cost structures. Gas only profits when the clearing price exceeds its SRMC.</p>
+    <p><strong>After results:</strong> &ldquo;Which type of gas plant made more profit? Why?&rdquo; Compare CCGT vs Peaker team strategies.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Round 5: Renewables Arrive</h4>
+    <div class="round-meta">
+      <span class="tag-season">&#127800; Spring</span>
+      <span class="tag-assets">+ Wind or Solar</span>
+      <span class="tag-time">4 periods, 7 bands</span>
+    </div>
+    <p><strong>What happens:</strong> Each team receives EITHER Wind (~200 MW) OR Solar (~150 MW). Season shifts to spring (low demand).</p>
+    <p><strong>Key teaching:</strong> Renewables bid at $0 (no fuel cost) and displace expensive thermal. Solar is zero overnight; wind varies.</p>
+    <p><strong>After results:</strong> &ldquo;Did solar teams dominate afternoon? Did wind teams have an edge overnight?&rdquo;</p>
+    <p><strong>Note:</strong> Spring + renewables = possible oversupply. Watch for lower clearing prices.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Round 6: Battery Storage</h4>
+    <div class="round-meta">
+      <span class="tag-season">&#127800; Spring</span>
+      <span class="tag-assets">+ Battery (200 MW)</span>
+      <span class="tag-time">4 periods, 10 bands</span>
+    </div>
+    <p><strong>What happens:</strong> Battery completes the portfolio (4 assets per team). Battery mini-game available. Full UI complexity.</p>
+    <p><strong>Key teaching:</strong> Arbitrage &mdash; charge low, sell high. 92% round-trip efficiency means you need a ~9% spread to profit.</p>
+    <p><strong>After results:</strong> &ldquo;Who made the most from their battery? What was the price spread?&rdquo;</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Round 7: Summer Heatwave</h4>
+    <div class="round-meta">
+      <span class="tag-season">&#9728;&#65039; Summer</span>
+      <span class="tag-scenario">Heatwave (+40% demand)</span>
+      <span class="tag-time">4 periods, 10 bands</span>
+    </div>
+    <p><strong>What happens:</strong> First scenario event! Extreme demand, coal derated 10%. With lean portfolios, supply is very tight.</p>
+    <p><strong>Key teaching:</strong> Scarcity pricing. Solar teams have daytime advantage; wind teams may have overnight advantage.</p>
+    <p><strong>After results:</strong> &ldquo;Which period had the highest clearing price? Why?&rdquo; Portfolio Explainer is available this round.</p>
+  </div>
+
+  <div class="round-card">
+    <h4>Round 8: The Full NEM</h4>
+    <div class="round-meta">
+      <span class="tag-season">&#9728;&#65039; Summer</span>
+      <span class="tag-scenario">Heatwave + Plant Outage</span>
+      <span class="tag-time">4 periods, 10 bands</span>
+    </div>
+    <p><strong>What happens:</strong> Maximum complexity &mdash; heatwave + random plant outage. One team may lose their gas or even coal.</p>
+    <p><strong>Key teaching:</strong> Apply everything learned. Different portfolios (CCGT vs Peaker, Wind vs Solar) shaped strategies differently.</p>
+    <p><strong>After results:</strong> Full debrief. &ldquo;What was your biggest lesson? How did having different portfolios shape your strategy?&rdquo;</p>
+  </div>
+
+  <!-- Section 5: Quick Game Rounds -->
+  <h2 id="quick-rounds">5. Quick Game &mdash; Round-by-Round Guide (8 Rounds)</h2>
 
   <div class="round-card">
     <h4>Round 1: Guided Walkthrough &mdash; Your First Bid</h4>
@@ -403,7 +536,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 5: Full Game Rounds -->
-  <h2 id="full-rounds">5. Full Game &mdash; Round-by-Round Guide (15 Rounds)</h2>
+  <h2 id="full-rounds">6. Full Game &mdash; Round-by-Round Guide (15 Rounds)</h2>
 
   <h3>Phase 1: Fundamentals (Rounds 1&ndash;4) &mdash; Coal only</h3>
   <p>Teams learn the basics with a single asset type. Focus on understanding the merit order, clearing prices, and basic bidding strategies.</p>
@@ -572,7 +705,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 6: Experienced Replay -->
-  <h2 id="experienced-rounds">6. Experienced Replay &mdash; Round-by-Round Guide (4 Rounds)</h2>
+  <h2 id="experienced-rounds">7. Experienced Replay &mdash; Round-by-Round Guide (4 Rounds)</h2>
   <p>Full portfolio from round 1. One round per season, each with challenging scenarios. Designed for teams who&rsquo;ve played before.</p>
 
   <div class="round-card">
@@ -616,7 +749,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 7: Beginner -->
-  <h2 id="beginner-round">7. Beginner Mode</h2>
+  <h2 id="beginner-round">8. Beginner Mode</h2>
   <div class="round-card">
     <h4>Single Round: Your First Electricity Market</h4>
     <div class="round-meta">
@@ -628,7 +761,7 @@ export function getGameMasterGuideHTML(): string {
     <div class="tip"><strong>GM tip:</strong> Use this as a 15-minute warm-up before the main game. After results, walk through the merit order step by step on the main screen. Make sure every team understands clearing price before moving to Quick or Full mode.</div>
   </div>
 
-  <h2 id="progressive-rounds">Progressive Learning &mdash; Round-by-Round Guide</h2>
+  <h2 id="progressive-rounds">9. Progressive Learning &mdash; Round-by-Round Guide</h2>
   <p>The Progressive Learning mode builds complexity over 10 rounds. Each round includes <strong>host teaching notes</strong> (displayed in a purple card during briefing) and <strong>educational content slides</strong> for teams.</p>
 
   <div class="round-card">
@@ -668,7 +801,99 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 9: Game Features -->
-  <h2 id="features">9. Game Features</h2>
+  <!-- Section: Facilitation Techniques -->
+  <h2 id="facilitation">Facilitation Techniques</h2>
+
+  <div class="highlight">
+    <h4 style="margin-top: 0;">&#127919; Top 10 Tips for a Successful Session</h4>
+    <ol>
+      <li><strong>Test everything beforehand</strong> &mdash; WiFi, projector, server, team devices. Run through at least 2 rounds yourself.</li>
+      <li><strong>Start with First Run</strong> for new groups &mdash; lean portfolios mean faster bidding and more discussion time.</li>
+      <li><strong>Read the educational slides aloud</strong> during briefing &mdash; don&rsquo;t just skip past them. They set up the learning.</li>
+      <li><strong>Use the pause button</strong> if teams are confused &mdash; better to pause and explain than to rush through.</li>
+      <li><strong>Walk around the room</strong> during bidding &mdash; check in with each team, answer questions, give hints to struggling teams.</li>
+      <li><strong>After each round, discuss results</strong> for 2&ndash;3 minutes &mdash; &ldquo;Who set the clearing price? Why?&rdquo; is the best starting question.</li>
+      <li><strong>Celebrate losing teams too</strong> &mdash; a team that bid their gas at $300 and missed dispatch learned something valuable.</li>
+      <li><strong>Use surprise events strategically</strong> &mdash; trigger a surprise when energy is flagging or when teams need a challenge.</li>
+      <li><strong>Don&rsquo;t rush the final debrief</strong> &mdash; the last 10 minutes of discussion are where the deepest learning happens.</li>
+      <li><strong>Have fun!</strong> This is a game. Laughter and competitive banter make the learning stick.</li>
+    </ol>
+  </div>
+
+  <h3>When to Pause the Game</h3>
+  <div class="card">
+    <p>Use the <strong>&#9208;&#65039; Pause</strong> button during bidding if:</p>
+    <ul>
+      <li>Multiple teams are confused about how to bid a new asset type (especially hydro or battery)</li>
+      <li>A team is significantly behind and needs help catching up</li>
+      <li>You want to explain a scenario event in more detail</li>
+      <li>WiFi issues are affecting some teams</li>
+      <li>You want to highlight something on the projector screen</li>
+    </ul>
+    <p>Pausing is always better than letting confused teams submit poor bids &mdash; the learning comes from deliberate strategy choices, not from confusion.</p>
+  </div>
+
+  <h3>When to Use Surprise Events</h3>
+  <div class="card">
+    <p>Surprise events (available from the host sidebar) inject drama and challenge into the game. Best moments to trigger them:</p>
+    <ul>
+      <li><strong>When teams are coasting:</strong> If all teams are bidding similarly and profits are flat, a demand surge or plant outage shakes things up.</li>
+      <li><strong>To reinforce a concept:</strong> After teaching about renewables, trigger a wind surge. After discussing scarcity, trigger a heatwave.</li>
+      <li><strong>Between scenarios:</strong> If the current round doesn&rsquo;t have a built-in scenario event, a surprise keeps energy high.</li>
+      <li><strong>When time allows:</strong> Don&rsquo;t trigger surprises if you&rsquo;re already running behind schedule.</li>
+    </ul>
+  </div>
+
+  <h3>Managing Team Dynamics</h3>
+  <div class="split">
+    <div class="card">
+      <h4 style="margin-top: 0;">&#128680; Dominant Teams</h4>
+      <p>If one team is running away with the lead:</p>
+      <ul>
+        <li>Highlight other teams&rsquo; interesting strategies</li>
+        <li>Use &ldquo;Edit Demand&rdquo; to tighten or loosen supply</li>
+        <li>Remind everyone that the final round often has the biggest swings</li>
+        <li>Focus discussion on strategy learning, not just profit numbers</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="margin-top: 0;">&#128148; Disengaged Teams</h4>
+      <p>If a team seems lost or disengaged:</p>
+      <ul>
+        <li>Walk over during bidding and ask what their strategy is</li>
+        <li>Suggest using the auto-fill strategy buttons</li>
+        <li>Point out their Marginal Cost badges as a starting reference</li>
+        <li>After results, specifically highlight their good decisions</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Discussion Questions by Topic</h3>
+  <div class="card">
+    <p>Use these to spark post-round discussion:</p>
+    <ul>
+      <li><strong>Merit order:</strong> &ldquo;Who was the marginal generator? How much did everyone earn?&rdquo;</li>
+      <li><strong>Strategy:</strong> &ldquo;Did anyone withdraw capacity? What happened to the clearing price?&rdquo;</li>
+      <li><strong>Renewables:</strong> &ldquo;How did zero-cost renewables change the clearing price vs last round?&rdquo;</li>
+      <li><strong>Battery:</strong> &ldquo;Who made money on their battery? What was the spread between charging and discharging?&rdquo;</li>
+      <li><strong>Scenarios:</strong> &ldquo;How would you have bid differently if you knew the heatwave was coming?&rdquo;</li>
+      <li><strong>Real world:</strong> &ldquo;This is exactly what happens in the real NEM. Can you see why electricity bills spike during heatwaves?&rdquo;</li>
+      <li><strong>Policy:</strong> &ldquo;If you were the energy minister, what policy would you implement based on what you&rsquo;ve seen?&rdquo;</li>
+    </ul>
+  </div>
+
+  <h3>Keeping Energy Up</h3>
+  <div class="tip">
+    <ul>
+      <li><strong>Pace:</strong> Aim for 5&ndash;8 minutes per round (briefing + bidding + results). Longer rounds lose momentum.</li>
+      <li><strong>Timer management:</strong> Adjust bidding time if teams are consistently finishing early (reduce) or struggling (increase).</li>
+      <li><strong>Competition:</strong> Update the leaderboard after each round. Teams respond to competitive pressure.</li>
+      <li><strong>Variety:</strong> Alternate between teaching moments and competitive rounds. Too much teaching kills energy; too much competition misses the learning.</li>
+      <li><strong>Breaks:</strong> For sessions over 60 minutes, take a 5-minute break after the midpoint. Use the pause/lobby as a natural break point.</li>
+    </ul>
+  </div>
+
+  <h2 id="features">10. Game Features</h2>
 
   <h3>WiFi Sharing</h3>
   <div class="card">
@@ -720,7 +945,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 10: Assets -->
-  <h2 id="assets">10. Asset Reference</h2>
+  <h2 id="assets">11. Asset Reference</h2>
 
   <table>
     <tr>
@@ -816,7 +1041,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 11: Scenarios -->
-  <h2 id="scenarios">11. Scenario Events Reference</h2>
+  <h2 id="scenarios">12. Scenario Events Reference</h2>
 
   <table>
     <tr><th>Scenario</th><th>Effect</th><th>Teaching Point</th></tr>
@@ -873,7 +1098,7 @@ export function getGameMasterGuideHTML(): string {
   </table>
 
   <!-- Section 12: Surprise Events -->
-  <h2 id="surprise-events">12. Surprise Events</h2>
+  <h2 id="surprise-events">13. Surprise Events</h2>
 
   <p>Surprise events are secret modifications the Game Master can toggle ON during the <strong>briefing phase</strong>, before bidding opens. Teams see the effects (changed demand, outages) but <strong>NOT</strong> the reason. The toggles are found at the bottom of the host sidebar under <strong>&ldquo;&#127922; Game Mechanics&rdquo;</strong>.</p>
 
@@ -954,7 +1179,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 13: Bidding Strategy Reference -->
-  <h2 id="strategies">13. Bidding Strategy Reference</h2>
+  <h2 id="strategies">14. Bidding Strategy Reference</h2>
 
   <p>These are the six core bidding strategies available in the game. Teams can access the full Strategy Guide from the &ldquo;&#129504; Strategies&rdquo; help button during bidding. Below is a concise reference for the Game Master.</p>
 
@@ -1010,7 +1235,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 14: Portfolio Strategy -->
-  <h2 id="portfolio">14. Portfolio Strategy</h2>
+  <h2 id="portfolio">15. Portfolio Strategy</h2>
 
   <p>Once teams have 3+ asset types (typically from Round 4 onward in Progressive Learning), portfolio thinking becomes the key differentiator. The best teams stop optimising each asset individually and start thinking about how their whole fleet works together across different market conditions.</p>
 
@@ -1038,7 +1263,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 15: Guardrails -->
-  <h2 id="guardrails">15. Bidding Guardrails</h2>
+  <h2 id="guardrails">16. Bidding Guardrails</h2>
 
   <table>
     <tr><th>Restriction</th><th>Guardrails ON</th><th>Guardrails OFF</th></tr>
@@ -1081,7 +1306,7 @@ export function getGameMasterGuideHTML(): string {
   <div class="tip"><strong>Recommendation:</strong> Use guardrails ON for teams new to the NEM. Switch to OFF for experienced players or the Experienced Replay mode, where strategic withdrawal is a legitimate advanced strategy.</div>
 
   <!-- Section 16: Tips -->
-  <h2 id="tips">16. Tips, Tricks &amp; Facilitation Notes</h2>
+  <h2 id="tips">17. Tips, Tricks &amp; Facilitation Notes</h2>
 
   <h3>Pacing the Session</h3>
   <div class="card">
@@ -1230,7 +1455,7 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <!-- Section 17: Troubleshooting -->
-  <h2 id="troubleshooting">17. Troubleshooting</h2>
+  <h2 id="troubleshooting">19. Troubleshooting</h2>
 
   <div class="card">
     <table>

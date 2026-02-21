@@ -90,7 +90,7 @@ export function getTechnicalNotesHTML(): string {
       <li>Up to 15 teams play simultaneously from their phones/laptops</li>
       <li>A host controls the game from a dashboard (typically projected onto a large screen)</li>
       <li>Real-time synchronisation via WebSockets&mdash;all players see results at the same time</li>
-      <li>5 game modes: Beginner (10 min), Quick (60&ndash;90 min), Full (2.5&ndash;3.5 hrs), Experienced Replay (30&ndash;45 min), Progressive Learning (90&ndash;120 min)</li>
+      <li>6 game modes: Beginner (10 min), First Run (45&ndash;60 min), Quick (60&ndash;90 min), Full (2.5&ndash;3.5 hrs), Experienced Replay (30&ndash;45 min), Progressive Learning (90&ndash;120 min)</li>
       <li>7 asset types modelling real NEM generators: coal, gas CCGT, gas peaker, hydro, wind, solar, battery</li>
       <li>Scenario events: heatwave, drought, carbon price, plant outage, negative prices, and more</li>
       <li>Educational features: animated merit order walkthrough, bid review warnings, pre-read document</li>
@@ -103,6 +103,15 @@ export function getTechnicalNotesHTML(): string {
       <li>Duplicate team name prevention</li>
       <li>Host teaching notes per round</li>
       <li>Historical clearing price tracking across rounds</li>
+      <li>Battery charge/discharge/arbitrage mechanics with SOC tracking</li>
+      <li>4 distinct bidding interfaces: thermal, renewables (auto-bid), hydro (single-period), battery (charge/idle/discharge)</li>
+      <li>Pro-rata dispatch for tied bids (matching real AEMO NEMDE)</li>
+      <li>Surprise events system with dramatic incident reports</li>
+      <li>Progressive UI complexity (minimal &rarr; standard &rarr; full) in First Run mode</li>
+      <li>Round Bidding Guide overlay showing what changed each round</li>
+      <li>Battery Arbitrage Mini-Game (interactive 24-hour exercise)</li>
+      <li>Educational Compendium (post-game take-home reference)</li>
+      <li>Jump-to-round for host mid-game navigation</li>
     </ul>
   </div>
 
@@ -179,14 +188,30 @@ export function getTechnicalNotesHTML(): string {
       <tr><th>Route</th><th>Method</th><th>Purpose</th></tr>
       <tr><td><code>/</code></td><td>GET</td><td>Landing page</td></tr>
       <tr><td><code>/host</code></td><td>GET</td><td>Host dashboard (game control)</td></tr>
-      <tr><td><code>/team/:code</code></td><td>GET</td><td>Team game interface</td></tr>
-      <tr><td><code>/spectate</code></td><td>GET</td><td>Spectator mode (read-only game observation)</td></tr>
+      <tr><td><code>/team/join</code></td><td>GET</td><td>Team join page</td></tr>
+      <tr><td><code>/team/game</code></td><td>GET</td><td>Team game interface</td></tr>
+      <tr><td><code>/spectate</code></td><td>GET</td><td>Spectator mode (read-only)</td></tr>
       <tr><td><code>/report</code></td><td>GET</td><td>Post-game printable report</td></tr>
-      <tr><td><code>/api/notes/pre-read</code></td><td>GET</td><td>Pre-read educational document</td></tr>
-      <tr><td><code>/api/notes/technical</code></td><td>GET</td><td>This technical notes page</td></tr>
-      <tr><td><code>/api/wifi</code></td><td>GET</td><td>Get saved WiFi configuration + QR code</td></tr>
-      <tr><td><code>/api/wifi</code></td><td>POST</td><td>Save WiFi configuration</td></tr>
-      <tr><td><code>/api/wifi</code></td><td>DELETE</td><td>Delete WiFi configuration</td></tr>
+      <tr><td><code>/guide</code></td><td>GET</td><td>Quick Reference Guide (React SPA)</td></tr>
+      <tr><td><code>/guides</code></td><td>GET</td><td>Guides index page (React SPA)</td></tr>
+      <tr><td><code>/api/health</code></td><td>GET</td><td>Health check</td></tr>
+      <tr><td><code>/api/network-info</code></td><td>GET</td><td>Server URL and port info</td></tr>
+      <tr><td><code>/api/game/:gameId</code></td><td>GET</td><td>Game state snapshot</td></tr>
+      <tr><td><code>/api/game/:gameId/qr</code></td><td>GET</td><td>QR code for team joining</td></tr>
+      <tr><td><code>/api/game/:gameId/export</code></td><td>GET</td><td>Export game data as JSON</td></tr>
+      <tr><td><code>/api/games</code></td><td>GET</td><td>List active games</td></tr>
+      <tr><td><code>/api/pre-read</code></td><td>GET</td><td>Player Pre-Read document</td></tr>
+      <tr><td><code>/api/learn-nem</code></td><td>GET</td><td>Redirects to /api/pre-read</td></tr>
+      <tr><td><code>/api/game-master-guide</code></td><td>GET</td><td>Game Master's Guide</td></tr>
+      <tr><td><code>/api/gameplay-summary</code></td><td>GET</td><td>Gameplay Mechanics Summary</td></tr>
+      <tr><td><code>/api/educational-compendium</code></td><td>GET</td><td>Educational Compendium (post-game)</td></tr>
+      <tr><td><code>/api/recommended-improvements</code></td><td>GET</td><td>Recommended Improvements</td></tr>
+      <tr><td><code>/api/notes/technical</code></td><td>GET</td><td>Technical Notes (this page)</td></tr>
+      <tr><td><code>/api/notes/vibe-coding</code></td><td>GET</td><td>How This Was Built</td></tr>
+      <tr><td><code>/api/trailer</code></td><td>GET</td><td>Cinematic trailer</td></tr>
+      <tr><td><code>/api/asset-configs</code></td><td>GET/POST</td><td>Asset config presets</td></tr>
+      <tr><td><code>/api/asset-configs/:id</code></td><td>DELETE</td><td>Delete asset config</td></tr>
+      <tr><td><code>/api/wifi</code></td><td>GET/POST/DELETE</td><td>WiFi configuration</td></tr>
     </table>
   </div>
 
@@ -393,6 +418,22 @@ npm start</code></pre>
       <li>Duplicate team name prevention</li>
       <li>Host teaching notes per round</li>
       <li>Historical clearing price tracking across rounds</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Commit 7 &mdash; 21&ndash;22 Feb 2026</h3>
+    <p><strong>&ldquo;Documentation restructure: merge pre-read, add educational compendium, round bidding guide, and teaching notes&rdquo;</strong></p>
+    <ul>
+      <li>Merged <strong>Learn the NEM</strong> into <strong>Player Pre-Read</strong> &mdash; single comprehensive pre-session document</li>
+      <li><strong>Educational Compendium</strong> &mdash; new 14-page post-game take-home reference at <code>/api/educational-compendium</code></li>
+      <li><strong>Round Bidding Guide</strong> &mdash; in-game overlay showing what changed this round (new assets, periods, scenarios, seasons)</li>
+      <li><strong>hostTeachingNotes</strong> added to all rounds across all 6 game modes (was only in First Run + Progressive Learning)</li>
+      <li><strong>Game Master's Guide</strong> enhanced with First Run round-by-round walkthrough and Facilitation Techniques section</li>
+      <li><strong>Quick Reference Guide</strong> expanded with 7-step annotated bidding process walkthrough</li>
+      <li><strong>Gameplay Summary</strong> updated with UI Complexity Levels and Walkthrough Mode sections</li>
+      <li><strong>Recommended Improvements</strong> rewritten into 3 categories: IT/Infrastructure, UX, Gameplay</li>
+      <li><strong>Guides page</strong> restructured into Player, Host, Tools, and Development sections</li>
     </ul>
   </div>
 

@@ -4,13 +4,13 @@ import { engine } from '../sockets/index.ts';
 import { generateQRCodeDataUrl } from '../utils/qrcode.ts';
 import { getServerUrl, hasPublicUrl } from '../utils/networkInfo.ts';
 import { getPreReadHTML } from '../pages/pre-read.ts';
-import { getLearnNemHTML } from '../pages/learn-nem.ts';
 import { getTechnicalNotesHTML } from '../pages/technical-notes.ts';
 import { getVibeCodingNotesHTML } from '../pages/vibe-coding-notes.ts';
 import { getGameMasterGuideHTML } from '../pages/game-master-guide.ts';
 import { getRecommendedImprovementsHTML } from '../pages/recommended-improvements.ts';
 import { getGameplaySummaryHTML } from '../pages/gameplay-summary.ts';
 import { getCinematicTrailerHTML } from '../pages/cinematic-trailer.ts';
+import { getEducationalCompendiumHTML } from '../pages/educational-compendium.ts';
 import { listConfigs, saveConfig, deleteConfig } from '../data/configs.ts';
 import { getWifiConfig, saveWifiConfig, deleteWifiConfig, generateWifiQRString, type WifiConfig } from '../data/wifi.ts';
 import type { AssetConfigPreset } from '../../shared/types.ts';
@@ -80,10 +80,9 @@ apiRouter.get('/pre-read', (req, res) => {
   res.send(getPreReadHTML());
 });
 
-// Learn the NEM printable page (File > Print > Save as PDF)
+// Learn the NEM — redirect to consolidated pre-read (merged content)
 apiRouter.get('/learn-nem', (req, res) => {
-  res.setHeader('Content-Type', 'text/html');
-  res.send(getLearnNemHTML());
+  res.redirect(302, '/api/pre-read');
 });
 
 // Game Master's Guide printable page (File > Print > Save as PDF)
@@ -102,6 +101,12 @@ apiRouter.get('/recommended-improvements', (req, res) => {
 apiRouter.get('/gameplay-summary', (req, res) => {
   res.setHeader('Content-Type', 'text/html');
   res.send(getGameplaySummaryHTML());
+});
+
+// Educational Compendium — post-game take-home reference
+apiRouter.get('/educational-compendium', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getEducationalCompendiumHTML());
 });
 
 // ---- Development Notes ----
