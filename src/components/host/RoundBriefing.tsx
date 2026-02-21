@@ -343,29 +343,41 @@ export default function RoundBriefing({
                     className="absolute bottom-0 left-0 right-0 border-2 border-dashed rounded-t-lg"
                     style={{
                       height: fleetH,
-                      borderColor: 'rgba(255,255,255,0.2)',
+                      borderColor: 'rgba(255,255,255,0.3)',
                     }}
                   >
-                    {/* Fleet capacity MW label — inside top of dashed box */}
+                    {/* Fleet capacity MW label — above dashed box */}
                     <motion.div
-                      className="absolute left-0 right-0 flex items-center justify-center pt-1.5"
+                      className="absolute left-0 right-0 flex items-center justify-center"
+                      style={{ top: -22 }}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.5 + i * 0.12 }}
                     >
-                      <span className="text-[10px] font-mono text-navy-500">
-                        {formatNumber(bar.fleetMW)} MW fleet
+                      <span className="text-xs font-mono font-semibold text-navy-300 bg-navy-900/80 px-1.5 py-0.5 rounded">
+                        {formatNumber(bar.fleetMW)} MW
                       </span>
                     </motion.div>
 
-                    {/* Reserve margin label — between fleet top and demand top */}
-                    {reserveH > 50 && (
-                      <div
-                        className="absolute left-0 right-0 flex items-center justify-center text-[10px] text-navy-500 font-mono"
-                        style={{ bottom: demandH + (reserveH - demandH > 0 ? Math.min(reserveH / 2, 30) : 8) }}
+                    {/* Reserve margin badge — centred in the gap between fleet and demand */}
+                    {reserveH > 20 && (
+                      <motion.div
+                        className="absolute left-0 right-0 flex items-center justify-center"
+                        style={{ bottom: demandH + Math.max((reserveH - demandH) * 0.3, 4) }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.8 + i * 0.12 }}
                       >
-                        {Math.round(100 - tightness)}% reserve
-                      </div>
+                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full border ${
+                          tightness >= 85
+                            ? 'text-red-300 bg-red-500/15 border-red-500/30'
+                            : tightness >= 70
+                              ? 'text-amber-300 bg-amber-500/15 border-amber-500/30'
+                              : 'text-green-300 bg-green-500/15 border-green-500/30'
+                        }`}>
+                          {Math.round(100 - tightness)}% reserve
+                        </span>
+                      </motion.div>
                     )}
                   </div>
 
@@ -407,18 +419,22 @@ export default function RoundBriefing({
 
         {/* Legend */}
         <motion.div
-          className="flex items-center gap-6 mt-3 text-xs text-navy-400"
+          className="flex items-center gap-6 mt-4 text-sm text-navy-300"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.0 }}
         >
           <div className="flex items-center gap-2">
-            <div className="w-4 h-3 rounded" style={{ backgroundColor: seasonCfg.color }} />
-            <span>Demand</span>
+            <div className="w-5 h-3.5 rounded" style={{ backgroundColor: seasonCfg.color }} />
+            <span>Demand (MW)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-3 rounded border-2 border-dashed border-white/20 bg-transparent" />
-            <span>Fleet Capacity</span>
+            <div className="w-5 h-3.5 rounded border-2 border-dashed border-white/30 bg-transparent" />
+            <span>Fleet Capacity (MW)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded-full border text-green-300 bg-green-500/15 border-green-500/30">%</span>
+            <span>Reserve Margin</span>
           </div>
         </motion.div>
       </div>

@@ -1,12 +1,12 @@
 /**
- * Cinematic Trailer — Watt Street
+ * Cinematic Trailer — GridRival
  * A movie-trailer-style HTML presentation that auto-plays through timed scenes.
  * Served at /api/trailer
  *
- * Act 1 (0–15s): Dramatic energy market crisis — Bloomberg-style headlines, menacing tone
- * Act 2 (15–42s): Game reveal — what it is, how it works, key features
- * Act 3 (42–55s): Vibe coding story — how it was built
- * Finale (55–65s): Call to action
+ * Act 1 (0–11s): Dramatic energy market crisis — Bloomberg-style headlines, menacing tone
+ * Act 2 (11–32s): Game reveal — what it is, how it works, key features
+ * Act 3 (32–40s): Vibe coding story — how it was built
+ * Finale (40–48s): Call to action
  */
 export function getCinematicTrailerHTML(): string {
   return `<!DOCTYPE html>
@@ -14,7 +14,7 @@ export function getCinematicTrailerHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Watt Street — Trailer</title>
+<title>GridRival — Trailer</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   /* ===== RESET & BASE ===== */
@@ -766,7 +766,7 @@ export function getCinematicTrailerHTML(): string {
   <div class="scene" id="scene-3">
     <div style="text-align:center">
       <div style="font-size:3.5rem; margin-bottom:0.5rem">&#9889;</div>
-      <div class="reveal-title">Watt Street</div>
+      <div class="reveal-title">GridRival</div>
       <div class="reveal-subtitle">Learn by playing the market</div>
 
       <div class="feature-grid" id="featureGrid">
@@ -819,33 +819,33 @@ export function getCinematicTrailerHTML(): string {
       </div>
       <div class="screenshot-card" id="ss-1">
         <div class="screenshot-frame">
-          <iframe src="/api/learn-nem" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
+          <iframe src="/host" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
         </div>
-        <div class="screenshot-label">&#128218; Learn the NEM &mdash; interactive educational slides</div>
+        <div class="screenshot-label">&#127918; Game Setup &mdash; configure teams, assets &amp; scenarios</div>
       </div>
       <div class="screenshot-card" id="ss-2">
-        <div class="screenshot-frame wide">
-          <iframe src="/api/game-master-guide" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
+        <div class="screenshot-frame">
+          <iframe src="/battery-test" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
         </div>
-        <div class="screenshot-label">&#127891; Game Master Guide &mdash; round-by-round facilitation</div>
+        <div class="screenshot-label">&#128267; Battery Minigame &mdash; charge &amp; discharge for maximum profit</div>
       </div>
       <div class="screenshot-card" id="ss-3">
         <div class="screenshot-frame">
-          <iframe src="/api/pre-read" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
+          <iframe src="/guides" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
         </div>
-        <div class="screenshot-label">&#128214; Player Pre-Read &mdash; master bidding strategies before round one</div>
+        <div class="screenshot-label">&#128218; Guides Hub &mdash; strategy, gameplay &amp; background material</div>
       </div>
       <div class="screenshot-card" id="ss-4">
         <div class="screenshot-frame">
-          <iframe src="/api/notes/technical" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
+          <iframe src="/api/learn-nem" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
         </div>
-        <div class="screenshot-label">&#9881; Technical Architecture &mdash; real-time merit order dispatch engine</div>
+        <div class="screenshot-label">&#128161; Learn the NEM &mdash; interactive educational slides</div>
       </div>
       <div class="screenshot-card" id="ss-5">
         <div class="screenshot-frame">
-          <iframe src="/api/notes/vibe-coding" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
+          <iframe src="/api/gameplay-summary" loading="lazy" sandbox="allow-scripts allow-same-origin" scrolling="no"></iframe>
         </div>
-        <div class="screenshot-label">&#128640; Vibe Coding Journal &mdash; built entirely through AI conversation</div>
+        <div class="screenshot-label">&#128214; Gameplay Summary &mdash; rules, strategy &amp; asset-type bidding</div>
       </div>
     </div>
   </div>
@@ -895,8 +895,8 @@ export function getCinematicTrailerHTML(): string {
       <div class="vibe-badge">&#128640; How It Was Built</div>
       <div class="vibe-title">Built by conversation,<br>not by committee</div>
       <div class="vibe-desc">
-        220 plain-English prompts. One AI. No developers, no Jira tickets, no sprints.<br>
-        A back-and-forth conversation that turned ideas into a working game in 10 days.
+        250+ plain-English prompts across 17 sessions. One AI (Claude Opus 4.6). Zero developers.<br>
+        No Jira tickets, no sprints &mdash; just a domain expert and an AI that writes code.
       </div>
 
       <div class="prompt-demo">
@@ -907,22 +907,29 @@ export function getCinematicTrailerHTML(): string {
       <div class="arrow-down">&#8595;</div>
 
       <div class="result-text" id="resultText" style="opacity:0; transition: opacity 0.5s">
-        &#10003; 35,000+ lines of code &bull; 120+ files &bull; Complete working game
+        &#10003; 35,000+ lines &bull; 120+ files &bull; Real-time multiplayer &bull; Procedural audio &bull; Pro-rata dispatch engine
       </div>
 
-      <div class="vibe-stats" style="margin-top: 2rem;">
+      <div class="vibe-stats" style="margin-top: 1.5rem;">
         <div class="vibe-stat" id="vs-0">
           <div class="vibe-stat-value purple">~8 hrs</div>
-          <div class="vibe-stat-label">Human active time</div>
+          <div class="vibe-stat-label">Human effort</div>
         </div>
         <div class="vibe-stat" id="vs-1">
-          <div class="vibe-stat-value blue">~500 hrs</div>
-          <div class="vibe-stat-label">Equivalent dev effort by Claude</div>
+          <div class="vibe-stat-value blue">10 phases</div>
+          <div class="vibe-stat-label">From Big Bang to Battery Arbitrage</div>
         </div>
         <div class="vibe-stat" id="vs-2">
           <div class="vibe-stat-value green">~$200</div>
           <div class="vibe-stat-label">Total AI cost</div>
         </div>
+      </div>
+
+      <div style="margin-top:1.5rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; max-width:600px; margin-left:auto; margin-right:auto;">
+        <span style="font-size:0.65rem; padding:0.25rem 0.6rem; background:rgba(128,90,213,0.15); color:#d6bcfa; border-radius:20px; border:1px solid rgba(128,90,213,0.3);">Session 1: 15,000 lines in one conversation</span>
+        <span style="font-size:0.65rem; padding:0.25rem 0.6rem; background:rgba(49,130,206,0.15); color:#90cdf4; border-radius:20px; border:1px solid rgba(49,130,206,0.3);">Transition bug reported 8 times before AI could see it</span>
+        <span style="font-size:0.65rem; padding:0.25rem 0.6rem; background:rgba(56,161,105,0.15); color:#9ae6b4; border-radius:20px; border:1px solid rgba(56,161,105,0.3);">Sound effects synthesised from maths &mdash; no audio files</span>
+        <span style="font-size:0.65rem; padding:0.25rem 0.6rem; background:rgba(214,158,46,0.15); color:#fefcbf; border-radius:20px; border:1px solid rgba(214,158,46,0.3);">Bundle optimised from 1180KB &rarr; 432KB (63% smaller)</span>
       </div>
     </div>
   </div>
@@ -931,9 +938,9 @@ export function getCinematicTrailerHTML(): string {
   <div class="scene" id="scene-6">
     <div class="finale-container">
       <div class="finale-logo">&#9889;</div>
-      <div class="finale-title">Watt Street</div>
+      <div class="finale-title">GridRival</div>
       <div class="finale-tagline">Understand the market by playing it</div>
-      <button class="cta-button" onclick="window.open('/','_blank')">Launch the Game &rarr;</button>
+      <button class="cta-button" onclick="window.location.href='/'">Launch the Game &rarr;</button>
       <div class="finale-meta">
         Up to 15 teams &bull; 5 game modes &bull; 7 asset types &bull; Real NEM scenarios<br>
         Sound effects &bull; Dark mode &bull; Works on phones &bull; No installation required<br><br>
@@ -950,7 +957,7 @@ export function getCinematicTrailerHTML(): string {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   cursor:pointer; user-select:none;
 ">
-  <div style="font-size:clamp(1.8rem,4vw,3rem); font-weight:800; color:#fff; margin-bottom:0.5rem; letter-spacing:-0.02em;">&#9889; Watt Street</div>
+  <div style="font-size:clamp(1.8rem,4vw,3rem); font-weight:800; color:#fff; margin-bottom:0.5rem; letter-spacing:-0.02em;">&#9889; GridRival</div>
   <div style="font-size:clamp(0.9rem,2vw,1.2rem); color:var(--navy-300); margin-bottom:2.5rem;">A cinematic trailer</div>
   <div style="
     width:80px; height:80px; border-radius:50%;
@@ -1309,7 +1316,7 @@ export function getCinematicTrailerHTML(): string {
   }
 
   // ===== TIMELINE ENGINE =====
-  const TOTAL_DURATION = 70000; // 70 seconds total
+  const TOTAL_DURATION = 48000; // 48 seconds total
   let startTime = Date.now();
   let paused = false;
   let pauseOffset = 0;
@@ -1318,55 +1325,55 @@ export function getCinematicTrailerHTML(): string {
 
   // Timeline events: [timeMs, action]
   const timeline = [
-    // Scene 0: Opening black (0-1.5s) — music starts
+    // Scene 0: Opening black (0-1s) — music starts
     [0, () => { showScene(0); initAudio(); }],
     [500, () => startForeboding()],
 
-    // Scene 1: Headlines (1.5-16s) — foreboding mood continues
-    [1500, () => showScene(1)],
-    [2200, () => { showHeadline(0); playImpact(); }],
-    [4800, () => { hideHeadline(0); flashRed(); playImpact(); }],
-    [5400, () => showHeadline(1)],
-    [7800, () => hideHeadline(1)],
-    [8400, () => showHeadline(2)],
-    [10600, () => hideHeadline(2)],
-    [11200, () => { showHeadline(3); flashRed(); playImpact(); }],
-    [13200, () => hideHeadline(3)],
-    [13800, () => showHeadline(4)],
+    // Scene 1: Headlines (1-10s) — foreboding mood, tighter pacing
+    [1000, () => showScene(1)],
+    [1500, () => { showHeadline(0); playImpact(); }],
+    [3200, () => { hideHeadline(0); flashRed(); playImpact(); }],
+    [3700, () => showHeadline(1)],
+    [5400, () => hideHeadline(1)],
+    [5900, () => showHeadline(2)],
+    [7400, () => hideHeadline(2)],
+    [7900, () => { showHeadline(3); flashRed(); playImpact(); }],
+    [9400, () => hideHeadline(3)],
+    [9800, () => showHeadline(4)],
 
-    // Scene 2: The Question (16-19.5s) — whoosh transition
-    [16000, () => { showScene(2); playWhoosh(); }],
+    // Scene 2: The Question (11-13s) — whoosh transition
+    [11000, () => { showScene(2); playWhoosh(); }],
 
-    // Scene 3: Game Reveal (19.5-30s) — switch to trading mood
-    [19500, () => { showScene(3); playWhoosh(); startTrading(); }],
-    [20500, () => showFeatureCard(0)],
-    [21000, () => showFeatureCard(1)],
-    [21500, () => showFeatureCard(2)],
-    [22000, () => showFeatureCard(3)],
-    [22500, () => showFeatureCard(4)],
-    [23000, () => showFeatureCard(5)],
+    // Scene 3: Game Reveal (13-18s) — switch to trading mood
+    [13000, () => { showScene(3); playWhoosh(); startTrading(); }],
+    [13800, () => showFeatureCard(0)],
+    [14200, () => showFeatureCard(1)],
+    [14600, () => showFeatureCard(2)],
+    [15000, () => showFeatureCard(3)],
+    [15400, () => showFeatureCard(4)],
+    [15800, () => showFeatureCard(5)],
 
-    // Scene 3B: Screenshots (26-35s) — still trading mood
-    [26000, () => { showScene3b(); playWhoosh(); }],
-    [26800, () => showScreenshot(0)],
-    [27600, () => showScreenshot(1)],
-    [28400, () => showScreenshot(2)],
-    [29200, () => showScreenshot(3)],
-    [30000, () => showScreenshot(4)],
-    [30800, () => showScreenshot(5)],
+    // Scene 3B: Screenshots (18-24s) — still trading mood
+    [18000, () => { showScene3b(); playWhoosh(); }],
+    [18600, () => showScreenshot(0)],
+    [19200, () => showScreenshot(1)],
+    [19800, () => showScreenshot(2)],
+    [20400, () => showScreenshot(3)],
+    [21000, () => showScreenshot(4)],
+    [21600, () => showScreenshot(5)],
 
-    // Scene 4: How It Works (35-47s) — trading continues
-    [35000, () => { showScene(4); playWhoosh(); }],
-    [36000, () => showStep(0)],
-    [38000, () => showStep(1)],
-    [40000, () => showStep(2)],
-    [42000, () => showStep(3)],
+    // Scene 4: How It Works (24-32s) — trading continues
+    [24000, () => { showScene(4); playWhoosh(); }],
+    [24800, () => showStep(0)],
+    [26400, () => showStep(1)],
+    [28000, () => showStep(2)],
+    [29600, () => showStep(3)],
 
-    // Scene 5: Vibe Coding (45-58s) — switch to digital/quirky mood
-    [45000, () => { showScene(5); playWhoosh(); startDigital(); startTyping(); }],
+    // Scene 5: Vibe Coding (32-40s) — switch to digital/quirky mood
+    [32000, () => { showScene(5); playWhoosh(); startDigital(); startTyping(); }],
 
-    // Scene 6: Finale (58-70s) — triumphant fanfare
-    [58000, () => { showScene(6); playWhoosh(); startTriumphant(); }],
+    // Scene 6: Finale (40-48s) — triumphant fanfare
+    [40000, () => { showScene(6); playWhoosh(); startTriumphant(); }],
   ];
 
   let executed = new Set();
@@ -1523,7 +1530,7 @@ export function getCinematicTrailerHTML(): string {
 
   document.getElementById('btnSkip').addEventListener('click', () => {
     // Jump to finale
-    pauseOffset = 58000;
+    pauseOffset = 40000;
     startTime = Date.now();
     paused = false;
     document.getElementById('btnPause').innerHTML = '&#10074;&#10074;';

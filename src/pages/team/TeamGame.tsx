@@ -33,14 +33,16 @@ import DarkModeToggle from '../../components/game/DarkModeToggle';
 import AudioManager from '../../lib/AudioManager';
 import BatteryExplainer from '../../components/game/BatteryExplainer';
 import BatteryArbitrageMiniGame from '../../components/game/BatteryArbitrageMiniGame';
+import BatteryBiddingExplainer from '../../components/game/BatteryBiddingExplainer';
 import PortfolioExplainer from '../../components/game/PortfolioExplainer';
+import ZeroCapacityWarningModal from '../../components/game/ZeroCapacityWarningModal';
 import type { BatteryMode } from '../../../shared/types';
 
 export default function TeamGame() {
   const navigate = useNavigate();
   const {
-    gameState, connected, reconnecting, biddingTimeRemaining, roundResults,
-    submitBids, requestState, clearSession,
+    gameState, connected, reconnecting, biddingTimeRemaining, timerPaused, roundResults,
+    submitBids, notifyMinigameCompleted, requestState, clearSession,
   } = useSocket();
 
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('day_peak');
@@ -60,7 +62,12 @@ export default function TeamGame() {
   const [batteryMiniGameCompleted, setBatteryMiniGameCompleted] = useState(false);
   const [batteryModes, setBatteryModes] = useState<Map<string, BatteryMode>>(new Map()); // key: assetId_period
   const [chargeMWs, setChargeMWs] = useState<Map<string, number>>(new Map()); // key: assetId_period
+  const [hydroDispatchPeriods, setHydroDispatchPeriods] = useState<Map<string, TimePeriod | null>>(new Map()); // assetId -> selected period
+  const [hydroBidPrices, setHydroBidPrices] = useState<Map<string, number>>(new Map()); // assetId -> bid price
+  const [strategyApplyScope, setStrategyApplyScope] = useState<'current_period' | 'all_periods'>('current_period');
+  const [showBatteryBiddingExplainer, setShowBatteryBiddingExplainer] = useState(false);
   const [useGuidedView, setUseGuidedView] = useState(true); // default to guided step-by-step view
+  const [zeroCapWarning, setZeroCapWarning] = useState<{ assetName: string; period: string }[] | null>(null);
 
   // Derive these early so hooks below can reference them safely (avoids temporal dead zone)
   const team = gameState?.myTeam;
@@ -118,13 +125,13 @@ export default function TeamGame() {
   // Audio: countdown beeps during last 10 seconds
   const prevTimeRef = useRef<number>(0);
   useEffect(() => {
-    if (phase === 'bidding' && biddingTimeRemaining <= 10 && biddingTimeRemaining > 0) {
+    if (phase === 'bidding' && biddingTimeRemaining <= 10 && biddingTimeRemaining > 0 && !timerPaused) {
       if (biddingTimeRemaining !== prevTimeRef.current) {
         AudioManager.countdownBeep(biddingTimeRemaining);
         prevTimeRef.current = biddingTimeRemaining;
       }
     }
-  }, [biddingTimeRemaining, phase]);
+  }, [biddingTimeRemaining, phase, timerPaused]);
 
   // Audio: phase change sounds
   useEffect(() => {
@@ -146,18 +153,29 @@ export default function TeamGame() {
       setSelectedAssetIds(new Set());
       setBatteryModes(new Map());
       setChargeMWs(new Map());
+      setHydroDispatchPeriods(new Map());
+      setHydroBidPrices(new Map());
+      setStrategyApplyScope('current_period');
     }
     if (gameState?.phase === 'results') {
       setShowResults(true);
     }
   }, [gameState?.phase, gameState?.currentRound]);
 
-  // Show battery mini-game when round config includes it
+  // Show battery mini-game at the start of the briefing phase (before normal briefing content)
   useEffect(() => {
-    if (gameState?.phase === 'bidding' && roundConfig?.batteryMiniGame && !batteryMiniGameCompleted && !showBatteryMiniGame) {
+    if (gameState?.phase === 'briefing' && roundConfig?.batteryMiniGame && !batteryMiniGameCompleted && !showBatteryMiniGame) {
       setShowBatteryMiniGame(true);
     }
   }, [gameState?.phase, roundConfig?.batteryMiniGame, batteryMiniGameCompleted]);
+
+  // Show portfolio explainer at the start of the briefing phase when round config includes it
+  const [portfolioExplainerCompleted, setPortfolioExplainerCompleted] = useState(false);
+  useEffect(() => {
+    if (gameState?.phase === 'briefing' && roundConfig?.portfolioExplainer && !portfolioExplainerCompleted && !showPortfolioExplainer) {
+      setShowPortfolioExplainer(true);
+    }
+  }, [gameState?.phase, roundConfig?.portfolioExplainer, portfolioExplainerCompleted]);
 
   // Set default selected period
   useEffect(() => {
@@ -251,6 +269,42 @@ export default function TeamGame() {
     }
   }, [phase, walkthrough, team, assets, walkthroughApplied, roundConfig?.timePeriods]);
 
+  // Auto-populate renewable bids (always $0, capacity-factor-adjusted)
+  useEffect(() => {
+    if (phase !== 'bidding' || !team || !roundConfig || assetDefs.length === 0) return;
+
+    const newBids = new Map(bids);
+    let changed = false;
+
+    for (const asset of assets) {
+      const def = getAssetDef(asset.assetDefinitionId);
+      if (!def || (def.type !== 'wind' && def.type !== 'solar')) continue;
+
+      for (const period of roundConfig.timePeriods) {
+        const availMW = def.availabilityByPeriod?.[period] ?? 0;
+        const key = getBidKey(asset.assetDefinitionId, period as TimePeriod);
+
+        // Don't overwrite if walkthrough already set bids
+        if (newBids.has(key)) continue;
+
+        newBids.set(key, {
+          assetInstanceId: `${asset.assetDefinitionId}_${team.id}`,
+          assetDefinitionId: asset.assetDefinitionId,
+          teamId: team.id,
+          timePeriod: period as TimePeriod,
+          bands: availMW > 0 ? [{ pricePerMWh: 0, quantityMW: availMW }] : [],
+          totalOfferedMW: availMW,
+          isAutoRenewableBid: true,
+          renewableCapacityMW: availMW,
+          submittedAt: Date.now(),
+        });
+        changed = true;
+      }
+    }
+
+    if (changed) setBids(newBids);
+  }, [phase, team?.id, roundConfig?.timePeriods, assetDefs.length]);
+
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   // Get or create bids for an asset in a period
@@ -277,7 +331,7 @@ export default function TeamGame() {
       assetDefinitionId: assetId,
       teamId: team?.id || '',
       timePeriod: period,
-      bands: bands.filter(b => b.quantityMW > 0),
+      bands: bands.filter(b => b.quantityMW > 0 || b.pricePerMWh !== 0),
       totalOfferedMW: bands.reduce((sum, b) => sum + (b.quantityMW || 0), 0),
       submittedAt: Date.now(),
     };
@@ -346,30 +400,34 @@ export default function TeamGame() {
   };
 
   // Apply a strategy — either to all assets or only selected ones
-  const applyStrategy = (stratId: StrategyId, intens: Intensity) => {
+  // applyMode/assetIdsParam passed from GuidedBiddingView (auto-apply), falls back to local state for classic view
+  const applyStrategy = (stratId: StrategyId, intens: Intensity, applyMode?: 'all' | 'selected', assetIdsParam?: Set<string>) => {
     if (!team || !roundConfig) return;
+    // Always apply to all periods (guided view shows all periods at once)
     const periods = roundConfig.timePeriods as TimePeriod[];
     const generatedBids = generateStrategyBids(stratId, intens, assets, team.id, periods);
 
-    if (strategyApplyMode === 'all') {
-      setBids(generatedBids); // Current behaviour: replace all
-    } else {
-      // Merge: preserve existing bids for unselected assets
-      const mergedBids = new Map(bids);
-      for (const [key, bid] of generatedBids) {
-        if (selectedAssetIds.has(bid.assetDefinitionId)) {
-          mergedBids.set(key, bid);
-        }
+    // Only apply strategy bids for thermal assets — preserve battery/hydro/renewable bids
+    const mode = applyMode ?? strategyApplyMode;
+    const ids = assetIdsParam ?? selectedAssetIds;
+    const mergedBids = new Map(bids);
+    for (const [key, bid] of generatedBids) {
+      const def = getAssetDef(bid.assetDefinitionId);
+      // Skip non-thermal assets
+      if (def?.type === 'wind' || def?.type === 'solar' || def?.type === 'battery' || def?.type === 'hydro') continue;
+
+      if (mode === 'all' || ids.has(bid.assetDefinitionId)) {
+        mergedBids.set(key, bid);
       }
-      setBids(mergedBids);
     }
+    setBids(mergedBids);
     setSelectedStrategy(stratId);
     setSelectedIntensity(intens);
   };
 
-  const handleSubmit = () => {
+  /** Core submission logic — stamps bids and sends to server */
+  const proceedWithSubmit = (skipZeroCapCheck?: boolean) => {
     if (!team || !roundConfig) return;
-    setSubmitError(null);
 
     // Collect all bids — include zero-MW bids so idle assets are submitted correctly
     const allBids: AssetBid[] = [];
@@ -383,34 +441,40 @@ export default function TeamGame() {
       }
     }
 
-    // GUARDRAILS (only when enabled): warn about risky strategies (soft warnings, not hard blocks)
-    if (gameState?.biddingGuardrailEnabled) {
-      // Warn about assets with zero generation — these will sit idle and earn nothing
-      const missingBids: string[] = [];
+    // ALWAYS-ON CHECK: Warn if any thermal asset has 0 MW in any period
+    // (This is almost always a mistake that triggers the $20,000 price cap)
+    if (!skipZeroCapCheck) {
+      const missingBidsList: { assetName: string; period: string }[] = [];
       for (const period of roundConfig.timePeriods) {
         for (const asset of assets) {
           const def = assetDefs.find(d => d.id === asset.assetDefinitionId);
           // Skip batteries — they can charge, discharge, or sit idle
           if (def?.type === 'battery') continue;
+          // Skip renewables — they are auto-bid
+          if (def?.type === 'wind' || def?.type === 'solar') continue;
+          // Skip hydro — only dispatches in ONE period by design
+          if (def?.type === 'hydro') continue;
           const key = getBidKey(asset.assetDefinitionId, period as TimePeriod);
           const bid = bids.get(key);
           const totalOffered = bid ? bid.bands.reduce((sum, b) => sum + b.quantityMW, 0) : 0;
           if (totalOffered <= 0) {
             const periodLabel = period === 'night_offpeak' ? 'Overnight' : period === 'day_offpeak' ? 'Morning' : period === 'day_peak' ? 'Afternoon' : 'Evening';
-            missingBids.push(`${def?.name || asset.assetDefinitionId} (${periodLabel})`);
+            missingBidsList.push({
+              assetName: def?.name || asset.assetDefinitionId,
+              period: periodLabel,
+            });
           }
         }
       }
 
-      if (missingBids.length > 0) {
-        const proceed = window.confirm(
-          `Warning: Some assets have 0 MW bid and will sit idle:\n${missingBids.join(', ')}\n\n` +
-          `These assets won't earn any revenue this period.\n\n` +
-          `Submit anyway?`
-        );
-        if (!proceed) return;
+      if (missingBidsList.length > 0) {
+        setZeroCapWarning(missingBidsList);
+        return;
       }
+    }
 
+    // GUARDRAILS (only when enabled): warn about risky strategies (soft warnings, not hard blocks)
+    if (gameState?.biddingGuardrailEnabled) {
       // Warn if too much capacity bid at $0 (risk of $0 clearing price)
       let totalCapacity = 0;
       let totalAtZero = 0;
@@ -424,7 +488,20 @@ export default function TeamGame() {
           }
         }
       }
-      const zeroPercent = totalCapacity > 0 ? (totalAtZero / totalCapacity) * 100 : 0;
+      // Don't count renewable auto-bids in the $0 percentage warning
+      let renewableZeroMW = 0;
+      for (const bid of allBids) {
+        if (bid.isAutoRenewableBid) {
+          for (const band of bid.bands) {
+            if (band.quantityMW > 0 && band.pricePerMWh <= 0) {
+              renewableZeroMW += band.quantityMW;
+            }
+          }
+        }
+      }
+      const adjustedAtZero = totalAtZero - renewableZeroMW;
+      const adjustedCapacity = totalCapacity - renewableZeroMW;
+      const zeroPercent = adjustedCapacity > 0 ? (adjustedAtZero / adjustedCapacity) * 100 : 0;
       if (zeroPercent > 60) {
         const proceed = window.confirm(
           `Warning: ${Math.round(zeroPercent)}% of your capacity is bid at $0/MWh or less.\n\n` +
@@ -456,6 +533,42 @@ export default function TeamGame() {
       }
     }
 
+    // Stamp hydro dispatch period onto hydro bids
+    for (const bid of allBids) {
+      const def = assetDefs.find(d => d.id === bid.assetDefinitionId);
+      if (def?.type === 'hydro') {
+        const selectedPeriod = hydroDispatchPeriods.get(bid.assetDefinitionId);
+        bid.hydroDispatchPeriod = selectedPeriod || undefined;
+
+        if (selectedPeriod && bid.timePeriod === selectedPeriod) {
+          // This is the dispatch period: set the bid price and quantity
+          const price = hydroBidPrices.get(bid.assetDefinitionId) ?? def.srmcPerMWh;
+          const asset = assets.find(a => a.assetDefinitionId === bid.assetDefinitionId);
+          const maxMW = asset?.currentAvailableMW ?? 0;
+          // Cap by storage
+          const storageMWh = asset?.currentStorageMWh ?? 0;
+          const maxMWFromStorage = storageMWh > 0 ? storageMWh / 6 : maxMW;
+          const effectiveMW = Math.min(maxMW, maxMWFromStorage);
+          bid.bands = [{ pricePerMWh: price, quantityMW: Math.round(effectiveMW) }];
+          bid.totalOfferedMW = Math.round(effectiveMW);
+        } else {
+          // Not the dispatch period: zero MW
+          bid.bands = [];
+          bid.totalOfferedMW = 0;
+        }
+      }
+    }
+
+    // Force renewable bid prices to $0 (client-side enforcement)
+    for (const bid of allBids) {
+      const def = assetDefs.find(d => d.id === bid.assetDefinitionId);
+      if (def?.type === 'wind' || def?.type === 'solar') {
+        for (const band of bid.bands) {
+          band.pricePerMWh = 0;
+        }
+      }
+    }
+
     const submission: TeamBidSubmission = {
       teamId: team.id,
       roundNumber: gameState?.currentRound || 0,
@@ -465,7 +578,15 @@ export default function TeamGame() {
 
     submitBids(submission);
     setSubmitted(true);
+    setZeroCapWarning(null);
     AudioManager.bidSubmitted();
+  };
+
+  /** Entry point for bid submission — validates then calls proceedWithSubmit */
+  const handleSubmit = () => {
+    if (!team || !roundConfig) return;
+    setSubmitError(null);
+    proceedWithSubmit();
   };
 
   // Track how long we've been disconnected to show escalating help
@@ -615,21 +736,33 @@ export default function TeamGame() {
             </button>
             <div>
               <div className="text-white font-bold text-sm">{team.name}</div>
-              <div className="text-white/70 text-xs">
-                {phase === 'bidding' ? `Round ${gameState?.currentRound}` :
-                 phase === 'lobby' ? 'Waiting...' :
-                 phase === 'briefing' ? 'Round starting...' :
-                 phase === 'results' ? 'Results' :
-                 phase === 'final' ? 'Game Over' : ''}
+              <div className="text-white/70 text-xs flex items-center gap-1 flex-wrap">
+                <span className="text-white/50">GridRival</span>
+                {phase !== 'lobby' && phase !== 'final' && gameState?.currentRound && gameState.totalRounds && (
+                  <>
+                    <span className="text-white/30">·</span>
+                    <span className="font-semibold text-white/90">Round {gameState.currentRound} of {gameState.totalRounds}</span>
+                  </>
+                )}
+                {phase !== 'lobby' && phase !== 'final' && roundConfig?.name && (
+                  <>
+                    <span className="text-white/30">·</span>
+                    <span>{roundConfig.name}</span>
+                  </>
+                )}
+                {phase === 'lobby' && <span>Waiting for game to start...</span>}
+                {phase === 'dispatching' && <span>Market clearing...</span>}
+                {phase === 'final' && <span className="font-semibold text-white/90">Game Over</span>}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {phase === 'bidding' && (
               <div className={`px-3 py-1 rounded-full font-mono font-bold text-sm ${
+                timerPaused ? 'bg-amber-500/80 text-white' :
                 biddingTimeRemaining <= 30 ? 'bg-red-500 text-white animate-pulse' : 'bg-white/20 text-white'
               }`}>
-                {formatTime(biddingTimeRemaining)}
+                {timerPaused ? '⏸ ' : ''}{formatTime(biddingTimeRemaining)}
               </div>
             )}
             <div className="text-white/70 text-xs font-mono">
@@ -851,6 +984,16 @@ export default function TeamGame() {
                 const key = `${assetId}_${period}`;
                 setChargeMWs(new Map(chargeMWs.set(key, mw)));
               }}
+              hydroDispatchPeriods={hydroDispatchPeriods}
+              hydroBidPrices={hydroBidPrices}
+              onHydroDispatchPeriodChange={(assetId, period) => {
+                setHydroDispatchPeriods(new Map(hydroDispatchPeriods.set(assetId, period)));
+              }}
+              onHydroBidPriceChange={(assetId, price) => {
+                setHydroBidPrices(new Map(hydroBidPrices.set(assetId, price)));
+              }}
+              strategyApplyScope={strategyApplyScope}
+              onStrategyApplyScopeChange={setStrategyApplyScope}
             />
           </>
         )}
@@ -1314,8 +1457,43 @@ export default function TeamGame() {
                             );
                           })()}
                         </div>
+                        {/* Wind/Solar availability indicator */}
+                        {(() => {
+                          const def = getAssetDef(asset.assetDefinitionId);
+                          if (!def || !def.availabilityByPeriod) return null;
+                          const periodMW = def.availabilityByPeriod[selectedPeriod];
+                          if (def.type === 'solar') {
+                            return (
+                              <div className="text-[11px] text-amber-600 flex items-center gap-1 mt-0.5">
+                                <span>☀️</span>
+                                {periodMW === 0 ? (
+                                  <span className="font-medium text-gray-400">No sun this period — 0 MW</span>
+                                ) : (
+                                  <span><strong>{periodMW} MW</strong> available this period (daytime only)</span>
+                                )}
+                              </div>
+                            );
+                          }
+                          if (def.type === 'wind') {
+                            const periodLabels: Record<string, string> = {
+                              night_offpeak: 'Overnight', day_offpeak: 'Morning',
+                              day_peak: 'Afternoon', night_peak: 'Evening',
+                            };
+                            const allPeriods = Object.entries(def.availabilityByPeriod)
+                              .map(([p, mw]) => `${periodLabels[p] || p}: ${mw} MW`)
+                              .join(' · ');
+                            return (
+                              <div className="text-[11px] text-emerald-600 flex items-center gap-1 mt-0.5" title={allPeriods}>
+                                <span>💨</span>
+                                <span><strong>{periodMW} MW</strong> this period</span>
+                                <span className="text-gray-400 ml-1">({allPeriods})</span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                         <div className="text-xs text-gray-500">
-                          {formatMW(asset.currentAvailableMW)} available
+                          {formatMW(asset.currentAvailableMW)} nameplate
                           {asset.isForceOutage && <span className="text-red-500"> (OUTAGE)</span>}
                         </div>
                       </div>
@@ -1438,9 +1616,12 @@ export default function TeamGame() {
             <div className="text-5xl mb-4">✅</div>
             <h2 className="text-xl font-bold text-gray-800">Bids Submitted!</h2>
             <p className="text-gray-500 mt-2">Waiting for all teams to finish...</p>
-            <div className="mt-4 text-2xl font-mono font-bold text-blue-600">
-              {formatTime(biddingTimeRemaining)}
+            <div className={`mt-4 text-2xl font-mono font-bold ${timerPaused ? 'text-amber-500' : 'text-blue-600'}`}>
+              {timerPaused ? '⏸ ' : ''}{formatTime(biddingTimeRemaining)}
             </div>
+            {timerPaused && (
+              <p className="text-amber-500 text-sm mt-1">Timer paused by game master</p>
+            )}
             {/* Walkthrough after-submit explanation */}
             {walkthrough?.afterSubmitExplanation && (
               <div className="mt-6 mx-auto max-w-sm bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-4 text-left">
@@ -1755,6 +1936,18 @@ export default function TeamGame() {
         </div>
       )}
 
+      {/* Zero Capacity Warning Modal (always-on, not gated by guardrails) */}
+      {zeroCapWarning && (
+        <ZeroCapacityWarningModal
+          missingBids={zeroCapWarning}
+          onConfirm={() => {
+            setZeroCapWarning(null);
+            proceedWithSubmit(true); // skip zero-cap check on retry
+          }}
+          onCancel={() => setZeroCapWarning(null)}
+        />
+      )}
+
       {/* Bid Review Modal */}
       {showBidReview && roundConfig && (
         <BidReviewModal
@@ -1765,6 +1958,8 @@ export default function TeamGame() {
           demandPerPeriod={gameState?.fleetInfo?.demandMW || {}}
           teamCount={gameState?.expectedTeamCount || gameState?.teams?.length || 1}
           season={roundConfig.season}
+          batteryModes={batteryModes}
+          chargeMWs={chargeMWs}
           onConfirm={() => {
             setShowBidReview(false);
             handleSubmit();
@@ -1838,7 +2033,13 @@ export default function TeamGame() {
 
       {/* Portfolio Explainer */}
       {showPortfolioExplainer && (
-        <PortfolioExplainer onClose={() => setShowPortfolioExplainer(false)} />
+        <PortfolioExplainer onClose={() => {
+          setShowPortfolioExplainer(false);
+          if (roundConfig?.portfolioExplainer && !portfolioExplainerCompleted) {
+            setPortfolioExplainerCompleted(true);
+            notifyMinigameCompleted();
+          }
+        }} />
       )}
 
       {/* Battery Arbitrage Mini-Game */}
@@ -1846,11 +2047,21 @@ export default function TeamGame() {
         <BatteryArbitrageMiniGame
           onComplete={(result) => {
             setShowBatteryMiniGame(false);
-            setBatteryMiniGameCompleted(true);
+            setShowBatteryBiddingExplainer(true);
           }}
           onSkip={() => {
             setShowBatteryMiniGame(false);
+            setShowBatteryBiddingExplainer(true);
+          }}
+        />
+      )}
+
+      {showBatteryBiddingExplainer && (
+        <BatteryBiddingExplainer
+          onComplete={() => {
+            setShowBatteryBiddingExplainer(false);
             setBatteryMiniGameCompleted(true);
+            notifyMinigameCompleted();
           }}
         />
       )}
@@ -1860,6 +2071,7 @@ export default function TeamGame() {
         isVisible={showGameStart}
         teamCount={gameState?.teams?.length || 0}
         totalRounds={gameState?.totalRounds || 8}
+        gameMode={gameState?.gameMode}
         onComplete={() => setShowGameStart(false)}
       />
       <RoundStartTransition

@@ -1,5 +1,5 @@
 /**
- * Game Master's Guide — Comprehensive guide for running Watt Street
+ * Game Master's Guide — Comprehensive guide for running GridRival
  * Served at /api/game-master-guide
  */
 export function getGameMasterGuideHTML(): string {
@@ -8,7 +8,7 @@ export function getGameMasterGuideHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Watt Street — Game Master's Guide</title>
+<title>GridRival — Game Master's Guide</title>
 <style>
   @page { margin: 1.5cm 2cm; size: A4; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -70,7 +70,7 @@ export function getGameMasterGuideHTML(): string {
   <div class="header">
     <div style="font-size: 3rem; margin-bottom: 0.5rem;">&#9889;</div>
     <h1>Game Master&rsquo;s Guide</h1>
-    <div class="subtitle">Watt Street &mdash; Everything you need to run a great session</div>
+    <div class="subtitle">GridRival &mdash; Everything you need to run a great session</div>
   </div>
 
   <!-- Table of Contents -->
@@ -327,7 +327,7 @@ export function getGameMasterGuideHTML(): string {
     <h4>Round 5: Battery Storage</h4>
     <div class="round-meta">
       <span class="tag-season">&#127800; Spring</span>
-      <span class="tag-assets">+ Battery (500 MW / 2,000 MWh, 92% eff.)</span>
+      <span class="tag-assets">+ Battery (500 MW / 3,000 MWh, 92% eff., 6h duration)</span>
       <span class="tag-time">&#9202; 300s</span>
       <span class="tag-time">4 periods</span>
     </div>
@@ -488,7 +488,7 @@ export function getGameMasterGuideHTML(): string {
     <h4>Round 8: Battery Storage</h4>
     <div class="round-meta">
       <span class="tag-season">&#127800; Spring</span>
-      <span class="tag-assets">+ Battery (500 MW / 2,000 MWh, 92% eff.)</span>
+      <span class="tag-assets">+ Battery (500 MW / 3,000 MWh, 92% eff., 6h duration)</span>
       <span class="tag-time">&#9202; 300s &middot; 4 periods</span>
     </div>
     <p>Full portfolio now complete. Batteries add arbitrage opportunities: use the charge/idle/discharge toggle each period. Charge cheap, discharge expensive. Arbitrage revenue = discharge earnings minus charging cost. Spring season creates wide price spreads perfect for battery strategy. Remind teams that charging adds to market demand.</p>
@@ -652,7 +652,7 @@ export function getGameMasterGuideHTML(): string {
   <div class="round-card">
     <h4>Rounds 5&ndash;6: Renewables &amp; Battery</h4>
     <div class="round-meta"><span class="tag-season">Spring</span><span class="tag-assets">+ Wind, Solar, Hydro, Battery</span><span class="tag-time">4 periods</span></div>
-    <p>Zero-cost renewables reshape the merit order. Hydro has limited water (opportunity cost). Battery (500 MW / 2,000 MWh, 92% efficiency) completes the portfolio &mdash; use the charge/idle/discharge toggle each period. Arbitrage revenue = discharge earnings minus charging cost. Spring brings low demand + strong renewables = potential oversupply.</p>
+    <p>Zero-cost renewables reshape the merit order. Hydro has limited water (opportunity cost). Battery (500 MW / 3,000 MWh, 6-hour duration, 92% efficiency) completes the portfolio &mdash; use the charge/idle/discharge toggle with target SOC controls each period. Arbitrage revenue = discharge earnings minus charging cost. Spring brings low demand + strong renewables = potential oversupply.</p>
   </div>
 
   <div class="round-card">
@@ -760,7 +760,7 @@ export function getGameMasterGuideHTML(): string {
       <td>&#127788;&#65039;</td>
       <td>300 MW</td>
       <td>$0/MWh</td>
-      <td>Zero fuel cost. Output varies by weather. Stronger in winter.</td>
+      <td>Zero fuel cost. Output varies by weather and wind profile. Auto-bid at $0/MWh &mdash; dispatched first.</td>
       <td>Quick R4 / Full R6</td>
     </tr>
     <tr>
@@ -768,7 +768,7 @@ export function getGameMasterGuideHTML(): string {
       <td>&#9728;&#65039;</td>
       <td>200 MW</td>
       <td>$0/MWh</td>
-      <td>Zero fuel cost. Daytime only. Peak output in summer afternoons.</td>
+      <td>Zero fuel cost. Daytime only. Peak output in summer afternoons. Auto-bid at $0/MWh. Zero overnight.</td>
       <td>Quick R4 / Full R6</td>
     </tr>
     <tr>
@@ -776,15 +776,15 @@ export function getGameMasterGuideHTML(): string {
       <td>&#128167;</td>
       <td>250 MW</td>
       <td>$8/MWh</td>
-      <td>Cheap &amp; flexible but limited water. Save it for high-price periods.</td>
+      <td>Cheap &amp; flexible. Limited water supply. Can only dispatch in ONE period per round &mdash; choose wisely.</td>
       <td>Quick R4 / Full R7</td>
     </tr>
     <tr>
       <td><strong>Battery</strong></td>
       <td>&#128267;</td>
-      <td>500 MW / 2,000 MWh</td>
+      <td>500 MW / 3,000 MWh</td>
       <td>$0/MWh</td>
-      <td>Charge cheap, discharge expensive. 92% round-trip efficiency. 4-hour duration. Charging adds to market demand.</td>
+      <td>Charge cheap, discharge expensive. 92% round-trip efficiency. 6-hour duration. Target SOC controls. Charging adds to market demand.</td>
       <td>Quick R5 / Full R8</td>
     </tr>
   </table>
@@ -995,9 +995,14 @@ export function getGameMasterGuideHTML(): string {
 
   <div class="round-card">
     <h4>&#129000; Battery Arbitrageur</h4>
-    <p>Focus the strategy around battery storage: set the battery to CHARGE during cheap off-peak or solar-surplus periods, then DISCHARGE at a premium during evening peaks. The arbitrage revenue = discharge earnings minus charging cost minus 8% efficiency loss. Other assets (coal, gas) bid at or near marginal cost to provide stable base revenue while the battery captures the volatile spread.</p>
+    <p>Focus the strategy around battery storage: set the battery to CHARGE during cheap off-peak or solar-surplus periods, then DISCHARGE at a premium during evening peaks. The arbitrage revenue = discharge earnings minus charging cost minus 8% efficiency loss. Battery Arbitrageur only affects battery settings across all 4 periods, leaving thermal/hydro bids untouched.</p>
     <p><strong>Relies on:</strong> Meaningful price spreads between periods. If clearing prices are flat across the day, the arbitrage opportunity disappears.</p>
     <p><strong>Main risk:</strong> Battery charging adds 500 MW of demand to the market, which can push up the very prices you&rsquo;re trying to buy cheap at. If multiple teams charge simultaneously, the combined load can spike clearing prices dramatically. If peak prices do not materialise (e.g., mild demand or oversupply in the evening), the battery discharges at a low price and the 8% round-trip efficiency loss erodes any slim margin.</p>
+  </div>
+
+  <div class="card">
+    <h4>Independent Strategy Layers</h4>
+    <p>Strategies are now independent layers. Battery Arbitrageur sets battery modes only. Other strategies (Price Taker, Marginal Cost, etc.) affect thermal and hydro assets only. Teams can combine them &mdash; applying Battery Arbitrageur then Price Maker gives the battery arbitrage settings AND thermal price maker pricing. Strategies can be applied to the current period or all periods via a toggle.</p>
   </div>
 
   <div class="tip">
@@ -1062,6 +1067,14 @@ export function getGameMasterGuideHTML(): string {
     <tr>
       <td>Batteries can bid 0 MW (sit idle)</td>
       <td colspan="2">&#9989; Always allowed</td>
+    </tr>
+    <tr>
+      <td>Renewable assets auto-bid at $0</td>
+      <td colspan="2">&#9989; Always (no team action needed)</td>
+    </tr>
+    <tr>
+      <td>Hydro limited to one dispatch period</td>
+      <td colspan="2">&#9989; Always enforced</td>
     </tr>
   </table>
 
@@ -1149,7 +1162,12 @@ export function getGameMasterGuideHTML(): string {
       <tr>
         <td>Not managing battery modes</td>
         <td>Battery sits idle, misses arbitrage revenue</td>
-        <td>&ldquo;Use the charge/idle/discharge toggle each period. Batteries earn arbitrage revenue from the SPREAD between charging cost and discharge earnings. Charge cheap, discharge expensive. Watch your SOC!&rdquo;</td>
+        <td>&ldquo;Use the charge/idle/discharge toggle and target SOC buttons. Batteries earn from the SPREAD between charging cost and discharge earnings. The 6-hour battery can fully charge or discharge in one period.&rdquo;</td>
+      </tr>
+      <tr>
+        <td>Dispatching hydro in a low-value period</td>
+        <td>Hydro water is limited &mdash; save it for the highest-price period. Hold if no period looks profitable enough.</td>
+        <td>&ldquo;Check the demand forecast. Evening and afternoon usually have the highest prices.&rdquo;</td>
       </tr>
       <tr>
         <td>Same strategy every round</td>
@@ -1261,8 +1279,8 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <div style="margin-top: 3rem; padding: 1.5rem; text-align: center; color: #718096; font-size: 0.85rem; border-top: 1px solid #e2e8f0;">
-    <p>Watt Street &mdash; Game Master&rsquo;s Guide</p>
-    <p>5 game modes &middot; 7 asset types &middot; sound effects &middot; dark mode &middot; WiFi sharing &middot; spectator mode</p>
+    <p>GridRival &mdash; Game Master&rsquo;s Guide</p>
+    <p>5 game modes &middot; 7 asset types &middot; 4 bidding modes &middot; sound effects &middot; dark mode &middot; WiFi sharing &middot; spectator mode</p>
     <p>Keep this guide handy during sessions. Good luck and have fun!</p>
   </div>
 </div>

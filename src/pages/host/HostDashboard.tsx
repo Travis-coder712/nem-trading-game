@@ -23,9 +23,10 @@ export default function HostDashboard() {
   const navigate = useNavigate();
   const {
     connected, gameState, roundResults, biddingTimeRemaining,
-    bidStatus, allBidsIn, lastBalancing, teamScreenData,
+    bidStatus, minigameStatus, allBidsIn, timerPaused, lastBalancing, teamScreenData,
     startRound, startBidding, endBidding, nextRound, resetGame, setDemand, applySurprises, viewTeamScreen,
-    clearHostSession,
+    clearHostSession, inviteToTeam, lastInviteCode, clearInviteCode,
+    pauseTimer, resumeTimer, jumpToRound,
   } = useSocket();
   const [qrData, setQrData] = useState<{ qrDataUrl: string; joinUrl: string } | null>(null);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -45,9 +46,23 @@ export default function HostDashboard() {
   const [showHowToBid, setShowHowToBid] = useState(false);
   const [showStrategyGuide, setShowStrategyGuide] = useState(false);
 
+  // Invite code modal
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteTeamName, setInviteTeamName] = useState('');
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  // Jump-to-round (host testing / restart)
+  const [showJumpToRound, setShowJumpToRound] = useState(false);
+  const [jumpTargetRound, setJumpTargetRound] = useState(1);
+
   // WiFi config for display in lobby
   const [wifiConfig, setWifiConfig] = useState<{ networkName: string; password: string; qrDataUrl: string | null } | null>(null);
   const [showWifiOnScreen, setShowWifiOnScreen] = useState(false);
+
+  // Minigame/explainer waiting phase — shown on host while teams play battery minigame or portfolio explainer
+  const [minigameWaiting, setMinigameWaiting] = useState(false);
+  const [minigameStartTime, setMinigameStartTime] = useState<number>(0);
+  const [minigameElapsed, setMinigameElapsed] = useState(0);
 
   // Surprise events toggles (host-only, subtle, at bottom of sidebar)
   const [activeSurprises, setActiveSurprises] = useState<Set<string>>(new Set());
@@ -65,6 +80,16 @@ export default function HostDashboard() {
 
   // Derive phase early so hooks below can reference it safely
   const phase = gameState?.phase;
+
+  // Show invite code modal when we receive one
+  useEffect(() => {
+    if (lastInviteCode) {
+      const team = gameState?.teams?.find(t => t.id === lastInviteCode.teamId);
+      setInviteTeamName(team?.name || lastInviteCode.teamId);
+      setShowInviteModal(true);
+      setInviteCopied(false);
+    }
+  }, [lastInviteCode, gameState?.teams]);
 
   useEffect(() => {
     if (allBidsIn && phase === 'bidding' && autoAdvanceCountdown === null) {
@@ -196,17 +221,39 @@ export default function HostDashboard() {
     setActiveSurprises(new Set());
     setSurprisesApplied(false);
     setSurprisesExpanded(false);
+    setMinigameWaiting(false);
   }, [gameState?.currentRound]);
 
-  // Auto-show Round Briefing when entering briefing phase
+  // Auto-show Round Briefing when entering briefing phase (or minigame waiting screen for minigame rounds)
   const prevPhaseRef = useRef<string | null>(null);
   useEffect(() => {
     const phase = gameState?.phase;
     if (phase === 'briefing' && prevPhaseRef.current !== 'briefing' && gameState?.roundConfig && !showGameStart) {
-      setShowRoundBriefing(true);
+      const rc = gameState.roundConfig;
+      if (rc.batteryMiniGame || rc.portfolioExplainer) {
+        // Minigame round: show waiting screen instead of round briefing
+        setMinigameWaiting(true);
+        setMinigameStartTime(Date.now());
+        setMinigameElapsed(0);
+      } else {
+        setShowRoundBriefing(true);
+      }
+    }
+    // Reset to overview when entering bidding phase
+    if (phase === 'bidding' && prevPhaseRef.current !== 'bidding') {
+      setActiveView('overview');
     }
     prevPhaseRef.current = phase || null;
   }, [gameState?.phase, gameState?.roundConfig, showGameStart]);
+
+  // Count-up timer for minigame waiting screen
+  useEffect(() => {
+    if (!minigameWaiting) return;
+    const interval = setInterval(() => {
+      setMinigameElapsed(Math.floor((Date.now() - minigameStartTime) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [minigameWaiting, minigameStartTime]);
 
   // Sync demand edits when round config changes
   useEffect(() => {
@@ -302,8 +349,9 @@ export default function HostDashboard() {
       <div className="bg-navy-900/80 border-b border-white/10 px-4 py-3 flex items-center justify-between sticky top-0 z-50 backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => {
+            onClick={async () => {
               if (window.confirm('Exit game? This will leave the current session.')) {
+                await resetGame();
                 clearHostSession();
                 setQrData(null);
                 navigate('/');
@@ -315,7 +363,7 @@ export default function HostDashboard() {
             Exit
           </button>
           <div>
-            <h1 className="text-white font-bold text-sm">Watt Street</h1>
+            <h1 className="text-white font-bold text-sm">GridRival</h1>
             <p className="text-navy-400 text-xs">
               {round > 0 ? `Round ${round}/${totalRounds}` : 'Lobby'} &bull; {teams.length} teams
             </p>
@@ -323,10 +371,25 @@ export default function HostDashboard() {
         </div>
         <div className="flex items-center gap-3">
           {phase === 'bidding' && (
-            <div className={`px-4 py-2 rounded-full font-mono font-bold text-lg ${
-              biddingTimeRemaining <= 30 ? 'bg-red-500/20 text-red-300 animate-pulse' : 'bg-electric-500/20 text-electric-300'
-            }`}>
-              {formatTime(biddingTimeRemaining)}
+            <div className="flex items-center gap-2">
+              <div className={`px-4 py-2 rounded-full font-mono font-bold text-lg ${
+                timerPaused ? 'bg-amber-500/20 text-amber-300' :
+                biddingTimeRemaining <= 30 ? 'bg-red-500/20 text-red-300 animate-pulse' : 'bg-electric-500/20 text-electric-300'
+              }`}>
+                {timerPaused && <span className="text-xs mr-1">⏸</span>}
+                {formatTime(biddingTimeRemaining)}
+              </div>
+              <button
+                onClick={timerPaused ? resumeTimer : pauseTimer}
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  timerPaused
+                    ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30 border border-green-500/30'
+                    : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30'
+                }`}
+                title={timerPaused ? 'Resume timer' : 'Pause timer'}
+              >
+                {timerPaused ? '▶ Resume' : '⏸ Pause'}
+              </button>
             </div>
           )}
           <div className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -388,6 +451,7 @@ export default function HostDashboard() {
             <div className="text-xs text-navy-400 uppercase tracking-wide mb-2">Phase</div>
             <div className="px-3 py-2 bg-electric-500/10 border border-electric-500/30 rounded-lg text-electric-300 text-sm font-medium capitalize">
               {phase === 'lobby' ? '🏠 Lobby' :
+               phase === 'briefing' && minigameWaiting ? (roundConfig?.batteryMiniGame ? '🔋 Minigame' : '📊 Explainer') :
                phase === 'briefing' ? '📋 Briefing' :
                phase === 'bidding' ? '💰 Bidding' :
                phase === 'dispatching' ? '⚙️ Dispatching' :
@@ -410,7 +474,25 @@ export default function HostDashboard() {
               </button>
             )}
 
-            {phase === 'briefing' && (
+            {phase === 'briefing' && minigameWaiting && (
+              <button
+                onClick={() => {
+                  setMinigameWaiting(false);
+                  setShowRoundBriefing(true);
+                }}
+                className={`w-full py-2.5 font-semibold rounded-lg transition-colors text-sm ${
+                  teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                    ? 'bg-green-500 hover:bg-green-400 text-white animate-pulse-glow'
+                    : 'bg-white/10 hover:bg-white/20 text-navy-300 border border-white/10'
+                }`}
+              >
+                {teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                  ? 'Continue to Briefing →'
+                  : 'Skip to Briefing →'}
+              </button>
+            )}
+
+            {phase === 'briefing' && !minigameWaiting && (
               <>
                 <button
                   onClick={handleStartBiddingWithSurprises}
@@ -474,8 +556,8 @@ export default function HostDashboard() {
             {phase === 'final' && (
               <div className="space-y-2">
                 <button
-                  onClick={() => {
-                    resetGame();
+                  onClick={async () => {
+                    await resetGame();
                     clearHostSession();
                     setQrData(null);
                     navigate('/host');
@@ -485,7 +567,8 @@ export default function HostDashboard() {
                   New Game
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    await resetGame();
                     clearHostSession();
                     setQrData(null);
                     navigate('/');
@@ -535,6 +618,31 @@ export default function HostDashboard() {
             ))}
           </div>
 
+          {/* Minigame / Explainer Status */}
+          {phase === 'briefing' && (roundConfig?.batteryMiniGame || roundConfig?.portfolioExplainer) && (
+            <div className="mb-6">
+              <div className="text-xs text-navy-400 uppercase tracking-wide mb-2">
+                {roundConfig?.batteryMiniGame ? 'Battery Minigame' : 'Portfolio Explainer'}
+              </div>
+              <div className="space-y-1">
+                {teams.map(team => (
+                  <div key={team.id} className="flex items-center gap-2 text-xs">
+                    <div className={`w-2 h-2 rounded-full ${
+                      minigameStatus[team.id] ? 'bg-green-400' : 'bg-amber-400 animate-pulse'
+                    }`} />
+                    <span className="text-navy-300 truncate">{team.name}</span>
+                    <span className={`ml-auto text-xs ${minigameStatus[team.id] ? 'text-green-400' : 'text-amber-400'}`}>
+                      {minigameStatus[team.id] ? 'Done' : 'In progress...'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {teams.length > 0 && teams.every(t => minigameStatus[t.id]) && (
+                <div className="mt-2 text-xs text-green-400 font-medium">All teams ready!</div>
+              )}
+            </div>
+          )}
+
           {/* Bid Status */}
           {phase === 'bidding' && (
             <div className="mb-6">
@@ -568,8 +676,15 @@ export default function HostDashboard() {
                     className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg"
                   >
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team.color }} />
-                    <span className="text-white text-sm">{team.name}</span>
-                    <span className={`ml-auto text-xs ${team.isConnected ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className="text-white text-sm flex-1 truncate">{team.name}</span>
+                    <button
+                      onClick={() => inviteToTeam(team.id)}
+                      className="text-[10px] text-navy-400 hover:text-electric-300 transition-colors px-1.5 py-0.5 hover:bg-white/5 rounded"
+                      title="Generate invite link for observers"
+                    >
+                      🔗
+                    </button>
+                    <span className={`text-xs ${team.isConnected ? 'text-green-400' : 'text-red-400'}`}>
                       {team.isConnected ? '●' : '○'}
                     </span>
                   </div>
@@ -578,6 +693,46 @@ export default function HostDashboard() {
                   <p className="text-navy-500 text-xs italic">Waiting for teams to join...</p>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Jump to Round — available in all non-bidding phases */}
+          {phase !== 'bidding' && phase !== 'dispatching' && phase !== 'lobby' && teams.length >= 2 && (
+            <div className="mb-4">
+              <button
+                onClick={() => setShowJumpToRound(!showJumpToRound)}
+                className="w-full flex items-center gap-1.5 text-xs text-navy-500 hover:text-navy-300 transition-colors py-1"
+              >
+                <span>⏩</span>
+                <span className="font-medium">Jump to Round</span>
+              </button>
+              {showJumpToRound && (
+                <div className="mt-2 bg-white/5 border border-white/10 rounded-lg p-3 animate-fade-in">
+                  <p className="text-navy-500 text-[10px] mb-2">
+                    Jump ahead or restart from a specific round. Profits reset.
+                  </p>
+                  <select
+                    value={jumpTargetRound}
+                    onChange={e => setJumpTargetRound(Number(e.target.value))}
+                    className="w-full bg-navy-800 border border-white/20 text-white text-xs rounded-lg px-2 py-1.5 mb-2"
+                  >
+                    {Array.from({ length: gameState.totalRounds || 0 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        R{i + 1}{gameState.roundNames?.[i] ? `: ${gameState.roundNames[i]}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => {
+                      jumpToRound(jumpTargetRound);
+                      setShowJumpToRound(false);
+                    }}
+                    className="w-full py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    Jump to Round {jumpTargetRound} →
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -840,11 +995,138 @@ export default function HostDashboard() {
               <p className="text-navy-500 text-xs mt-2">
                 Game ID: <span className="font-mono text-electric-400">{gameState.gameId}</span>
               </p>
+
+              {/* Jump to Round — host testing / restart after disconnect */}
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowJumpToRound(!showJumpToRound)}
+                  className="text-xs text-navy-500 hover:text-navy-300 transition-colors underline underline-offset-2"
+                >
+                  {showJumpToRound ? 'Hide jump-to-round' : 'Jump to specific round...'}
+                </button>
+                {showJumpToRound && (
+                  <div className="mt-3 bg-white/5 border border-white/10 rounded-xl p-4 text-left animate-fade-in">
+                    <div className="text-xs text-navy-400 uppercase tracking-wide mb-2">Jump to Round</div>
+                    <p className="text-navy-400 text-xs mb-3">
+                      Skip ahead to a specific round. Useful for testing or restarting after disconnections.
+                      Team profits will be reset.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <select
+                        value={jumpTargetRound}
+                        onChange={e => setJumpTargetRound(Number(e.target.value))}
+                        className="bg-navy-800 border border-white/20 text-white text-sm rounded-lg px-3 py-2 flex-1"
+                      >
+                        {Array.from({ length: gameState.totalRounds || 0 }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>
+                            Round {i + 1}{gameState.roundNames?.[i] ? `: ${gameState.roundNames[i]}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => {
+                          if (teams.length >= 2) {
+                            jumpToRound(jumpTargetRound);
+                            setShowJumpToRound(false);
+                          }
+                        }}
+                        disabled={teams.length < 2}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                      >
+                        Jump →
+                      </button>
+                    </div>
+                    {teams.length < 2 && (
+                      <p className="text-amber-400/70 text-xs mt-2">Need at least 2 teams to start</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Minigame / Explainer Waiting Screen */}
+          {phase === 'briefing' && roundConfig && minigameWaiting && (
+            <div className="max-w-2xl mx-auto animate-fade-in">
+              <div className="text-center mb-8">
+                <div className="text-6xl mb-4">{roundConfig.batteryMiniGame ? '🔋' : '📊'}</div>
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  {roundConfig.batteryMiniGame ? 'Battery Arbitrage Minigame' : 'Portfolio Strategy Explainer'}
+                </h2>
+                <p className="text-navy-300 text-sm">
+                  {roundConfig.batteryMiniGame
+                    ? 'Teams are playing the battery arbitrage minigame and learning how battery bidding works.'
+                    : 'Teams are reviewing portfolio strategy concepts before this round begins.'}
+                </p>
+              </div>
+
+              {/* Count-up timer */}
+              <div className="flex justify-center mb-8">
+                <div className="bg-white/5 border border-white/10 rounded-2xl px-8 py-4 text-center">
+                  <div className="text-xs text-navy-400 uppercase tracking-wide mb-1">Time Elapsed</div>
+                  <div className="text-4xl font-mono font-bold text-electric-300">
+                    {Math.floor(minigameElapsed / 60)}:{String(minigameElapsed % 60).padStart(2, '0')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Team Status */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-6">
+                <div className="text-xs text-navy-400 uppercase tracking-wide mb-4">Team Progress</div>
+                <div className="space-y-3">
+                  {teams.map(team => {
+                    const done = minigameStatus[team.id];
+                    return (
+                      <div key={team.id} className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                          done ? 'bg-green-400' : 'bg-amber-400 animate-pulse'
+                        }`} />
+                        <span className="text-sm text-white font-medium flex-1">{team.name}</span>
+                        <span className={`text-sm font-medium ${done ? 'text-green-400' : 'text-amber-400'}`}>
+                          {done ? '✓ Complete' : (roundConfig.batteryMiniGame ? 'Playing...' : 'Reading...')}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Summary */}
+                <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-sm text-navy-300">
+                    {teams.filter(t => minigameStatus[t.id]).length} of {teams.length} teams finished
+                  </span>
+                  {teams.length > 0 && teams.every(t => minigameStatus[t.id]) && (
+                    <span className="text-sm font-semibold text-green-400 animate-pulse">All teams ready!</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Continue button */}
+              <div className="text-center">
+                <button
+                  onClick={() => {
+                    setMinigameWaiting(false);
+                    setShowRoundBriefing(true);
+                  }}
+                  className={`px-8 py-3 rounded-xl font-semibold text-sm transition-all ${
+                    teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                      ? 'bg-green-500 hover:bg-green-400 text-white animate-pulse-glow'
+                      : 'bg-white/10 hover:bg-white/20 text-navy-300 border border-white/10'
+                  }`}
+                >
+                  {teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                    ? 'Continue to Round Briefing →'
+                    : 'Skip Waiting & Continue →'}
+                </button>
+                {!(teams.length > 0 && teams.every(t => minigameStatus[t.id])) && (
+                  <p className="text-navy-500 text-xs mt-2">Some teams haven't finished yet</p>
+                )}
+              </div>
             </div>
           )}
 
           {/* Briefing View */}
-          {phase === 'briefing' && roundConfig && (
+          {phase === 'briefing' && roundConfig && !minigameWaiting && (
             <div className="max-w-3xl mx-auto animate-fade-in">
               <div className="mb-6">
                 <div className="text-sm text-electric-400 font-medium">Round {round}</div>
@@ -1786,8 +2068,8 @@ export default function HostDashboard() {
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
                 <button
-                  onClick={() => {
-                    resetGame();
+                  onClick={async () => {
+                    await resetGame();
                     clearHostSession();
                     setQrData(null);
                     navigate('/host');
@@ -1797,7 +2079,8 @@ export default function HostDashboard() {
                   New Game
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    await resetGame();
                     clearHostSession();
                     setQrData(null);
                     navigate('/');
@@ -1817,6 +2100,7 @@ export default function HostDashboard() {
         isVisible={showGameStart}
         teamCount={teams.length}
         totalRounds={totalRounds}
+        gameMode={gameState.gameMode}
         onComplete={() => setShowGameStart(false)}
       />
       <RoundStartTransition
@@ -1866,6 +2150,50 @@ export default function HostDashboard() {
       {/* Full-screen Strategy Guide overlay */}
       {showStrategyGuide && (
         <StrategyGuide onClose={() => setShowStrategyGuide(false)} />
+      )}
+
+      {/* Invite Code Modal */}
+      {showInviteModal && lastInviteCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-navy-900 border border-white/20 rounded-2xl p-8 max-w-sm w-full mx-4 text-center animate-fade-in">
+            <div className="text-4xl mb-3">🔗</div>
+            <h3 className="text-xl font-bold text-white mb-1">Invite Code</h3>
+            <p className="text-navy-400 text-sm mb-4">
+              Share this with {inviteTeamName}'s teammates to join as observers
+            </p>
+
+            <div className="bg-navy-800 rounded-xl p-4 mb-4">
+              <div className="text-3xl font-mono font-bold text-electric-300 tracking-[0.3em]">
+                {lastInviteCode.inviteCode}
+              </div>
+              <div className="text-xs text-navy-500 mt-1">Expires in 10 minutes</div>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <button
+                onClick={() => {
+                  const joinUrl = `${window.location.origin}/team/join?game=${gameState?.gameId || ''}&invite=${lastInviteCode.inviteCode}`;
+                  navigator.clipboard.writeText(joinUrl);
+                  setInviteCopied(true);
+                  setTimeout(() => setInviteCopied(false), 2000);
+                }}
+                className="w-full py-2.5 bg-electric-500 hover:bg-electric-400 text-white font-semibold rounded-lg transition-colors text-sm"
+              >
+                {inviteCopied ? '✓ Copied!' : '📋 Copy Invite Link'}
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowInviteModal(false);
+                clearInviteCode();
+              }}
+              className="text-navy-400 hover:text-white text-sm transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

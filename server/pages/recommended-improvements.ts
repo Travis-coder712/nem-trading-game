@@ -1,5 +1,5 @@
 /**
- * Recommended Further Improvements — Prioritised roadmap for Watt Street
+ * Recommended Further Improvements — Prioritised roadmap for GridRival
  * Served at /api/recommended-improvements
  */
 export function getRecommendedImprovementsHTML(): string {
@@ -8,7 +8,7 @@ export function getRecommendedImprovementsHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Watt Street — Recommended Further Improvements</title>
+<title>GridRival — Recommended Further Improvements</title>
 <style>
   @page { margin: 1.5cm 2cm; size: A4; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -88,7 +88,7 @@ export function getRecommendedImprovementsHTML(): string {
   <div class="header">
     <div style="font-size: 3rem; margin-bottom: 0.5rem;">&#128640;</div>
     <h1>Recommended Further Improvements</h1>
-    <div class="subtitle">Prioritised roadmap for Watt Street</div>
+    <div class="subtitle">Prioritised roadmap for GridRival</div>
   </div>
 
   <!-- Table of Contents -->
@@ -777,7 +777,7 @@ export function getRecommendedImprovementsHTML(): string {
   </div>
 
   <div style="margin-top: 3rem; padding: 1.5rem; text-align: center; color: #718096; font-size: 0.85rem; border-top: 1px solid #e2e8f0;">
-    <p>Watt Street &mdash; Recommended Further Improvements</p>
+    <p>GridRival &mdash; Recommended Further Improvements</p>
     <p>This document is a living roadmap. Priorities may shift based on user feedback and session outcomes.</p>
   </div>
 </div>

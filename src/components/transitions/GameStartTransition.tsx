@@ -12,10 +12,13 @@ interface GameStartTransitionProps {
   isVisible: boolean;
   teamCount: number;
   totalRounds: number;
+  gameMode?: string;
   onComplete: () => void;
 }
 
-function getModeLabel(totalRounds: number): string {
+function getModeLabel(totalRounds: number, gameMode?: string): string {
+  if (gameMode === 'first_run') return 'First Run';
+  if (gameMode === 'progressive') return 'Progressive';
   if (totalRounds <= 1) return 'Beginner Intro';
   if (totalRounds <= 4) return 'Experienced Replay';
   if (totalRounds <= 8) return 'Quick Game';
@@ -24,7 +27,7 @@ function getModeLabel(totalRounds: number): string {
 
 const TOTAL_DURATION_MS = 4500;
 
-export default function GameStartTransition({ isVisible, teamCount, totalRounds, onComplete }: GameStartTransitionProps) {
+export default function GameStartTransition({ isVisible, teamCount, totalRounds, gameMode, onComplete }: GameStartTransitionProps) {
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
@@ -208,7 +211,7 @@ export default function GameStartTransition({ isVisible, teamCount, totalRounds,
             className="text-electric-300 text-lg md:text-xl font-medium tracking-widest"
             style={{ animation: 'gsTransSubtitle 0.4s 1.3s ease-out both' }}
           >
-            {getModeLabel(totalRounds)}
+            {getModeLabel(totalRounds, gameMode)}
           </p>
         </div>
 

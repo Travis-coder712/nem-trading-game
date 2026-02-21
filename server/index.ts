@@ -65,7 +65,7 @@ httpServer.listen(PORT, '0.0.0.0', async () => {
   const localIP = getLocalIPAddress();
 
   console.log('');
-  console.log('  ⚡ Watt Street — Bid. Dispatch. Dominate.');
+  console.log('  ⚡ GridRival — Bid. Dispatch. DOMINATE.');
   console.log('  ══════════════════════════════════════════');
   console.log(`  Host Dashboard:  http://localhost:${PORT}`);
   console.log(`  Network URL:     http://${localIP}:${PORT}`);

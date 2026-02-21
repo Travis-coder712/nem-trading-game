@@ -121,6 +121,12 @@ export function registerTeamHandlers(
     const teamId = (socket as any).teamId;
     if (!gameId || !teamId) return;
 
+    // Block observers and late-joiners from submitting bids
+    if ((socket as any).isObserver || (socket as any).isLateJoiner) {
+      socket.emit('error', 'Observers cannot submit bids.');
+      return;
+    }
+
     submission.teamId = teamId;
     const success = engine.submitBids(gameId, submission);
 
@@ -140,6 +146,18 @@ export function registerTeamHandlers(
     }
   }));
 
+  socket.on('team:minigame_completed', safe(() => {
+    const gameId = (socket as any).gameId;
+    const teamId = (socket as any).teamId;
+    if (!gameId || !teamId) return;
+
+    engine.markMinigameCompleted(gameId, teamId);
+
+    // Update host with minigame status
+    const minigameStatus = engine.getMinigameStatus(gameId);
+    io.to(`game:${gameId}:host`).emit('host:minigame_status', minigameStatus);
+  }));
+
   socket.on('team:request_state', safe(() => {
     const gameId = (socket as any).gameId;
     const teamId = (socket as any).teamId;
@@ -148,6 +166,64 @@ export function registerTeamHandlers(
     const snapshot = engine.getSnapshot(gameId, teamId);
     if (snapshot) {
       socket.emit('game:state_update', snapshot);
+    }
+  }));
+
+  // Late-join: redeem an invite code to attach to an existing team (read-only)
+  socket.on('team:late_join', safe((data) => {
+    const { inviteCode, playerName } = data;
+
+    const invite = engine.redeemInviteCode(inviteCode);
+    if (!invite) {
+      socket.emit('error', 'Invalid or expired invite code.');
+      return;
+    }
+
+    const { gameId, teamId } = invite;
+    const game = engine.getGame(gameId);
+    if (!game) {
+      socket.emit('error', 'Game not found.');
+      return;
+    }
+    const team = game.teams.find(t => t.id === teamId);
+    if (!team) {
+      socket.emit('error', 'Team not found.');
+      return;
+    }
+
+    socket.join(`game:${gameId}`);
+    socket.join(`game:${gameId}:team:${team.id}`);
+    (socket as any).gameId = gameId;
+    (socket as any).teamId = team.id;
+    (socket as any).isHost = false;
+    (socket as any).isLateJoiner = true;
+
+    console.log(`Late-joiner "${playerName}" attached to team "${team.name}" (socket: ${socket.id})`);
+
+    socket.emit('team:late_joined', {
+      teamId: team.id,
+      gameId,
+      teamName: team.name,
+    });
+
+    // Send full current state
+    const snapshot = engine.getSnapshot(gameId, team.id);
+    if (snapshot) {
+      socket.emit('game:state_update', snapshot);
+    }
+
+    // Send current round data if game is in progress
+    if (game.currentRound > 0) {
+      const roundConfig = game.config.rounds[game.currentRound - 1];
+      if (roundConfig) {
+        socket.emit('game:round_started', {
+          roundConfig,
+          teamAssets: team.assets,
+        });
+      }
+      if (game.phase === 'results' && game.roundResults.length > 0) {
+        socket.emit('game:round_results', game.roundResults[game.roundResults.length - 1]);
+      }
     }
   }));
 }

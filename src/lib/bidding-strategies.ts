@@ -1,6 +1,9 @@
 /**
  * Client-side bidding strategy generator.
- * Generates bid bands for ALL assets across ALL periods with intensity control.
+ * Generates bid bands with asset-type-differentiated strategies:
+ * - battery_arbitrageur: Only generates bids for battery assets
+ * - All other strategies: Only generate bids for thermal (coal, gas_ccgt, gas_peaker) and hydro assets
+ * - Wind/solar are never touched by strategies (handled separately as auto-bids)
  */
 import type { AssetBid, AssetType, BatteryMode, BidBand, TeamAssetInstance, TimePeriod, Season } from '../../shared/types';
 
@@ -89,37 +92,44 @@ export const STRATEGIES: StrategyDefinition[] = [
     name: 'Battery Arbitrageur',
     icon: '🟡',
     shortDescription: 'Charge cheap, discharge at premium',
-    description: 'Battery charges in off-peak and discharges at peak. Other assets bid at marginal cost or slight premium.',
+    description: 'Battery charges in off-peak and discharges at peak. 6-hour battery can fully charge in one period.',
     intensityLabels: {
-      low: 'Discharge at $100, others at marginal cost',
-      medium: 'Discharge at $200, others at marginal cost',
-      max: 'Discharge at $400, others above marginal cost',
+      low: 'Discharge at $100, charge overnight & morning',
+      medium: 'Discharge at $200, charge overnight & morning',
+      max: 'Discharge at $400, charge overnight & morning',
     },
   },
 ];
 
 /**
  * Filter available strategies based on what asset types the team currently has.
- * Hides strategies that don't make sense without the right assets.
+ * - battery_arbitrageur: requires battery
+ * - All other strategies: based on thermal/hydro assets (not counting renewables or battery)
+ * - portfolio_optimizer: requires 2+ distinct thermal/hydro asset types
  */
 export function getAvailableStrategies(assetTypes: AssetType[]): StrategyDefinition[] {
   const typeSet = new Set(assetTypes);
   const hasBattery = typeSet.has('battery');
+  const thermalHydroTypes = ['coal', 'gas_ccgt', 'gas_peaker', 'hydro'].filter(t => typeSet.has(t as AssetType));
+  const hasThermalOrHydro = thermalHydroTypes.length > 0;
   const hasThermal = typeSet.has('coal') || typeSet.has('gas_ccgt') || typeSet.has('gas_peaker');
-  const uniqueTypes = typeSet.size;
 
   return STRATEGIES.filter(s => {
     switch (s.id) {
       case 'battery_arbitrageur':
         return hasBattery;
       case 'portfolio_optimizer':
-        return uniqueTypes >= 3;
+        // Requires 2+ distinct thermal/hydro asset types (not counting renewables or battery)
+        return thermalHydroTypes.length >= 2;
       case 'strategic_withdrawal':
       case 'price_maker':
-        return hasThermal;
+        return hasThermal || typeSet.has('hydro');
+      case 'price_taker':
+      case 'srmc_bidder':
+        // Available if team has any thermal or hydro assets
+        return hasThermalOrHydro;
       default:
-        // price_taker and srmc_bidder always available
-        return true;
+        return hasThermalOrHydro;
     }
   });
 }
@@ -152,13 +162,49 @@ function isRenewable(assetId: string): boolean {
   return type === 'wind' || type === 'solar';
 }
 
+function isHydro(assetId: string): boolean {
+  return getAssetType(assetId) === 'hydro';
+}
+
 function isThermal(assetId: string): boolean {
   const type = getAssetType(assetId);
   return ['coal', 'gas_ccgt', 'gas_peaker'].includes(type);
 }
 
+function isThermalOrHydro(assetId: string): boolean {
+  return isThermal(assetId) || isHydro(assetId);
+}
+
 /**
- * Generate bids for ALL assets across ALL periods for a given strategy+intensity.
+ * Determine the highest-demand period.
+ * Uses a fixed priority: day_peak > night_peak > day_offpeak > night_offpeak.
+ * If only one period is provided, that period is used.
+ */
+const PERIOD_DEMAND_PRIORITY: TimePeriod[] = ['day_peak', 'night_peak', 'day_offpeak', 'night_offpeak'];
+
+function getHighestDemandPeriod(periods: TimePeriod[]): TimePeriod {
+  if (periods.length === 1) return periods[0];
+  for (const p of PERIOD_DEMAND_PRIORITY) {
+    if (periods.includes(p)) return p;
+  }
+  return periods[0];
+}
+
+/**
+ * Generate bids for assets across periods for a given strategy+intensity.
+ *
+ * Strategy layering:
+ * - battery_arbitrageur: Only generates bids for battery assets. Skips everything else.
+ * - All other strategies: Only generate bids for thermal (coal, gas_ccgt, gas_peaker) and hydro.
+ *   Wind, solar, and battery are skipped (handled separately).
+ *
+ * Hydro handling:
+ * - Hydro only dispatches in ONE period (the highest-demand period).
+ * - In all other periods, hydro gets zero-MW bands so the caller sees the asset was considered.
+ *
+ * Per-period support:
+ * - When called with a single period, generates for that period only.
+ * - For hydro with a single period, that period becomes the dispatch period.
  */
 export function generateStrategyBids(
   strategyId: StrategyId,
@@ -168,16 +214,66 @@ export function generateStrategyBids(
   periods: TimePeriod[],
 ): Map<string, AssetBid> {
   const newBids = new Map<string, AssetBid>();
+  const isBatteryStrategy = strategyId === 'battery_arbitrageur';
+
+  // Determine the hydro dispatch period (highest-demand period among provided periods)
+  const hydroDispatchPeriod = getHighestDemandPeriod(periods);
 
   for (const period of periods) {
     for (const asset of assets) {
-      const bands = generateBandsForAsset(strategyId, intensity, asset, period);
-      if (bands.length === 0) continue;
+      const assetId = asset.assetDefinitionId;
+      const type = getAssetType(assetId);
 
-      const key = `${asset.assetDefinitionId}_${period}`;
+      // Strategy layering: filter assets based on strategy type
+      if (isBatteryStrategy) {
+        // battery_arbitrageur only touches battery assets
+        if (type !== 'battery') continue;
+      } else {
+        // All other strategies only touch thermal and hydro — skip wind, solar, battery
+        if (!isThermalOrHydro(assetId)) continue;
+      }
+
+      // Hydro single-period dispatch logic for non-battery strategies
+      if (!isBatteryStrategy && type === 'hydro') {
+        const key = `${assetId}_${period}`;
+        if (period === hydroDispatchPeriod) {
+          // This is the dispatch period — generate real bids
+          const bands = generateBandsForAsset(strategyId, intensity, asset, period);
+          const bid: AssetBid = {
+            assetInstanceId: `${assetId}_${teamId}`,
+            assetDefinitionId: assetId,
+            teamId,
+            timePeriod: period,
+            bands,
+            totalOfferedMW: bands.reduce((s, b) => s + b.quantityMW, 0),
+            submittedAt: Date.now(),
+            hydroDispatchPeriod,
+          };
+          newBids.set(key, bid);
+        } else {
+          // Non-dispatch period: zero MW bid
+          const bid: AssetBid = {
+            assetInstanceId: `${assetId}_${teamId}`,
+            assetDefinitionId: assetId,
+            teamId,
+            timePeriod: period,
+            bands: [],
+            totalOfferedMW: 0,
+            submittedAt: Date.now(),
+            hydroDispatchPeriod,
+          };
+          newBids.set(key, bid);
+        }
+        continue;
+      }
+
+      const bands = generateBandsForAsset(strategyId, intensity, asset, period);
+      if (bands.length === 0 && !isBatteryStrategy) continue;
+
+      const key = `${assetId}_${period}`;
       const bid: AssetBid = {
-        assetInstanceId: `${asset.assetDefinitionId}_${teamId}`,
-        assetDefinitionId: asset.assetDefinitionId,
+        assetInstanceId: `${assetId}_${teamId}`,
+        assetDefinitionId: assetId,
         teamId,
         timePeriod: period,
         bands,
@@ -186,7 +282,7 @@ export function generateStrategyBids(
       };
 
       // Set battery mode metadata for battery_arbitrageur strategy
-      if (strategyId === 'battery_arbitrageur' && getAssetType(asset.assetDefinitionId) === 'battery') {
+      if (isBatteryStrategy && type === 'battery') {
         const isPeak = period === 'day_peak' || period === 'night_peak';
         if (isPeak) {
           bid.batteryMode = 'discharge';
@@ -226,11 +322,11 @@ function generateBandsForAsset(
     case 'price_maker':
       return priceMakerBands(mw, srmc, intensity, type);
     case 'portfolio_optimizer':
-      return portfolioOptimizerBands(mw, srmc, intensity, type, period);
+      return portfolioOptimizerBands(mw, srmc, intensity, type);
     case 'strategic_withdrawal':
       return strategicWithdrawalBands(mw, srmc, intensity, type);
     case 'battery_arbitrageur':
-      return batteryArbitrageurBands(mw, srmc, intensity, type, period);
+      return batteryArbitrageurBands(mw, intensity, period);
     default:
       return [{ pricePerMWh: srmc, quantityMW: mw }];
   }
@@ -241,6 +337,12 @@ function generateBandsForAsset(
 // ──────────────────────────────────────────────
 
 function priceTakerBands(mw: number, intensity: Intensity, type: AssetType): BidBand[] {
+  // Hydro: bid at $0 in the dispatch period (caller ensures this is only called for the dispatch period)
+  if (type === 'hydro') {
+    return [{ pricePerMWh: 0, quantityMW: mw }];
+  }
+
+  // Thermal assets
   const capPercent = intensity === 'low' ? 0.6 : intensity === 'medium' ? 0.8 : 1.0;
   const offered = Math.round(mw * capPercent);
   if (offered <= 0) return [];
@@ -248,19 +350,26 @@ function priceTakerBands(mw: number, intensity: Intensity, type: AssetType): Bid
 }
 
 function srmcBidderBands(mw: number, srmc: number, intensity: Intensity, type: AssetType): BidBand[] {
-  if (isRenewable(type)) {
-    return [{ pricePerMWh: 0, quantityMW: mw }];
+  // Hydro: bid at SRMC ($8) in the dispatch period
+  if (type === 'hydro') {
+    const multiplier = intensity === 'low' ? 0.8 : intensity === 'medium' ? 1.0 : 1.2;
+    return [{ pricePerMWh: Math.round(srmc * multiplier), quantityMW: mw }];
   }
+
+  // Thermal assets
   const multiplier = intensity === 'low' ? 0.8 : intensity === 'medium' ? 1.0 : 1.2;
   const price = Math.round(srmc * multiplier);
   return [{ pricePerMWh: price, quantityMW: mw }];
 }
 
 function priceMakerBands(mw: number, srmc: number, intensity: Intensity, type: AssetType): BidBand[] {
-  if (isRenewable(type)) {
-    return [{ pricePerMWh: 0, quantityMW: mw }];
+  // Hydro: bid at a premium price ($200) in the peak/dispatch period
+  if (type === 'hydro') {
+    const hydroPrice = intensity === 'low' ? 150 : intensity === 'medium' ? 200 : 300;
+    return [{ pricePerMWh: hydroPrice, quantityMW: mw }];
   }
 
+  // Thermal assets: split into low and high bands
   const lowSplit = intensity === 'low' ? 0.70 : intensity === 'medium' ? 0.60 : 0.40;
   const highPrice = intensity === 'low' ? 150 : intensity === 'medium' ? 300 : 500;
 
@@ -276,14 +385,10 @@ function priceMakerBands(mw: number, srmc: number, intensity: Intensity, type: A
   return bands;
 }
 
-function portfolioOptimizerBands(mw: number, srmc: number, intensity: Intensity, type: AssetType, period: TimePeriod): BidBand[] {
+function portfolioOptimizerBands(mw: number, srmc: number, intensity: Intensity, type: AssetType): BidBand[] {
   const mult = intensity === 'low' ? 0.8 : intensity === 'medium' ? 1.0 : 1.4;
 
   switch (type) {
-    case 'wind':
-    case 'solar':
-      return [{ pricePerMWh: 0, quantityMW: mw }];
-
     case 'coal': {
       const lowMW = Math.round(mw * 0.65);
       const highMW = mw - lowMW;
@@ -302,23 +407,9 @@ function portfolioOptimizerBands(mw: number, srmc: number, intensity: Intensity,
       return [{ pricePerMWh: premiumPrice, quantityMW: mw }];
     }
     case 'hydro': {
-      // Hydro has opportunity cost - bid higher at peak, lower off-peak
-      const isPeak = period === 'day_peak' || period === 'night_peak';
-      const hydroPrice = isPeak
-        ? Math.round((intensity === 'low' ? 80 : intensity === 'medium' ? 120 : 200) * mult)
-        : Math.round(30 * mult);
-      const hydroMW = isPeak ? mw : Math.round(mw * 0.4);
-      return [{ pricePerMWh: hydroPrice, quantityMW: hydroMW }];
-    }
-    case 'battery': {
-      const isPeak = period === 'day_peak' || period === 'night_peak';
-      if (isPeak) {
-        const dischargePrice = intensity === 'low' ? 150 : intensity === 'medium' ? 250 : 400;
-        return [{ pricePerMWh: dischargePrice, quantityMW: mw }];
-      } else {
-        // Charge in off-peak (bid negative or zero)
-        return [{ pricePerMWh: intensity === 'max' ? -50 : 0, quantityMW: mw }];
-      }
+      // Hydro bids strategically at $100 in the dispatch period (caller ensures single-period dispatch)
+      const hydroPrice = intensity === 'low' ? 70 : intensity === 'medium' ? 100 : 150;
+      return [{ pricePerMWh: Math.round(hydroPrice * mult), quantityMW: mw }];
     }
     default:
       return [{ pricePerMWh: srmc, quantityMW: mw }];
@@ -326,10 +417,12 @@ function portfolioOptimizerBands(mw: number, srmc: number, intensity: Intensity,
 }
 
 function strategicWithdrawalBands(mw: number, srmc: number, intensity: Intensity, type: AssetType): BidBand[] {
-  if (isRenewable(type)) {
-    return [{ pricePerMWh: 0, quantityMW: mw }];
+  // Hydro: withheld entirely — no dispatch period selected (return empty bands)
+  if (type === 'hydro') {
+    return [];
   }
 
+  // Thermal assets: withhold a portion at market cap
   const withdrawPercent = intensity === 'low' ? 0.15 : intensity === 'medium' ? 0.30 : 0.50;
   const activeMW = Math.round(mw * (1 - withdrawPercent));
   const withdrawnMW = mw - activeMW;
@@ -343,24 +436,29 @@ function strategicWithdrawalBands(mw: number, srmc: number, intensity: Intensity
   return bands;
 }
 
-function batteryArbitrageurBands(mw: number, srmc: number, intensity: Intensity, type: AssetType, period: TimePeriod): BidBand[] {
+/**
+ * Battery arbitrageur — only for battery assets (6-hour storage).
+ *
+ * Schedule:
+ * - night_offpeak (00:00-06:00): Charge at full rate — battery can fully charge in one 6h period
+ * - day_offpeak (06:00-12:00): Charge at full rate (secondary charge window)
+ * - day_peak (12:00-18:00): Discharge at full rate at premium price
+ * - night_peak (18:00-24:00): Discharge at full rate at premium price
+ *
+ * The 6-hour battery can fully charge in a single period, so both off-peak periods
+ * are charge windows and both peak periods are discharge windows.
+ */
+function batteryArbitrageurBands(mw: number, intensity: Intensity, period: TimePeriod): BidBand[] {
   const isPeak = period === 'day_peak' || period === 'night_peak';
 
-  if (type === 'battery') {
-    if (isPeak) {
-      const dischargePrice = intensity === 'low' ? 100 : intensity === 'medium' ? 200 : 400;
-      return [{ pricePerMWh: dischargePrice, quantityMW: mw }];
-    } else {
-      // Charge during off-peak
-      return [{ pricePerMWh: intensity === 'max' ? -30 : 0, quantityMW: mw }];
-    }
+  if (isPeak) {
+    // Discharge at premium price during peak periods
+    const dischargePrice = intensity === 'low' ? 100 : intensity === 'medium' ? 200 : 400;
+    return [{ pricePerMWh: dischargePrice, quantityMW: mw }];
+  } else {
+    // Charge during off-peak periods (night_offpeak and day_offpeak)
+    // With 6h storage, battery can fully charge in one period
+    const chargePrice = intensity === 'max' ? -30 : intensity === 'medium' ? -10 : 0;
+    return [{ pricePerMWh: chargePrice, quantityMW: mw }];
   }
-
-  if (isRenewable(type)) {
-    return [{ pricePerMWh: 0, quantityMW: mw }];
-  }
-
-  // Non-battery thermal: SRMC with slight premium at max intensity
-  const mult = intensity === 'max' ? 1.15 : 1.0;
-  return [{ pricePerMWh: Math.round(srmc * mult), quantityMW: mw }];
 }

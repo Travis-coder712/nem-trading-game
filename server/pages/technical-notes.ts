@@ -8,7 +8,7 @@ export function getTechnicalNotesHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Watt Street — Technical Notes for IT Teams</title>
+<title>GridRival — Technical Notes for IT Teams</title>
 <style>
   @page { margin: 1.5cm 2cm; size: A4; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -62,7 +62,7 @@ export function getTechnicalNotesHTML(): string {
   </div>
 
   <div class="header">
-    <h1>Watt Street</h1>
+    <h1>GridRival</h1>
     <div class="subtitle">Technical Notes &amp; Deployment Guide</div>
     <div class="date">Prepared February 2026 | For IT &amp; Engineering Teams</div>
   </div>
@@ -84,7 +84,7 @@ export function getTechnicalNotesHTML(): string {
 
   <h2 id="overview">1. Application Overview</h2>
   <div class="card">
-    <p><strong>Watt Street</strong> is a real-time multiplayer web application that simulates Australia's National Electricity Market (NEM). It is used as a training and educational tool where participants (organised into teams) bid electricity generation into a simulated wholesale market. A merit order dispatch algorithm determines which generators run and at what price&mdash;teaching participants how the NEM works in practice.</p>
+    <p><strong>GridRival</strong> is a real-time multiplayer web application that simulates Australia's National Electricity Market (NEM). It is used as a training and educational tool where participants (organised into teams) bid electricity generation into a simulated wholesale market. A merit order dispatch algorithm determines which generators run and at what price&mdash;teaching participants how the NEM works in practice.</p>
     <p><strong>Key capabilities:</strong></p>
     <ul>
       <li>Up to 15 teams play simultaneously from their phones/laptops</li>
@@ -505,7 +505,7 @@ npm start</code></pre>
   </div>
 
   <div style="margin-top: 3rem; padding: 1.5rem; text-align: center; color: #718096; font-size: 0.85rem; border-top: 1px solid #e2e8f0;">
-    <p>Watt Street &mdash; Technical Notes</p>
+    <p>GridRival &mdash; Technical Notes</p>
     <p>Developed February 2026 using Claude Code (Anthropic) + human direction</p>
   </div>
 </div>

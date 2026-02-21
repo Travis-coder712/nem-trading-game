@@ -1,10 +1,10 @@
 // ============================================================
-// Shared Types for Watt Street — NEM Merit Order Training Game
+// Shared Types for GridRival — NEM Merit Order Training Game
 // ============================================================
 
 // ---- Enumerations ----
 
-export type GameMode = 'beginner' | 'quick' | 'full' | 'experienced' | 'progressive';
+export type GameMode = 'beginner' | 'quick' | 'full' | 'experienced' | 'progressive' | 'first_run';
 
 export type GamePhase =
   | 'lobby'
@@ -159,6 +159,11 @@ export interface AssetBid {
   batteryMode?: BatteryMode;
   chargeMW?: number;
   submittedAt: number;
+  // Hydro-specific
+  hydroDispatchPeriod?: TimePeriod;  // which period hydro chose to dispatch (only ONE per round)
+  // Renewable auto-bid
+  isAutoRenewableBid?: boolean;      // flag for auto-generated renewable bids
+  renewableCapacityMW?: number;      // computed available MW for this period
 }
 
 export interface TeamBidSubmission {
@@ -196,6 +201,12 @@ export interface TimePeriodDispatchResult {
   totalChargingLoadMW?: number;
   /** True when massive oversupply forced the price to the floor (-$1,000/MWh) */
   oversupplyNegativePriceTriggered?: boolean;
+  /** True when demand exceeded supply and AEMO emergency generation was activated */
+  aemoInterventionTriggered?: boolean;
+  /** The restored price after AEMO emergency generation fills the gap (based on highest dispatched SRMC) */
+  aemoRestoredPriceMWh?: number;
+  /** Effective blended price: 1/6 at cap + 5/6 at restored price */
+  aemoEffectivePriceMWh?: number;
 }
 
 export interface RoundDispatchResult {
@@ -240,6 +251,10 @@ export interface AssetPeriodResult {
   chargeCostDollars?: number;
   storageAtStartMWh?: number;
   storageAtEndMWh?: number;
+  // Hydro-specific fields
+  hydroStorageAtStartMWh?: number;
+  hydroStorageAtEndMWh?: number;
+  isHydroDispatchPeriod?: boolean;
 }
 
 // ---- Game State ----
@@ -438,6 +453,8 @@ export interface RoundConfig {
   uiComplexity?: 'minimal' | 'standard' | 'full';
   /** Whether to show the Battery Arbitrage Mini-Game before this round's bidding */
   batteryMiniGame?: boolean;
+  /** Whether to auto-show the Portfolio Explainer at the start of this round's briefing */
+  portfolioExplainer?: boolean;
   /** Optional seasonal context shown during briefing to explain how this season affects demand, supply, and bidding */
   seasonalGuidance?: {
     headline: string;     // e.g. "Summer: High demand, strong solar, evening crunch"
@@ -497,6 +514,8 @@ export interface GameState {
   /** Dramatic incident reports for teams (vague, no event names — mimics real-world uncertainty) */
   surpriseIncidents: SurpriseIncident[];
   currentBids: Map<string, TeamBidSubmission>;
+  /** Teams that have completed the minigame + explainer sequence this round */
+  minigameCompletedTeams: Set<string>;
   biddingTimeRemaining: number;
   startedAt: number;
   updatedAt: number;
@@ -545,6 +564,14 @@ export interface AssetInfo {
   type: AssetType;
   nameplateMW: number;
   srmcPerMWh: number;
+  /** Per-period available MW for renewables (wind/solar), accounting for capacity factors */
+  availabilityByPeriod?: Record<string, number>;
+  /** Storage fields for battery and hydro */
+  maxStorageMWh?: number;
+  maxChargeMW?: number;
+  roundTripEfficiency?: number;
+  /** Wind profile name (e.g., "Coastal", "Highland") */
+  windProfileName?: string;
 }
 
 export interface GameStateSnapshot {
@@ -553,6 +580,7 @@ export interface GameStateSnapshot {
   currentRound: number;
   totalRounds: number;
   expectedTeamCount: number;
+  gameMode?: GameMode;
   roundConfig: RoundConfig | null;
   teams: TeamPublicInfo[];
   myTeam?: Team;
@@ -560,6 +588,8 @@ export interface GameStateSnapshot {
   leaderboard: LeaderboardEntry[];
   biddingTimeRemaining: number;
   bidStatus: Record<string, boolean>;
+  /** Per-team minigame/explainer completion status (true = finished, only present when a minigame round is active) */
+  minigameStatus?: Record<string, boolean>;
   lastRoundResults?: RoundDispatchResult;
   lastRoundAnalysis?: RoundAnalysis;
   fleetInfo?: FleetInfo;
@@ -569,6 +599,8 @@ export interface GameStateSnapshot {
   biddingGuardrailEnabled?: boolean;
   /** Config for the next round (used by Round Summary to preview what's coming) */
   nextRoundConfig?: RoundConfig | null;
+  /** Round names for jump-to-round UI — only included in HOST snapshots */
+  roundNames?: string[];
   /** Active surprise events — only included in HOST snapshots, not team snapshots */
   activeSurpriseEvents?: string[];
   /** Pre-surprise demand values for comparison (set when surprises modify demand) */
@@ -581,6 +613,8 @@ export interface GameStateSnapshot {
     roundName: string;
     prices: Record<string, number>;  // period -> clearing price
   }>;
+  /** True when the snapshot is being sent to an observer (read-only view) */
+  isObserverView?: boolean;
 }
 
 export interface BiddingStrategy {
@@ -610,6 +644,45 @@ export interface BalancingResult {
  * Overall round analysis shown to all players after dispatch.
  * Explains what happened, who set the price, and what strategies worked.
  */
+// ---- Asset Category Analysis ----
+
+export type AssetCategory = 'renewables' | 'battery' | 'hydro' | 'fossil';
+
+export function getAssetCategory(type: AssetType): AssetCategory {
+  if (type === 'wind' || type === 'solar') return 'renewables';
+  if (type === 'battery') return 'battery';
+  if (type === 'hydro') return 'hydro';
+  return 'fossil'; // coal, gas_ccgt, gas_peaker
+}
+
+export interface AssetCategoryBreakdown {
+  category: AssetCategory;
+  categoryLabel: string;
+  categoryIcon: string;
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+  totalEnergyMWh: number;
+  teamBreakdowns: Array<{
+    teamId: string;
+    teamName: string;
+    color: string;
+    revenue: number;
+    cost: number;
+    profit: number;
+    energyMWh: number;
+  }>;
+}
+
+export interface StrategicWithdrawalWarning {
+  teamId: string;
+  teamName: string;
+  timePeriod: TimePeriod;
+  withheldCapacityMW: number;
+  withheldAssets: Array<{ assetName: string; assetType: AssetType; capacityMW: number }>;
+  explanation: string;
+}
+
 export interface RoundAnalysis {
   roundNumber: number;
   roundName: string;
@@ -628,6 +701,12 @@ export interface RoundAnalysis {
 
   /** Key takeaways for the round */
   keyTakeaways: string[];
+
+  /** Breakdown of results by asset category (renewables, batteries, fossil fuels) */
+  assetCategoryBreakdown?: AssetCategoryBreakdown[];
+
+  /** Strategic withdrawal warnings — teams that withheld capacity during scarcity */
+  strategicWithdrawalWarnings?: StrategicWithdrawalWarning[];
 }
 
 export interface PeriodAnalysis {
@@ -698,14 +777,22 @@ export interface ServerToClientEvents {
   'team:reconnected': (data: { teamId: string; teamName: string; gameId: string }) => void;
   'team:assets_updated': (data: { teamId: string; assets: TeamAssetInstance[] }) => void;
   'bidding:time_remaining': (seconds: number) => void;
+  'bidding:timer_paused': (paused: boolean) => void;
   'bidding:all_submitted': () => void;
   'scenario:event_triggered': (event: ScenarioEvent) => void;
   'scenario:balancing_applied': (data: BalancingResult) => void;
   'host:bid_status': (data: Record<string, boolean>) => void;
+  'host:minigame_status': (data: Record<string, boolean>) => void;
   'host:team_screen_data': (data: GameStateSnapshot) => void;
   'host:surprises_applied': (data: { appliedIds: string[]; updatedDemand: Record<string, number> }) => void;
   'game:reset': () => void;
   'error': (message: string) => void;
+  // Observer events
+  'observer:joined': (data: { gameId: string; teams: TeamPublicInfo[] }) => void;
+  'observer:team_selected': (data: { teamId: string; teamName: string }) => void;
+  // Late-join events
+  'host:invite_code': (data: { teamId: string; inviteCode: string }) => void;
+  'team:late_joined': (data: { teamId: string; gameId: string; teamName: string }) => void;
 }
 
 // ---- Client to Server Events ----
@@ -720,12 +807,20 @@ export interface ClientToServerEvents {
   'host:apply_surprises': (eventIds: string[]) => void;
   'host:pause_game': () => void;
   'host:resume_game': () => void;
-  'host:reset_game': () => void;
+  'host:reset_game': (ack?: (response: { ok: boolean }) => void) => void;
   'host:adjust_timer': (seconds: number) => void;
   'host:set_demand': (demand: Record<string, number>) => void;
+  'host:jump_to_round': (data: { roundNumber: number }) => void;
   'host:view_team_screen': (data: { teamId: string }) => void;
   'team:join': (data: { teamName: string; gameId: string }) => void;
   'team:reconnect': (data: { teamId: string; gameId: string }) => void;
   'team:submit_bids': (submission: TeamBidSubmission) => void;
+  'team:minigame_completed': () => void;
   'team:request_state': () => void;
+  // Observer events
+  'observer:join': (data: { gameId: string }) => void;
+  'observer:select_team': (data: { teamId: string }) => void;
+  // Late-join events
+  'host:invite_to_team': (data: { teamId: string }) => void;
+  'team:late_join': (data: { gameId: string; inviteCode: string; playerName: string }) => void;
 }

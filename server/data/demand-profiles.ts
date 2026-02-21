@@ -13,8 +13,8 @@ export const DEMAND_FLEET_TARGETS: Record<Season, Record<TimePeriod, number>> = 
   summer: {
     night_offpeak: 0.55,
     day_offpeak:   0.65,
-    day_peak:      0.95,    // summer heatwave — near total fleet
-    night_peak:    0.80,
+    day_peak:      0.88,    // tight but manageable without scenarios; heatwave ×1.4 → 1.23 (shortage)
+    night_peak:    0.78,
   },
   autumn: {
     night_offpeak: 0.50,
@@ -26,7 +26,7 @@ export const DEMAND_FLEET_TARGETS: Record<Season, Record<TimePeriod, number>> = 
     night_offpeak: 0.55,
     day_offpeak:   0.65,
     day_peak:      0.75,
-    night_peak:    0.92,    // winter evening heating peak
+    night_peak:    0.85,    // tight but manageable; cold snap ×1.35 → 1.15 (shortage)
   },
   spring: {
     night_offpeak: 0.50,

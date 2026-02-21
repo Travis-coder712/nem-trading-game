@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ParticleGrid from '../components/landing/ParticleGrid';
@@ -6,11 +5,9 @@ import PhotoCarousel from '../components/landing/PhotoCarousel';
 import EnergyTicker from '../components/landing/EnergyTicker';
 import AudioController from '../components/landing/AudioController';
 import StatsCounter from '../components/landing/StatsCounter';
-import EducationalSlideDeck from '../components/landing/EducationalSlideDeck';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [slideDeckOpen, setSlideDeckOpen] = useState(false);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-navy-950">
@@ -60,7 +57,7 @@ export default function Landing() {
             className="font-mono text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-widest mb-1"
             style={{ textShadow: '0 0 40px rgba(71, 167, 255, 0.3), 0 0 80px rgba(71, 167, 255, 0.1)' }}
           >
-            WATT STREET
+            GRIDRIVAL
           </motion.h1>
 
           {/* Subtitle with staggered letter reveal */}
@@ -91,7 +88,7 @@ export default function Landing() {
             transition={{ delay: 1.4, duration: 0.8 }}
             className="text-navy-300 text-sm md:text-base max-w-lg mx-auto mb-10"
           >
-            Every megawatt has its price. Master Australia&apos;s National Electricity
+            Every Megawatt has its price. Master Australia&apos;s National Electricity
             Market through live bidding simulation.
           </motion.p>
 
@@ -139,95 +136,21 @@ export default function Landing() {
             </motion.button>
           </motion.div>
 
-          {/* Secondary buttons */}
+          {/* Guides & Background button */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.9, duration: 0.6 }}
-            className="flex items-center justify-center gap-3 flex-wrap mb-6"
+            className="flex items-center justify-center mb-10"
           >
-            <a
-              href="/api/learn-nem"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-2.5 text-sm font-medium text-electric-300 border border-electric-500/30 hover:border-electric-400 hover:bg-electric-500/10 rounded-xl transition-all"
+            <motion.button
+              onClick={() => navigate('/guides')}
+              className="px-6 py-3 text-sm font-medium text-electric-300 border border-electric-500/30 hover:border-electric-400 hover:bg-electric-500/10 rounded-xl transition-all"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
             >
-              📚 Learn the NEM
-            </a>
-            <a
-              href="/api/pre-read"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-2.5 text-sm font-medium text-electric-300 border border-electric-500/30 hover:border-electric-400 hover:bg-electric-500/10 rounded-xl transition-all"
-            >
-              📖 Player Pre-Read
-            </a>
-            <a
-              href="/guide"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-2.5 text-sm font-medium text-navy-300 border border-white/10 hover:border-white/30 hover:bg-white/5 rounded-xl transition-all"
-            >
-              📄 Download Guide
-            </a>
-            <a
-              href="/api/game-master-guide"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-2.5 text-sm font-medium text-amber-300 border border-amber-500/30 hover:border-amber-400 hover:bg-amber-500/10 rounded-xl transition-all"
-            >
-              🎯 Game Master&apos;s Guide
-            </a>
-          </motion.div>
-
-          {/* Recommended improvements */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2.0, duration: 0.6 }}
-            className="flex items-center justify-center gap-3 flex-wrap mb-6"
-          >
-            <a
-              href="/api/recommended-improvements"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-2.5 text-sm font-medium text-green-300 border border-green-500/30 hover:border-green-400 hover:bg-green-500/10 rounded-xl transition-all"
-            >
-              🚀 Recommended Further Improvements
-            </a>
-          </motion.div>
-
-          {/* Development notes */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2.1, duration: 0.6 }}
-            className="flex items-center justify-center gap-3 mb-10"
-          >
-            <a
-              href="/api/notes/technical"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 text-xs font-medium text-purple-300 border border-purple-500/25 hover:border-purple-400 hover:bg-purple-500/10 rounded-lg transition-all"
-            >
-              🔧 Technical Notes (IT Teams)
-            </a>
-            <a
-              href="/api/notes/vibe-coding"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 text-xs font-medium text-purple-300 border border-purple-500/25 hover:border-purple-400 hover:bg-purple-500/10 rounded-lg transition-all"
-            >
-              ✨ How This Was Built (Vibe Coding)
-            </a>
-            <a
-              href="/api/trailer"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 text-xs font-medium text-electric-300 border border-electric-500/25 hover:border-electric-400 hover:bg-electric-500/10 rounded-lg transition-all"
-            >
-              🎬 Watch Trailer
-            </a>
+              📚 Guides &amp; Background
+            </motion.button>
           </motion.div>
 
           {/* Animated stats */}
@@ -253,12 +176,6 @@ export default function Landing() {
 
       {/* Layer 4: Audio controller */}
       <AudioController />
-
-      {/* Educational slide deck modal */}
-      <EducationalSlideDeck
-        isOpen={slideDeckOpen}
-        onClose={() => setSlideDeckOpen(false)}
-      />
     </div>
   );
 }

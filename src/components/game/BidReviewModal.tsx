@@ -13,6 +13,10 @@ interface Props {
   demandPerPeriod: Record<string, number>;
   teamCount: number;
   season: Season;
+  /** Battery mode selections per asset+period (key: assetId_period) */
+  batteryModes?: Map<string, BatteryMode>;
+  /** Battery charge MW per asset+period (key: assetId_period) */
+  chargeMWs?: Map<string, number>;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -25,7 +29,7 @@ interface Warning {
 }
 
 export default function BidReviewModal({
-  bids, assets, assetDefs, periods, demandPerPeriod, teamCount, season, onConfirm, onCancel,
+  bids, assets, assetDefs, periods, demandPerPeriod, teamCount, season, batteryModes, chargeMWs, onConfirm, onCancel,
 }: Props) {
   const getAssetDef = (assetId: string): AssetInfo | undefined =>
     assetDefs.find(d => d.id === assetId);
@@ -58,16 +62,24 @@ export default function BidReviewModal({
       const bands = bid?.bands?.filter(b => b.quantityMW > 0) || [];
       const totalMW = bands.reduce((s, b) => s + b.quantityMW, 0);
 
+      // Resolve battery mode from the live state maps (preferred) or the stamped bid value (fallback)
+      const resolvedBatteryMode = (typeKey === 'battery' && batteryModes)
+        ? (batteryModes.get(key) || bid?.batteryMode)
+        : bid?.batteryMode;
+      const resolvedChargeMW = (typeKey === 'battery' && chargeMWs)
+        ? (chargeMWs.get(key) ?? bid?.chargeMW)
+        : bid?.chargeMW;
+
       periodBids[period] = {
         bands: bands.map(b => ({ price: b.pricePerMWh, mw: b.quantityMW })),
         totalMW,
-        batteryMode: bid?.batteryMode,
-        chargeMW: bid?.chargeMW,
+        batteryMode: resolvedBatteryMode,
+        chargeMW: resolvedChargeMW,
       };
 
       // Zero MW info — let players know an asset will sit idle (not a restriction, just info)
       // Skip batteries in charge/idle mode — those are intentional zero-dispatch states
-      const isBatteryNonDispatch = typeKey === 'battery' && (bid?.batteryMode === 'charge' || bid?.batteryMode === 'idle');
+      const isBatteryNonDispatch = typeKey === 'battery' && (resolvedBatteryMode === 'charge' || resolvedBatteryMode === 'idle');
       if (totalMW === 0 && !asset.isForceOutage && !isBatteryNonDispatch) {
         warnings.push({
           type: 'zero_mw',

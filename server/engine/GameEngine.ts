@@ -11,8 +11,10 @@ import { dispatchTimePeriod } from './MeritOrderDispatch.ts';
 import { calculateTeamResults } from './ProfitCalculator.ts';
 import { analyzeRound } from './RoundAnalyzer.ts';
 import {
-  createAssetDefinitionsForTeam, getAvailableAssets,
+  createAssetDefinitionsForTeam, createFirstRunAssetDefinitionsForTeam,
+  getAvailableAssets,
   getWindCapacityFactor, getSolarCapacityFactor,
+  WIND_ASSET_PROFILES,
 } from '../data/assets.ts';
 import { generateDemandForRound } from '../data/demand-profiles.ts';
 import { getScenarioEventsForRound, SCENARIO_EVENTS } from '../data/scenarios.ts';
@@ -22,6 +24,7 @@ import { quickGameRounds } from '../data/rounds/quick-game.ts';
 import { experiencedReplayRounds } from '../data/rounds/experienced-replay.ts';
 import { beginnerRounds } from '../data/rounds/beginner.ts';
 import { progressiveLearningRounds } from '../data/rounds/progressive-learning.ts';
+import { firstRunRounds } from '../data/rounds/first-run.ts';
 
 /**
  * Generate a dramatic, vague incident report for teams.
@@ -76,6 +79,11 @@ export class GameEngine {
   private biddingTimers = new Map<string, NodeJS.Timeout>();
   private roundAnalyses = new Map<string, RoundAnalysis[]>(); // gameId -> analyses per round
 
+  // Observer tracking: gameId -> Map<socketId, teamId> (empty string = no team selected)
+  private observers = new Map<string, Map<string, string>>();
+  // Invite codes for late-joiners: code -> { gameId, teamId, expiresAt }
+  private inviteCodes = new Map<string, { gameId: string; teamId: string; expiresAt: number }>();
+
   createGame(
     mode: GameMode,
     teamCount: number,
@@ -113,6 +121,7 @@ export class GameEngine {
       preSurpriseDemandMW: null,
       surpriseIncidents: [],
       currentBids: new Map(),
+      minigameCompletedTeams: new Set(),
       biddingTimeRemaining: 0,
       startedAt: Date.now(),
       updatedAt: Date.now(),
@@ -217,6 +226,7 @@ export class GameEngine {
     const roundConfig = game.config.rounds[game.currentRound - 1];
     game.phase = 'briefing';
     game.currentBids = new Map();
+    game.minigameCompletedTeams = new Set();
     game.biddingTimeRemaining = roundConfig.biddingTimeLimitSeconds;
     game.activeSurpriseEvents = [];  // Reset surprise events for the new round
     game.preSurpriseDemandMW = null;
@@ -248,6 +258,42 @@ export class GameEngine {
     return roundConfig;
   }
 
+  /**
+   * Jump directly to a specific round number.
+   * Sets currentRound to targetRound - 1 so the next startRound() call
+   * will begin at the desired round. Resets game state for a clean start.
+   * Returns the round config on success, null on failure.
+   */
+  jumpToRound(gameId: string, targetRound: number): RoundConfig | null {
+    const game = this.games.get(gameId);
+    if (!game) return null;
+
+    if (targetRound < 1 || targetRound > game.config.rounds.length) return null;
+
+    // Reset game state for a fresh start at target round
+    game.currentRound = targetRound - 1; // startRound will increment
+    game.roundResults = [];
+    game.activeScenarioEvents = [];
+    game.activeSurpriseEvents = [];
+    game.preSurpriseDemandMW = null;
+    game.surpriseIncidents = [];
+    game.currentBids = new Map();
+    game.minigameCompletedTeams = new Set();
+    game.biddingTimeRemaining = 0;
+
+    // Reset team cumulative profits and round results for clean restart
+    for (const team of game.teams) {
+      team.cumulativeProfitDollars = 0;
+      team.roundResults = [];
+    }
+
+    // Reset round analyses
+    this.roundAnalyses.set(gameId, []);
+
+    // Now start the round
+    return this.startRound(gameId);
+  }
+
   startBidding(gameId: string): boolean {
     const game = this.games.get(gameId);
     if (!game) return false;
@@ -260,6 +306,31 @@ export class GameEngine {
   submitBids(gameId: string, submission: TeamBidSubmission): boolean {
     const game = this.games.get(gameId);
     if (!game || game.phase !== 'bidding') return false;
+
+    const gameDefs = this.assetDefs.get(gameId);
+
+    // Server-side enforcement of asset-type-specific bidding rules
+    if (gameDefs) {
+      for (const bid of submission.bids) {
+        const def = gameDefs.get(bid.assetDefinitionId);
+        if (!def) continue;
+
+        // Renewable enforcement: force all wind/solar bids to $0
+        if (def.type === 'wind' || def.type === 'solar') {
+          for (const band of bid.bands) {
+            band.pricePerMWh = 0;
+          }
+        }
+
+        // Hydro single-period enforcement: zero out bids for non-selected periods
+        if (def.type === 'hydro' && bid.hydroDispatchPeriod) {
+          if (bid.timePeriod !== bid.hydroDispatchPeriod) {
+            bid.bands = [];
+            bid.totalOfferedMW = 0;
+          }
+        }
+      }
+    }
 
     game.currentBids.set(submission.teamId, submission);
     game.updatedAt = Date.now();
@@ -282,6 +353,23 @@ export class GameEngine {
     const game = this.games.get(gameId);
     if (!game) return false;
     return game.teams.every(t => game.currentBids.has(t.id));
+  }
+
+  markMinigameCompleted(gameId: string, teamId: string): boolean {
+    const game = this.games.get(gameId);
+    if (!game) return false;
+    game.minigameCompletedTeams.add(teamId);
+    return true;
+  }
+
+  getMinigameStatus(gameId: string): Record<string, boolean> {
+    const game = this.games.get(gameId);
+    if (!game) return {};
+    const status: Record<string, boolean> = {};
+    for (const team of game.teams) {
+      status[team.id] = game.minigameCompletedTeams.has(team.id);
+    }
+    return status;
   }
 
   tickTimer(gameId: string): number {
@@ -507,19 +595,56 @@ export class GameEngine {
       if (gameDefs) {
         myAssetDefs = myTeam.assets.map(a => {
           const def = gameDefs.get(a.assetDefinitionId);
-          return def ? {
+          if (!def) {
+            return {
+              id: a.assetDefinitionId,
+              name: a.assetDefinitionId,
+              type: 'coal' as AssetType,
+              nameplateMW: a.currentAvailableMW,
+              srmcPerMWh: 0,
+            };
+          }
+
+          const info: AssetInfo = {
             id: def.id,
             name: def.name,
             type: def.type,
             nameplateMW: def.nameplateMW,
             srmcPerMWh: def.srmcPerMWh,
-          } : {
-            id: a.assetDefinitionId,
-            name: a.assetDefinitionId,
-            type: 'coal' as AssetType,
-            nameplateMW: a.currentAvailableMW,
-            srmcPerMWh: 0,
           };
+
+          // Add per-period availability for wind and solar so teams can see dispatch constraints
+          if ((def.type === 'wind' || def.type === 'solar') && roundConfig) {
+            const availability: Record<string, number> = {};
+            for (const period of roundConfig.timePeriods) {
+              if (def.type === 'wind') {
+                availability[period] = Math.round(a.currentAvailableMW * getWindCapacityFactor(roundConfig.season, period as TimePeriod, def));
+              } else {
+                availability[period] = Math.round(a.currentAvailableMW * getSolarCapacityFactor(roundConfig.season, period as TimePeriod));
+              }
+            }
+            info.availabilityByPeriod = availability;
+
+            // Add wind profile name for display
+            if (def.type === 'wind' && def.capacityFactors) {
+              const matchedProfile = WIND_ASSET_PROFILES.find(p =>
+                p.factors.night_offpeak === def.capacityFactors!.night_offpeak &&
+                p.factors.day_peak === def.capacityFactors!.day_peak
+              );
+              if (matchedProfile) info.windProfileName = matchedProfile.name;
+            }
+          }
+
+          // Add storage fields for battery and hydro
+          if (def.type === 'battery' || def.type === 'hydro') {
+            info.maxStorageMWh = def.maxStorageMWh;
+            if (def.type === 'battery') {
+              info.maxChargeMW = def.maxChargeMW;
+              info.roundTripEfficiency = def.roundTripEfficiency;
+            }
+          }
+
+          return info;
         });
       }
     }
@@ -530,6 +655,7 @@ export class GameEngine {
       currentRound: game.currentRound,
       totalRounds: game.config.rounds.length,
       expectedTeamCount: game.config.teamCount,
+      gameMode: game.config.mode,
       roundConfig,
       teams,
       myTeam: myTeam ? { ...myTeam } : undefined,
@@ -537,6 +663,9 @@ export class GameEngine {
       leaderboard: this.getLeaderboard(gameId),
       biddingTimeRemaining: game.biddingTimeRemaining,
       bidStatus: this.getBidStatus(gameId),
+      minigameStatus: (roundConfig?.batteryMiniGame || roundConfig?.portfolioExplainer)
+        ? this.getMinigameStatus(gameId)
+        : undefined,
       lastRoundResults: game.roundResults.length > 0
         ? game.roundResults[game.roundResults.length - 1]
         : undefined,
@@ -547,6 +676,10 @@ export class GameEngine {
         : undefined,
       biddingGuardrailEnabled: game.config.biddingGuardrailEnabled,
       nextRoundConfig,
+      // Round names for jump-to-round UI (host only)
+      roundNames: !forTeamId
+        ? game.config.rounds.map(r => r.name || '')
+        : undefined,
       // Only include surprise events in host snapshot (no forTeamId)
       activeSurpriseEvents: !forTeamId && game.activeSurpriseEvents.length > 0
         ? game.activeSurpriseEvents
@@ -605,7 +738,7 @@ export class GameEngine {
 
           // Apply capacity factors for renewables
           if (def.type === 'wind') {
-            availableMW = Math.round(availableMW * getWindCapacityFactor(roundConfig.season, period as TimePeriod));
+            availableMW = Math.round(availableMW * getWindCapacityFactor(roundConfig.season, period as TimePeriod, def));
           } else if (def.type === 'solar') {
             availableMW = Math.round(availableMW * getSolarCapacityFactor(roundConfig.season, period as TimePeriod));
           }
@@ -655,7 +788,7 @@ export class GameEngine {
         for (const period of roundConfig.timePeriods) {
           let avail = asset.currentAvailableMW;
           if (def.type === 'wind') {
-            avail = Math.round(avail * getWindCapacityFactor(roundConfig.season, period as TimePeriod));
+            avail = Math.round(avail * getWindCapacityFactor(roundConfig.season, period as TimePeriod, def));
           } else if (def.type === 'solar') {
             avail = Math.round(avail * getSolarCapacityFactor(roundConfig.season, period as TimePeriod));
           }
@@ -765,8 +898,78 @@ export class GameEngine {
     // Delete the game entirely — host will create a fresh one
     this.games.delete(gameId);
     this.assetDefs.delete(gameId);
+    this.observers.delete(gameId);
+    // Clean up invite codes for this game
+    for (const [code, invite] of this.inviteCodes) {
+      if (invite.gameId === gameId) this.inviteCodes.delete(code);
+    }
 
     return teamSocketIds;
+  }
+
+  // ---- Observer support ----
+
+  addObserver(gameId: string, socketId: string): boolean {
+    const game = this.games.get(gameId);
+    if (!game) return false;
+    if (!this.observers.has(gameId)) {
+      this.observers.set(gameId, new Map());
+    }
+    this.observers.get(gameId)!.set(socketId, ''); // empty = no team selected yet
+    return true;
+  }
+
+  setObserverTeam(gameId: string, socketId: string, teamId: string): boolean {
+    const game = this.games.get(gameId);
+    if (!game) return false;
+    const team = game.teams.find(t => t.id === teamId);
+    if (!team) return false;
+    const observers = this.observers.get(gameId);
+    if (!observers || !observers.has(socketId)) return false;
+    observers.set(socketId, teamId);
+    return true;
+  }
+
+  getObserverTeamId(gameId: string, socketId: string): string | undefined {
+    return this.observers.get(gameId)?.get(socketId);
+  }
+
+  removeObserver(gameId: string, socketId: string): void {
+    this.observers.get(gameId)?.delete(socketId);
+  }
+
+  getObserverSocketIds(gameId: string): string[] {
+    const observers = this.observers.get(gameId);
+    if (!observers) return [];
+    return [...observers.keys()];
+  }
+
+  // ---- Late-join invite codes ----
+
+  generateInviteCode(gameId: string, teamId: string): string | null {
+    const game = this.games.get(gameId);
+    if (!game) return null;
+    const team = game.teams.find(t => t.id === teamId);
+    if (!team) return null;
+
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    this.inviteCodes.set(code, {
+      gameId,
+      teamId,
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minute expiry
+    });
+    return code;
+  }
+
+  redeemInviteCode(code: string): { gameId: string; teamId: string } | null {
+    const invite = this.inviteCodes.get(code);
+    if (!invite) return null;
+    if (Date.now() > invite.expiresAt) {
+      this.inviteCodes.delete(code);
+      return null;
+    }
+    this.inviteCodes.delete(code); // one-time use
+    return { gameId: invite.gameId, teamId: invite.teamId };
   }
 
   // ---- Private helpers ----
@@ -778,6 +981,7 @@ export class GameEngine {
       case 'full': return fullGameRounds;
       case 'experienced': return experiencedReplayRounds;
       case 'progressive': return progressiveLearningRounds;
+      case 'first_run': return firstRunRounds;
     }
   }
 
@@ -804,7 +1008,7 @@ export class GameEngine {
           let mw = asset.currentAvailableMW;
 
           if (def.type === 'wind') {
-            mw = Math.round(mw * getWindCapacityFactor(roundConfig.season, period as TimePeriod));
+            mw = Math.round(mw * getWindCapacityFactor(roundConfig.season, period as TimePeriod, def));
           } else if (def.type === 'solar') {
             mw = Math.round(mw * getSolarCapacityFactor(roundConfig.season, period as TimePeriod));
           }
@@ -824,12 +1028,19 @@ export class GameEngine {
 
     for (let i = 0; i < game.teams.length; i++) {
       const team = game.teams[i];
-      const allTeamAssets = createAssetDefinitionsForTeam(
-        i,
-        game.config.assetConfig,
-        game.config.assetVariation ?? true,
-        game.config.teamCount,
-      );
+      const allTeamAssets = game.config.mode === 'first_run'
+        ? createFirstRunAssetDefinitionsForTeam(
+            i,
+            game.config.assetConfig,
+            game.config.assetVariation ?? true,
+            game.config.teamCount,
+          )
+        : createAssetDefinitionsForTeam(
+            i,
+            game.config.assetConfig,
+            game.config.assetVariation ?? true,
+            game.config.teamCount,
+          );
       const available = getAvailableAssets(allTeamAssets, game.currentRound, game.config.mode);
 
       // Store asset defs
@@ -982,7 +1193,7 @@ export class GameEngine {
 
           // Apply capacity factors for renewables
           if (def.type === 'wind') {
-            availableMW = Math.round(availableMW * getWindCapacityFactor(roundConfig.season, period as TimePeriod));
+            availableMW = Math.round(availableMW * getWindCapacityFactor(roundConfig.season, period as TimePeriod, def));
           } else if (def.type === 'solar') {
             availableMW = Math.round(availableMW * getSolarCapacityFactor(roundConfig.season, period as TimePeriod));
           }

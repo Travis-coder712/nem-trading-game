@@ -194,8 +194,33 @@ export function dispatchTimePeriod(
   }
 
   // Step 5: Handle demand exceeding supply
+  //
+  // AEMO Emergency Generation: When demand exceeds supply, the price cap hits
+  // for the first hour, then AEMO activates emergency generation (RERT/reserves)
+  // to restore supply for the remaining 5 hours. The "restored price" is based
+  // on the highest SRMC among dispatched generators — representing the cost of
+  // emergency generation filling the gap. This prevents unrealistically large
+  // profits from a full 6-hour period at the price cap.
+  let aemoInterventionTriggered = false;
+  let aemoRestoredPriceMWh: number | undefined;
+  let aemoEffectivePriceMWh: number | undefined;
+
   if (remainingDemand > 0) {
     clearingPrice = priceCap;
+    aemoInterventionTriggered = true;
+
+    // Compute the restored price: highest SRMC among dispatched generators
+    const dispatchedSRMCs = dispatchedBands
+      .map(b => assetDefs.get(b.assetDefinitionId)?.srmcPerMWh ?? 0)
+      .filter(s => s > 0);
+    aemoRestoredPriceMWh = dispatchedSRMCs.length > 0
+      ? Math.max(...dispatchedSRMCs)
+      : 200; // Fallback: typical gas peaker SRMC
+
+    // Blended price: 1/6 at cap + 5/6 at restored
+    aemoEffectivePriceMWh = Math.round(
+      (priceCap * (1 / 6) + aemoRestoredPriceMWh * (5 / 6)) * 100
+    ) / 100;
   }
 
   const totalDispatchedMW = totalDemandMW - Math.max(0, remainingDemand);
@@ -234,5 +259,8 @@ export function dispatchTimePeriod(
     reserveMarginPercent,
     totalChargingLoadMW,
     oversupplyNegativePriceTriggered,
+    aemoInterventionTriggered: aemoInterventionTriggered || undefined,
+    aemoRestoredPriceMWh,
+    aemoEffectivePriceMWh,
   };
 }

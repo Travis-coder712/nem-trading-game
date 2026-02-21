@@ -1,10 +1,21 @@
 import type {
-  AssetDefinition, AssetPerformanceSummary, AssetType, GameState,
+  AssetCategoryBreakdown, AssetDefinition, AssetPerformanceSummary, AssetType, GameState,
   PeriodAnalysis, RoundAnalysis, RoundConfig, RoundDispatchResult,
-  TeamAnalysis, TeamBidSubmission, TeamRoundResult, TimePeriod,
+  StrategicWithdrawalWarning, TeamAnalysis, TeamBidSubmission, TeamRoundResult, TimePeriod,
   TimePeriodDispatchResult,
 } from '../../shared/types.ts';
-import { TIME_PERIOD_SHORT_LABELS, ASSET_TYPE_LABELS } from '../../shared/types.ts';
+import { TIME_PERIOD_SHORT_LABELS, ASSET_TYPE_LABELS, getAssetCategory } from '../../shared/types.ts';
+import type { AssetCategory } from '../../shared/types.ts';
+
+/** Format a dollar amount with commas for display in narratives (e.g. $1,234) */
+function fmtDollars(v: number): string {
+  return `$${Math.round(v).toLocaleString('en-AU')}`;
+}
+
+/** Format a number with commas (e.g. 1,234) */
+function fmtNum(v: number): string {
+  return Math.round(v).toLocaleString('en-AU');
+}
 
 /**
  * Generates a comprehensive round analysis after dispatch completes.
@@ -37,6 +48,14 @@ export function analyzeRound(
     roundConfig, roundResult, periodAnalyses, game,
   );
 
+  const assetCategoryBreakdown = buildAssetCategoryBreakdown(
+    game, roundResult, assetDefs,
+  );
+
+  const strategicWithdrawalWarnings = detectStrategicWithdrawals(
+    game, roundResult, assetDefs,
+  );
+
   return {
     roundNumber: roundConfig.roundNumber,
     roundName: roundConfig.name,
@@ -45,6 +64,8 @@ export function analyzeRound(
     collectiveInsight,
     teamAnalyses,
     keyTakeaways,
+    assetCategoryBreakdown: assetCategoryBreakdown.length > 0 ? assetCategoryBreakdown : undefined,
+    strategicWithdrawalWarnings: strategicWithdrawalWarnings.length > 0 ? strategicWithdrawalWarnings : undefined,
   };
 }
 
@@ -66,14 +87,16 @@ function analyzePeriod(
 
   // Build price explanation
   let priceExplanation: string;
-  if (pr.clearingPriceMWh <= 0) {
-    priceExplanation = `Prices went to $${pr.clearingPriceMWh}/MWh in the ${periodLabel}. Supply overwhelmed demand — there was ${pr.excessCapacityMW} MW of excess capacity. Generators with high costs lost money being dispatched at these prices.`;
+  if (pr.aemoInterventionTriggered) {
+    priceExplanation = `AEMO INTERVENTION: Demand exceeded supply in the ${periodLabel}! The price hit the ${fmtDollars(pr.clearingPriceMWh)}/MWh cap, but AEMO activated emergency generation within 1 hour, restoring supply at ~${fmtDollars(pr.aemoRestoredPriceMWh || 0)}/MWh. Effective blended price for the period: ${fmtDollars(pr.aemoEffectivePriceMWh || 0)}/MWh.`;
+  } else if (pr.clearingPriceMWh <= 0) {
+    priceExplanation = `Prices went to ${fmtDollars(pr.clearingPriceMWh)}/MWh in the ${periodLabel}. Supply overwhelmed demand — there was ${fmtNum(pr.excessCapacityMW)} MW of excess capacity. Generators with high costs lost money being dispatched at these prices.`;
   } else if (pr.reserveMarginPercent < 10) {
-    priceExplanation = `Very tight supply in the ${periodLabel} with only ${pr.reserveMarginPercent.toFixed(0)}% reserve margin. ${priceSetterTeam}'s ${priceSetterAsset} set the clearing price at $${Math.round(pr.clearingPriceMWh)}/MWh. With supply this tight, high bids were rewarded.`;
+    priceExplanation = `Very tight supply in the ${periodLabel} with only ${pr.reserveMarginPercent.toFixed(0)}% reserve margin. ${priceSetterTeam}'s ${priceSetterAsset} set the clearing price at ${fmtDollars(pr.clearingPriceMWh)}/MWh. With supply this tight, high bids were rewarded.`;
   } else if (pr.reserveMarginPercent > 50) {
-    priceExplanation = `Plenty of spare capacity in the ${periodLabel} (${pr.reserveMarginPercent.toFixed(0)}% reserve margin). ${priceSetterTeam}'s ${priceSetterAsset} set the price at $${Math.round(pr.clearingPriceMWh)}/MWh. With excess supply, high bidders were not dispatched.`;
+    priceExplanation = `Plenty of spare capacity in the ${periodLabel} (${pr.reserveMarginPercent.toFixed(0)}% reserve margin). ${priceSetterTeam}'s ${priceSetterAsset} set the price at ${fmtDollars(pr.clearingPriceMWh)}/MWh. With excess supply, high bidders were not dispatched.`;
   } else {
-    priceExplanation = `${priceSetterTeam}'s ${priceSetterAsset} was the marginal generator in the ${periodLabel}, setting the clearing price at $${Math.round(pr.clearingPriceMWh)}/MWh with a bid of $${Math.round(priceSetterBidPrice)}/MWh. Reserve margin was ${pr.reserveMarginPercent.toFixed(0)}%.`;
+    priceExplanation = `${priceSetterTeam}'s ${priceSetterAsset} was the marginal generator in the ${periodLabel}, setting the clearing price at ${fmtDollars(pr.clearingPriceMWh)}/MWh with a bid of ${fmtDollars(priceSetterBidPrice)}/MWh. Reserve margin was ${pr.reserveMarginPercent.toFixed(0)}%.`;
   }
 
   // Supply/demand narrative
@@ -268,13 +291,13 @@ function buildAssetPerformance(
         if (batAgg.periodsDischarged === 0 && batAgg.periodsCharged === 0) {
           perf.assessment = `Battery sat idle all round — no arbitrage revenue earned. Look for price spreads between periods to profit from charge/discharge cycles.`;
         } else if (batAgg.periodsDischarged === 0 && batAgg.periodsCharged > 0) {
-          perf.assessment = `Charged ${batAgg.periodsCharged} period${batAgg.periodsCharged > 1 ? 's' : ''} (cost $${chgCost.toLocaleString()}) but never discharged. You need to sell stored energy at peak prices to earn arbitrage revenue.`;
+          perf.assessment = `Charged ${batAgg.periodsCharged} period${batAgg.periodsCharged > 1 ? 's' : ''} (cost ${fmtDollars(chgCost)}) but never discharged. You need to sell stored energy at peak prices to earn arbitrage revenue.`;
         } else if (batAgg.periodsCharged === 0 && batAgg.periodsDischarged > 0) {
-          perf.assessment = `Arbitrage revenue: $${dischRev.toLocaleString()} from discharging ${batAgg.periodsDischarged} period${batAgg.periodsDischarged > 1 ? 's' : ''} (no charging cost). Net profit: $${netArbitrage.toLocaleString()}.`;
+          perf.assessment = `Arbitrage revenue: ${fmtDollars(dischRev)} from discharging ${batAgg.periodsDischarged} period${batAgg.periodsDischarged > 1 ? 's' : ''} (no charging cost). Net profit: ${fmtDollars(netArbitrage)}.`;
         } else if (netArbitrage > 0) {
-          perf.assessment = `Arbitrage revenue: $${dischRev.toLocaleString()} from discharge, minus $${chgCost.toLocaleString()} charging cost. Net arbitrage profit: $${netArbitrage.toLocaleString()}. Charged ${batAgg.periodsCharged}/${totalPeriods} periods, discharged ${batAgg.periodsDischarged}/${totalPeriods}.`;
+          perf.assessment = `Arbitrage revenue: ${fmtDollars(dischRev)} from discharge, minus ${fmtDollars(chgCost)} charging cost. Net arbitrage profit: ${fmtDollars(netArbitrage)}. Charged ${batAgg.periodsCharged}/${totalPeriods} periods, discharged ${batAgg.periodsDischarged}/${totalPeriods}.`;
         } else {
-          perf.assessment = `Arbitrage loss: earned $${dischRev.toLocaleString()} from discharge but paid $${chgCost.toLocaleString()} to charge. Net: -$${Math.abs(netArbitrage).toLocaleString()}. Try charging when prices are lower and discharging when they spike.`;
+          perf.assessment = `Arbitrage loss: earned ${fmtDollars(dischRev)} from discharge but paid ${fmtDollars(chgCost)} to charge. Net: -${fmtDollars(Math.abs(netArbitrage))}. Try charging when prices are lower and discharging when they spike.`;
         }
       } else {
         perf.assessment = `Battery was not actively used this round. Set charge/discharge modes to earn arbitrage revenue from price spreads.`;
@@ -285,15 +308,15 @@ function buildAssetPerformance(
     if (!perf.wasDispatched) {
       perf.assessment = `Not dispatched this round. Your bids may have been too high, or this asset type wasn't needed.`;
     } else if (perf.profit < 0) {
-      perf.assessment = `Dispatched but lost money ($${Math.round(perf.profit)}). The clearing price was below your costs. Consider bidding above marginal cost ($${def.srmcPerMWh}/MWh) to avoid losses.`;
+      perf.assessment = `Dispatched but lost money (${fmtDollars(perf.profit)}). The clearing price was below your costs. Consider bidding above marginal cost (${fmtDollars(def.srmcPerMWh)}/MWh) to avoid losses.`;
     } else if (perf.averageBidPrice <= 0 && perf.profit > 0) {
-      perf.assessment = `Smart — bid low to guarantee dispatch and earned $${Math.round(perf.profit)} at the market clearing price. The classic "price taker" approach.`;
+      perf.assessment = `Smart — bid low to guarantee dispatch and earned ${fmtDollars(perf.profit)} at the market clearing price. The classic "price taker" approach.`;
     } else if (perf.averageBidPrice > def.srmcPerMWh * 3) {
       perf.assessment = perf.wasDispatched
-        ? `Aggressive bidding at ~$${perf.averageBidPrice}/MWh (${(perf.averageBidPrice / def.srmcPerMWh).toFixed(1)}x marginal cost) — and it worked! Profit: $${Math.round(perf.profit)}.`
-        : `Bid very aggressively at ~$${perf.averageBidPrice}/MWh. Some capacity may not have been dispatched.`;
+        ? `Aggressive bidding at ~${fmtDollars(perf.averageBidPrice)}/MWh (${(perf.averageBidPrice / def.srmcPerMWh).toFixed(1)}x marginal cost) — and it worked! Profit: ${fmtDollars(perf.profit)}.`
+        : `Bid very aggressively at ~${fmtDollars(perf.averageBidPrice)}/MWh. Some capacity may not have been dispatched.`;
     } else {
-      perf.assessment = `Dispatched earning $${Math.round(perf.profit)} profit. Bid at ~$${perf.averageBidPrice}/MWh vs marginal cost of $${def.srmcPerMWh}/MWh.`;
+      perf.assessment = `Dispatched earning ${fmtDollars(perf.profit)} profit. Bid at ~${fmtDollars(perf.averageBidPrice)}/MWh vs marginal cost of ${fmtDollars(def.srmcPerMWh)}/MWh.`;
     }
   }
 
@@ -324,7 +347,7 @@ function identifyStrengths(
   // Check for good dispatch rate
   const totalAvailMW = assetPerformance.reduce((s, a) => s + (a.wasDispatched ? a.totalDispatchedMW : 0), 0);
   if (totalAvailMW > 0 && teamResult.totalRevenueDollars > 0) {
-    strengths.push(`Generated ${Math.round(teamResult.totalEnergyGeneratedMWh)} MWh of energy earning $${Math.round(teamResult.totalRevenueDollars)} in revenue.`);
+    strengths.push(`Generated ${fmtNum(teamResult.totalEnergyGeneratedMWh)} MWh of energy earning ${fmtDollars(teamResult.totalRevenueDollars)} in revenue.`);
   }
 
   // Profitable assets
@@ -332,9 +355,9 @@ function identifyStrengths(
   if (profitableAssets.length > 0) {
     const best = profitableAssets.sort((a, b) => b.profit - a.profit)[0];
     if (best.assetType === 'battery') {
-      strengths.push(`${best.assetName} was your best performer, earning $${Math.round(best.profit)} in arbitrage revenue.`);
+      strengths.push(`${best.assetName} was your best performer, earning ${fmtDollars(best.profit)} in arbitrage revenue.`);
     } else {
-      strengths.push(`${best.assetName} was your best performer, earning $${Math.round(best.profit)} profit.`);
+      strengths.push(`${best.assetName} was your best performer, earning ${fmtDollars(best.profit)} profit.`);
     }
   }
 
@@ -364,9 +387,9 @@ function identifyImprovements(
   const lossMakers = assetPerformance.filter(a => a.profit < 0);
   for (const asset of lossMakers) {
     if (asset.assetType === 'battery') {
-      improvements.push(`${asset.assetName} had a negative arbitrage result (-$${Math.round(Math.abs(asset.profit))}). Charging cost more than discharge revenue — try charging during lower-priced periods.`);
+      improvements.push(`${asset.assetName} had a negative arbitrage result (-${fmtDollars(Math.abs(asset.profit))}). Charging cost more than discharge revenue — try charging during lower-priced periods.`);
     } else {
-      improvements.push(`${asset.assetName} lost $${Math.round(Math.abs(asset.profit))}. Consider bidding at or above marginal cost to avoid dispatching at a loss.`);
+      improvements.push(`${asset.assetName} lost ${fmtDollars(Math.abs(asset.profit))}. Consider bidding at or above marginal cost to avoid dispatching at a loss.`);
     }
   }
 
@@ -408,7 +431,7 @@ function buildNextRoundAdvice(
   } else {
     const leader = rankedTeams[0];
     const gap = leader.cumulativeProfitDollars - rankedTeams[rankIndex].cumulativeProfitDollars;
-    parts.push(`You're $${Math.round(gap)} behind the leader. Consider more aggressive strategies to close the gap.`);
+    parts.push(`You're ${fmtDollars(gap)} behind the leader. Consider more aggressive strategies to close the gap.`);
   }
 
   // Asset-specific advice
@@ -441,7 +464,7 @@ function buildCompetitivePosition(
   }
 
   const diff = bestTeamResult.totalProfitDollars - teamResult.totalProfitDollars;
-  return `The round winner (${bestTeamResult.teamName}) earned $${Math.round(diff)} more than you this round. Study the merit order to see where their bids differed from yours.`;
+  return `The round winner (${bestTeamResult.teamName}) earned ${fmtDollars(diff)} more than you this round. Study the merit order to see where their bids differed from yours.`;
 }
 
 // ---- Overall Summary ----
@@ -463,11 +486,11 @@ function buildOverallSummary(
   const maxPrice = Math.max(...prices);
 
   if (minPrice === maxPrice) {
-    parts.push(`The clearing price was $${Math.round(minPrice)}/MWh across all periods.`);
+    parts.push(`The clearing price was ${fmtDollars(minPrice)}/MWh across all periods.`);
   } else {
     const cheapPeriod = periodAnalyses.find(p => p.clearingPriceMWh === minPrice)!;
     const expPeriod = periodAnalyses.find(p => p.clearingPriceMWh === maxPrice)!;
-    parts.push(`Prices ranged from $${Math.round(minPrice)}/MWh (${TIME_PERIOD_SHORT_LABELS[cheapPeriod.timePeriod]}) to $${Math.round(maxPrice)}/MWh (${TIME_PERIOD_SHORT_LABELS[expPeriod.timePeriod]}).`);
+    parts.push(`Prices ranged from ${fmtDollars(minPrice)}/MWh (${TIME_PERIOD_SHORT_LABELS[cheapPeriod.timePeriod]}) to ${fmtDollars(maxPrice)}/MWh (${TIME_PERIOD_SHORT_LABELS[expPeriod.timePeriod]}).`);
   }
 
   // Winner
@@ -475,15 +498,22 @@ function buildOverallSummary(
   const winner = sortedResults[0];
   const loser = sortedResults[sortedResults.length - 1];
 
-  parts.push(`${winner.teamName} topped the round with $${Math.round(winner.totalProfitDollars)} profit.`);
+  parts.push(`${winner.teamName} topped the round with ${fmtDollars(winner.totalProfitDollars)} profit.`);
   if (loser.totalProfitDollars < 0) {
-    parts.push(`${loser.teamName} lost money ($${Math.round(loser.totalProfitDollars)}).`);
+    parts.push(`${loser.teamName} lost money (${fmtDollars(loser.totalProfitDollars)}).`);
   }
 
   // Any price-setting drama
   const tightPeriods = periodAnalyses.filter(p => p.reserveMarginPercent < 15);
   if (tightPeriods.length > 0) {
     parts.push(`Supply was tight in ${tightPeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')}, driving prices up.`);
+  }
+
+  // Check for AEMO intervention (demand exceeded supply)
+  const aemoTriggerPeriods = roundResult.periodResults.filter(p => p.aemoInterventionTriggered);
+  if (aemoTriggerPeriods.length > 0) {
+    const periodNames = aemoTriggerPeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ');
+    parts.push(`🚨 AEMO INTERVENTION: Demand exceeded supply in ${periodNames}! The price cap hit $20,000/MWh but AEMO activated emergency generation after 1 hour, restoring supply. Generators earned the blended effective price rather than the full price cap.`);
   }
 
   // Check for oversupply negative price trigger (3x supply > demand)
@@ -521,7 +551,7 @@ function buildCollectiveInsight(
   if (avgProfit > 0 && !allLowPrices) {
     const highPricePeriods = periodAnalyses.filter(p => p.clearingPriceMWh > 100);
     if (highPricePeriods.length > 0) {
-      parts.push(`Total market value created was $${Math.round(totalProfit)}. High prices in ${highPricePeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')} drove profits. In the real NEM, these high-price events are controversial — generators need them to be profitable, but consumers pay more.`);
+      parts.push(`Total market value created was ${fmtDollars(totalProfit)}. High prices in ${highPricePeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ')} drove profits. In the real NEM, these high-price events are controversial — generators need them to be profitable, but consumers pay more.`);
     }
   }
 
@@ -551,7 +581,7 @@ function buildKeyTakeaways(
   const prices = periodAnalyses.map(p => p.clearingPriceMWh);
   const priceSpread = Math.max(...prices) - Math.min(...prices);
   if (priceSpread > 50) {
-    takeaways.push(`Prices varied by $${Math.round(priceSpread)}/MWh across periods — bidding the same in every period leaves money on the table.`);
+    takeaways.push(`Prices varied by ${fmtDollars(priceSpread)}/MWh across periods — bidding the same in every period leaves money on the table.`);
   }
 
   // Reserve margin takeaway
@@ -579,6 +609,13 @@ function buildKeyTakeaways(
     }
   }
 
+  // AEMO intervention takeaway
+  const aemoPeriods = roundResult.periodResults.filter(p => p.aemoInterventionTriggered);
+  if (aemoPeriods.length > 0) {
+    const periodNames = aemoPeriods.map(p => TIME_PERIOD_SHORT_LABELS[p.timePeriod]).join(' and ');
+    takeaways.push(`AEMO activated emergency generation in ${periodNames} after demand exceeded supply. The price cap ($20,000/MWh) applied for 1 hour before AEMO restored supply. In the real NEM, AEMO uses the Reliability and Emergency Reserve Trader (RERT) to procure emergency reserves during supply shortfalls.`);
+  }
+
   // Negative price takeaway
   const negTriggerPeriods = roundResult.periodResults.filter(p => p.oversupplyNegativePriceTriggered);
   if (negTriggerPeriods.length > 0) {
@@ -591,8 +628,160 @@ function buildKeyTakeaways(
   const profits = roundResult.teamResults.map(r => r.totalProfitDollars);
   const profitRange = Math.max(...profits) - Math.min(...profits);
   if (profitRange > Math.max(...profits) * 0.8 && Math.max(...profits) > 0) {
-    takeaways.push(`Big spread between top and bottom teams ($${Math.round(profitRange)}). Strategy made a significant difference this round.`);
+    takeaways.push(`Big spread between top and bottom teams (${fmtDollars(profitRange)}). Strategy made a significant difference this round.`);
   }
 
   return takeaways.slice(0, 4); // Cap at 4 takeaways
+}
+
+// ---- Asset Category Breakdown ----
+
+const CATEGORY_META: Record<AssetCategory, { label: string; icon: string }> = {
+  renewables: { label: 'Renewables', icon: '☀️💨' },
+  battery:    { label: 'Batteries', icon: '🔋' },
+  hydro:      { label: 'Hydro', icon: '💧' },
+  fossil:     { label: 'Thermal', icon: '🏭' },
+};
+
+function buildAssetCategoryBreakdown(
+  game: GameState,
+  roundResult: RoundDispatchResult,
+  assetDefs: Map<string, AssetDefinition>,
+): AssetCategoryBreakdown[] {
+  const categories: Record<AssetCategory, {
+    revenue: number; cost: number; profit: number; energyMWh: number;
+    teams: Map<string, { revenue: number; cost: number; profit: number; energyMWh: number }>;
+  }> = {
+    renewables: { revenue: 0, cost: 0, profit: 0, energyMWh: 0, teams: new Map() },
+    battery:    { revenue: 0, cost: 0, profit: 0, energyMWh: 0, teams: new Map() },
+    hydro:      { revenue: 0, cost: 0, profit: 0, energyMWh: 0, teams: new Map() },
+    fossil:     { revenue: 0, cost: 0, profit: 0, energyMWh: 0, teams: new Map() },
+  };
+
+  for (const teamResult of roundResult.teamResults) {
+    for (const period of teamResult.periodBreakdown) {
+      for (const asset of period.assets) {
+        const def = assetDefs.get(asset.assetDefinitionId);
+        if (!def) continue;
+
+        const cat = getAssetCategory(def.type);
+        const entry = categories[cat];
+
+        entry.revenue += asset.revenueFromDispatch;
+        entry.cost += asset.variableCost + asset.startupCost + (asset.chargeCostDollars ?? 0);
+        entry.profit += asset.profit;
+        entry.energyMWh += asset.energyMWh;
+
+        if (!entry.teams.has(teamResult.teamId)) {
+          entry.teams.set(teamResult.teamId, { revenue: 0, cost: 0, profit: 0, energyMWh: 0 });
+        }
+        const teamEntry = entry.teams.get(teamResult.teamId)!;
+        teamEntry.revenue += asset.revenueFromDispatch;
+        teamEntry.cost += asset.variableCost + asset.startupCost + (asset.chargeCostDollars ?? 0);
+        teamEntry.profit += asset.profit;
+        teamEntry.energyMWh += asset.energyMWh;
+      }
+    }
+  }
+
+  return (['renewables', 'battery', 'hydro', 'fossil'] as AssetCategory[])
+    .filter(cat => categories[cat].energyMWh > 0 || categories[cat].profit !== 0)
+    .map(cat => {
+      const data = categories[cat];
+      const meta = CATEGORY_META[cat];
+
+      return {
+        category: cat,
+        categoryLabel: meta.label,
+        categoryIcon: meta.icon,
+        totalRevenue: Math.round(data.revenue),
+        totalCost: Math.round(data.cost),
+        totalProfit: Math.round(data.profit),
+        totalEnergyMWh: Math.round(data.energyMWh),
+        teamBreakdowns: game.teams.map(t => {
+          const td = data.teams.get(t.id) || { revenue: 0, cost: 0, profit: 0, energyMWh: 0 };
+          return {
+            teamId: t.id,
+            teamName: t.name,
+            color: t.color,
+            revenue: Math.round(td.revenue),
+            cost: Math.round(td.cost),
+            profit: Math.round(td.profit),
+            energyMWh: Math.round(td.energyMWh),
+          };
+        }).filter(td => td.energyMWh > 0 || td.profit !== 0),
+      };
+    });
+}
+
+// ---- Strategic Withdrawal Detection ----
+
+function detectStrategicWithdrawals(
+  game: GameState,
+  roundResult: RoundDispatchResult,
+  assetDefs: Map<string, AssetDefinition>,
+): StrategicWithdrawalWarning[] {
+  const warnings: StrategicWithdrawalWarning[] = [];
+
+  for (const periodResult of roundResult.periodResults) {
+    // Only check periods where the price cap was hit (supply shortage)
+    if (!periodResult.aemoInterventionTriggered) continue;
+
+    const period = periodResult.timePeriod;
+
+    for (const team of game.teams) {
+      const submission = game.currentBids.get(team.id);
+      const teamBids = submission?.bids || [];
+      const periodBids = teamBids.filter(b => b.timePeriod === period);
+
+      let totalAvailableMW = 0;
+      let totalBidMW = 0;
+      const withheldAssets: Array<{ assetName: string; assetType: AssetType; capacityMW: number }> = [];
+
+      for (const asset of team.assets) {
+        const def = assetDefs.get(asset.assetDefinitionId);
+        if (!def) continue;
+        // Skip batteries — they have legitimate reasons to idle or charge
+        if (def.type === 'battery') continue;
+
+        const availMW = asset.currentAvailableMW;
+        if (availMW <= 0) continue;
+
+        totalAvailableMW += availMW;
+
+        // Find what was actually bid for this asset in this period
+        const assetBid = periodBids.find(b => b.assetDefinitionId === asset.assetDefinitionId);
+        const bidMW = assetBid
+          ? assetBid.bands.reduce((sum, band) => sum + band.quantityMW, 0)
+          : 0;
+        totalBidMW += bidMW;
+
+        const withheld = availMW - bidMW;
+        if (withheld > availMW * 0.2) { // Withheld >20% of this asset's capacity
+          withheldAssets.push({
+            assetName: def.name,
+            assetType: def.type,
+            capacityMW: Math.round(withheld),
+          });
+        }
+      }
+
+      const withheldMW = totalAvailableMW - totalBidMW;
+
+      // Flag if >25% of capacity was withheld during a supply shortage
+      if (totalAvailableMW > 0 && withheldMW > totalAvailableMW * 0.25 && withheldAssets.length > 0) {
+        const assetNames = withheldAssets.map(a => `${a.assetName} (${a.capacityMW} MW)`).join(', ');
+        warnings.push({
+          teamId: team.id,
+          teamName: team.name,
+          timePeriod: period as TimePeriod,
+          withheldCapacityMW: Math.round(withheldMW),
+          withheldAssets,
+          explanation: `${team.name} withheld ${fmtNum(withheldMW)} MW of available capacity during a supply shortage in the ${TIME_PERIOD_SHORT_LABELS[period as TimePeriod]}. Withheld: ${assetNames}. In tight markets, all generators are expected to contribute — regulators monitor for strategic withdrawal.`,
+        });
+      }
+    }
+  }
+
+  return warnings;
 }

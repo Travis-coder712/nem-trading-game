@@ -28,7 +28,7 @@ export default function PostGameReport() {
     <div className="min-h-screen bg-white p-8 max-w-4xl mx-auto print:p-4">
       {/* Header */}
       <div className="border-b-2 border-blue-600 pb-4 mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Watt Street — Post-Game Report</h1>
+        <h1 className="text-3xl font-bold text-gray-900">GridRival — Post-Game Report</h1>
         <p className="text-sm text-gray-500 mt-1">
           {new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           {' '}&bull; {totalRounds} rounds &bull; {teams?.length || 0} teams
@@ -122,7 +122,7 @@ export default function PostGameReport() {
 
       {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-400">
-        Watt Street — National Electricity Market Simulation
+        GridRival — National Electricity Market Simulation
       </div>
     </div>
   );

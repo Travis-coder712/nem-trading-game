@@ -3,6 +3,7 @@ import type { ClientToServerEvents, ServerToClientEvents } from '../../shared/ty
 import { GameEngine } from '../engine/GameEngine.ts';
 import { registerHostHandlers } from './handlers/hostHandlers.ts';
 import { registerTeamHandlers } from './handlers/teamHandlers.ts';
+import { registerObserverHandlers } from './handlers/observerHandlers.ts';
 
 export const engine = new GameEngine();
 
@@ -15,12 +16,19 @@ export function setupSocketHandlers(
     // Register all handlers
     registerHostHandlers(io, socket, engine);
     registerTeamHandlers(io, socket, engine);
+    registerObserverHandlers(io, socket, engine);
 
     socket.on('disconnect', () => {
       try {
         console.log(`Client disconnected: ${socket.id}`);
         const gameId = (socket as any).gameId;
-        if (gameId && !(socket as any).isHost) {
+        if (!gameId) return;
+
+        if ((socket as any).isObserver) {
+          // Clean up observer tracking
+          engine.removeObserver(gameId, socket.id);
+          console.log(`Observer removed from game ${gameId}`);
+        } else if (!(socket as any).isHost && !(socket as any).isLateJoiner) {
           const teamId = engine.disconnectTeam(gameId, socket.id);
           if (teamId) {
             console.log(`Team ${teamId} marked disconnected in game ${gameId}`);
@@ -31,6 +39,7 @@ export function setupSocketHandlers(
             }
           }
         }
+        // Late-joiners disconnect silently — no state to clean up
       } catch (err) {
         console.error('Error handling disconnect:', err);
       }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatCurrency, formatNumber } from '../../lib/formatters';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -7,16 +8,24 @@ type BatteryMode = 'charge' | 'idle' | 'discharge';
 type Phase = 'INTRO' | 'DECIDE' | 'REVEAL' | 'RESULTS';
 
 interface BatteryArbitrageMiniGameProps {
-  onComplete: (result: { totalProfit: number; optimalProfit: number }) => void;
+  onComplete: (result: {
+    totalProfit: number;
+    optimalProfit: number;
+    predispatchOptimalProfit?: number;
+    decisionsCorrect?: number;
+    decisionsTotal?: number;
+  }) => void;
   onSkip: () => void;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const MAX_MW = 500;
-const MAX_STORAGE = 2000;
+const MAX_STORAGE = 3000;
 const EFFICIENCY = 0.92;
 const HOURS = 24;
+const SOC_STEP = 50; // MWh step for DP discretization
+const SOC_BUCKETS = MAX_STORAGE / SOC_STEP + 1; // 61 buckets
 
 // ─── Price Generation ────────────────────────────────────────────────────────
 
@@ -74,41 +83,106 @@ function simulateProfit(
   return { profit, socHistory };
 }
 
-// ─── Optimal Strategy ────────────────────────────────────────────────────────
+// ─── Optimal Strategy (DP) ───────────────────────────────────────────────────
 
-function calculateOptimalProfit(actuals: number[], initialSOC: number): number {
-  const indexed = actuals.map((price, hour) => ({ price, hour }));
-  const sorted = [...indexed].sort((a, b) => a.price - b.price);
+interface OptimalResult {
+  profit: number;
+  decisions: BatteryMode[];
+  socHistory: number[];
+}
 
-  const chargeHours = new Set(sorted.slice(0, 8).map(h => h.hour));
-  const dischargeHours = new Set(sorted.slice(-8).map(h => h.hour));
+function calculateOptimalStrategy(prices: number[], initialSOC: number): OptimalResult {
+  // DP over discretized SOC states: dp[h][bucket] = max profit from hour h to end
+  // SOC_STEP = 50 MWh, buckets 0..60 (for 0..3000 MWh)
+  const NEG_INF = -1e15;
+  const actions: (0 | 1 | 2)[] = [0, 1, 2]; // 0=charge, 1=idle, 2=discharge
 
-  // Determine actions respecting chronological SOC constraints
-  const actions: BatteryMode[] = new Array(HOURS).fill('idle');
-  for (let h = 0; h < HOURS; h++) {
-    if (chargeHours.has(h)) {
-      actions[h] = 'charge';
-    } else if (dischargeHours.has(h)) {
-      actions[h] = 'discharge';
+  // dp[bucket] = max profit achievable from this hour onward when starting at that SOC
+  // We build bottom-up: start from last hour, work backward
+  const dp: Float64Array[] = [];
+  const bestAction: Uint8Array[] = [];
+  for (let h = 0; h <= HOURS; h++) {
+    dp.push(new Float64Array(SOC_BUCKETS).fill(NEG_INF));
+    bestAction.push(new Uint8Array(SOC_BUCKETS));
+  }
+
+  // Base case: at hour 24, any SOC is valid with 0 future profit
+  for (let b = 0; b < SOC_BUCKETS; b++) {
+    dp[HOURS][b] = 0;
+  }
+
+  // Fill backward
+  for (let h = HOURS - 1; h >= 0; h--) {
+    const price = prices[h];
+    for (let b = 0; b < SOC_BUCKETS; b++) {
+      const soc = b * SOC_STEP;
+
+      for (const action of actions) {
+        let newSoc = soc;
+        let hourProfit = 0;
+
+        if (action === 0) {
+          // Charge
+          const roomForCharge = (MAX_STORAGE - soc) / EFFICIENCY;
+          const chargeAmount = Math.min(MAX_MW, roomForCharge);
+          if (chargeAmount < 0.01) continue; // Can't charge
+          newSoc = soc + chargeAmount * EFFICIENCY;
+          hourProfit = -price * chargeAmount;
+        } else if (action === 2) {
+          // Discharge
+          const dischargeAmount = Math.min(MAX_MW, soc);
+          if (dischargeAmount < 0.01) continue; // Can't discharge
+          newSoc = soc - dischargeAmount;
+          hourProfit = price * dischargeAmount;
+        }
+        // action === 1: idle, soc unchanged, profit 0
+
+        // Snap to nearest bucket
+        const newBucket = Math.round(newSoc / SOC_STEP);
+        if (newBucket < 0 || newBucket >= SOC_BUCKETS) continue;
+
+        const totalProfit = hourProfit + dp[h + 1][newBucket];
+        if (totalProfit > dp[h][b]) {
+          dp[h][b] = totalProfit;
+          bestAction[h][b] = action;
+        }
+      }
     }
   }
 
-  // Simulate chronologically to respect SOC constraints
-  let soc = initialSOC;
-  let profit = 0;
+  // Reconstruct decisions forward from initial SOC
+  const initBucket = Math.round(initialSOC / SOC_STEP);
+  const dpDecisions: BatteryMode[] = [];
+  let currentBucket = initBucket;
+
   for (let h = 0; h < HOURS; h++) {
-    if (actions[h] === 'charge' && soc < MAX_STORAGE) {
-      const chargeAmount = Math.min(MAX_MW, (MAX_STORAGE - soc) / EFFICIENCY);
-      soc += chargeAmount * EFFICIENCY;
-      profit -= actuals[h] * chargeAmount;
-    } else if (actions[h] === 'discharge' && soc > 0) {
+    const action = bestAction[h][currentBucket];
+    const soc = currentBucket * SOC_STEP;
+
+    if (action === 0) {
+      dpDecisions.push('charge');
+      const roomForCharge = (MAX_STORAGE - soc) / EFFICIENCY;
+      const chargeAmount = Math.min(MAX_MW, roomForCharge);
+      const newSoc = soc + chargeAmount * EFFICIENCY;
+      currentBucket = Math.round(newSoc / SOC_STEP);
+    } else if (action === 2) {
+      dpDecisions.push('discharge');
       const dischargeAmount = Math.min(MAX_MW, soc);
-      soc -= dischargeAmount;
-      profit += actuals[h] * dischargeAmount;
+      const newSoc = soc - dischargeAmount;
+      currentBucket = Math.round(newSoc / SOC_STEP);
+    } else {
+      dpDecisions.push('idle');
     }
   }
 
-  return profit;
+  // Run through continuous simulation for exact profit (avoids discretization rounding)
+  const result = simulateProfit(dpDecisions, prices, initialSOC);
+
+  return {
+    profit: result.profit,
+    decisions: dpDecisions,
+    socHistory: result.socHistory,
+  };
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -117,13 +191,7 @@ function formatHour(h: number): string {
   return `${h.toString().padStart(2, '0')}:00`;
 }
 
-function formatCurrency(v: number): string {
-  const abs = Math.abs(v);
-  const sign = v < 0 ? '-' : '';
-  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}k`;
-  return `${sign}$${abs.toFixed(0)}`;
-}
+// formatCurrency imported from ../../lib/formatters
 
 function priceColor(price: number): string {
   if (price >= 100) return 'text-red-600 font-semibold';
@@ -150,6 +218,7 @@ export default function BatteryArbitrageMiniGame({
     Math.round(MAX_STORAGE * (0.2 + Math.random() * 0.6)),
   );
   const [revealProgress, setRevealProgress] = useState(0);
+  const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
 
   // Generate prices on mount
   useEffect(() => {
@@ -169,10 +238,36 @@ export default function BatteryArbitrageMiniGame({
     [decisions, prices.actuals, initialSOC],
   );
 
-  const optimalProfit = useMemo(
-    () => calculateOptimalProfit(prices.actuals, initialSOC),
+  // What was optimal given the prices you could see (predispatch)
+  const predispatchOptimal = useMemo(
+    () => calculateOptimalStrategy(prices.predispatch, initialSOC),
+    [prices.predispatch, initialSOC],
+  );
+
+  // What was optimal with perfect hindsight (actual prices)
+  const actualOptimal = useMemo(
+    () => calculateOptimalStrategy(prices.actuals, initialSOC),
     [prices.actuals, initialSOC],
   );
+
+  // Score predispatch-optimal decisions against actual prices
+  const predispatchOptimalActualResult = useMemo(
+    () => simulateProfit(predispatchOptimal.decisions, prices.actuals, initialSOC),
+    [predispatchOptimal.decisions, prices.actuals, initialSOC],
+  );
+
+  // How many user decisions matched predispatch-optimal
+  const decisionsMatchingOptimal = useMemo(
+    () =>
+      decisions.reduce(
+        (count, d, h) => count + (d === predispatchOptimal.decisions[h] ? 1 : 0),
+        0,
+      ),
+    [decisions, predispatchOptimal.decisions],
+  );
+
+  // Backward compat alias
+  const optimalProfit = actualOptimal.profit;
 
   const currentSOC = predispatchResult.socHistory[predispatchResult.socHistory.length - 1];
 
@@ -193,6 +288,7 @@ export default function BatteryArbitrageMiniGame({
     setInitialSOC(newSOC);
     setDecisions(new Array(HOURS).fill('idle') as BatteryMode[]);
     setRevealProgress(0);
+    setShowDetailedBreakdown(false);
     setPhase('INTRO');
   }, []);
 
@@ -229,13 +325,15 @@ export default function BatteryArbitrageMiniGame({
     <div className="flex flex-col items-center justify-center min-h-full px-4 py-12">
       <div className="max-w-2xl w-full text-center">
         <div className="text-6xl mb-4">&#9889;</div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
           Battery Arbitrage Challenge
         </h1>
-        <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
-          You have a 500 MW battery with 2,000 MWh storage. Your job: charge
-          when electricity is cheap, discharge when it's expensive, and maximize
-          your profit over 24 hours.
+        <p className="text-base text-gray-500 mb-3 font-medium">
+          Select <span className="text-green-600 font-bold">Charge</span>, <span className="text-gray-600 font-bold">Idle</span> or <span className="text-blue-600 font-bold">Discharge</span> for 24 one-hour periods to maximise profit
+        </p>
+        <p className="text-sm text-gray-500 mb-8 max-w-xl mx-auto">
+          You have a 500 MW / 3,000 MWh battery (6-hour duration). Charge when electricity is cheap,
+          discharge when it's expensive, and account for the 8% round-trip efficiency loss.
         </p>
 
         {/* Battery specs */}
@@ -249,7 +347,7 @@ export default function BatteryArbitrageMiniGame({
               <div className="text-xs text-gray-500">MW Power</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-800">2,000</div>
+              <div className="text-2xl font-bold text-gray-800">3,000</div>
               <div className="text-xs text-gray-500">MWh Storage</div>
             </div>
             <div>
@@ -388,20 +486,70 @@ export default function BatteryArbitrageMiniGame({
         {/* Hour grid */}
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <div className="max-w-5xl mx-auto">
+            {/* Task description */}
+            <div className="text-center mb-4">
+              <h2 className="text-lg font-bold text-gray-800">
+                ⚡ Battery Minigame — Select <span className="text-green-600">Charge</span>, <span className="text-gray-500">Idle</span> or <span className="text-blue-600">Discharge</span>
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                For each of the 24 one-hour periods below, decide what your battery does to maximise arbitrage profit
+              </p>
+            </div>
+
             {/* Desktop: 4-column grid */}
-            <div className="hidden md:grid grid-cols-4 gap-3">
+            <div className="hidden md:grid grid-cols-4 gap-4">
               {[0, 1, 2, 3].map(col => (
-                <div key={col} className="space-y-1">
-                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2">
-                    {col === 0
-                      ? 'Overnight (00-05)'
-                      : col === 1
-                        ? 'Morning (06-11)'
-                        : col === 2
-                          ? 'Midday (12-17)'
-                          : 'Evening (18-23)'}
+                <div key={col}>
+                  <div className="text-center mb-3">
+                    <div className={`inline-block px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                      col === 0
+                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                        : col === 1
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : col === 2
+                            ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                            : 'bg-orange-50 text-orange-700 border border-orange-200'
+                    }`}>
+                      {col === 0
+                        ? '🌙 Overnight (00–05)'
+                        : col === 1
+                          ? '🌅 Morning (06–11)'
+                          : col === 2
+                            ? '☀️ Midday (12–17)'
+                            : '🌆 Evening (18–23)'}
+                    </div>
                   </div>
-                  {Array.from({ length: 6 }, (_, i) => col * 6 + i).map(h => (
+                  <div className="space-y-1.5">
+                    {Array.from({ length: 6 }, (_, i) => col * 6 + i).map(h => (
+                      <HourRow
+                        key={h}
+                        hour={h}
+                        price={prices.predispatch[h]}
+                        mode={decisions[h]}
+                        onSetMode={mode => setDecision(h, mode)}
+                        socBefore={predispatchResult.socHistory[h]}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile: vertical list with period headings */}
+            <div className="md:hidden space-y-1">
+              {[
+                { label: '🌙 Overnight (00–05)', start: 0, end: 6, colorClass: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+                { label: '🌅 Morning (06–11)', start: 6, end: 12, colorClass: 'bg-amber-50 text-amber-700 border-amber-200' },
+                { label: '☀️ Midday (12–17)', start: 12, end: 18, colorClass: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+                { label: '🌆 Evening (18–23)', start: 18, end: 24, colorClass: 'bg-orange-50 text-orange-700 border-orange-200' },
+              ].map(period => (
+                <div key={period.label}>
+                  <div className="text-center my-2">
+                    <span className={`inline-block px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border ${period.colorClass}`}>
+                      {period.label}
+                    </span>
+                  </div>
+                  {Array.from({ length: period.end - period.start }, (_, i) => period.start + i).map(h => (
                     <HourRow
                       key={h}
                       hour={h}
@@ -412,20 +560,6 @@ export default function BatteryArbitrageMiniGame({
                     />
                   ))}
                 </div>
-              ))}
-            </div>
-
-            {/* Mobile: vertical list */}
-            <div className="md:hidden space-y-1">
-              {Array.from({ length: HOURS }, (_, h) => (
-                <HourRow
-                  key={h}
-                  hour={h}
-                  price={prices.predispatch[h]}
-                  mode={decisions[h]}
-                  onSetMode={mode => setDecision(h, mode)}
-                  socBefore={predispatchResult.socHistory[h]}
-                />
               ))}
             </div>
           </div>
@@ -511,13 +645,25 @@ export default function BatteryArbitrageMiniGame({
         {/* Reveal grid */}
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <div className="max-w-5xl mx-auto">
+            {/* Legend */}
+            <div className="flex items-center gap-4 mb-2 text-[10px] text-gray-500 px-1">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-4 bg-green-500 rounded-sm" />
+                <span>Matches optimal for forecast prices</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-4 bg-red-500 rounded-sm" />
+                <span>Differs from optimal</span>
+              </div>
+            </div>
+
             {/* Table header */}
             <div className="bg-gray-100 rounded-t-xl px-4 py-2 grid grid-cols-12 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <div className="col-span-2">Hour</div>
               <div className="col-span-2 text-right">Forecast</div>
               <div className="col-span-2 text-right">Actual</div>
-              <div className="col-span-2 text-center">Diff</div>
               <div className="col-span-2 text-center">Action</div>
+              <div className="col-span-2 text-center">Optimal</div>
               <div className="col-span-2 text-right">P&L</div>
             </div>
 
@@ -527,8 +673,9 @@ export default function BatteryArbitrageMiniGame({
                 const revealed = h < revealProgress;
                 const predPrice = prices.predispatch[h];
                 const actPrice = prices.actuals[h];
-                const diff = actPrice - predPrice;
                 const mode = decisions[h];
+                const optimalMode = predispatchOptimal.decisions[h];
+                const matchesOptimal = mode === optimalMode;
 
                 let hourPL = 0;
                 if (revealed) {
@@ -555,6 +702,13 @@ export default function BatteryArbitrageMiniGame({
                         : '#f3f4f6',
                     }}
                     className="grid grid-cols-12 px-4 py-2 items-center text-sm"
+                    style={{
+                      borderLeft: revealed
+                        ? matchesOptimal
+                          ? '3px solid #22c55e'
+                          : '3px solid #ef4444'
+                        : '3px solid transparent',
+                    }}
                   >
                     <div className="col-span-2 font-mono text-gray-700 text-xs">
                       {formatHour(h)}
@@ -570,24 +724,6 @@ export default function BatteryArbitrageMiniGame({
                       }`}
                     >
                       {revealed ? `$${actPrice}` : '---'}
-                    </div>
-                    <div className="col-span-2 text-center font-mono text-xs">
-                      {revealed ? (
-                        <span
-                          className={
-                            diff > 0
-                              ? 'text-red-500'
-                              : diff < 0
-                                ? 'text-green-500'
-                                : 'text-gray-400'
-                          }
-                        >
-                          {diff > 0 ? '+' : ''}
-                          {diff}
-                        </span>
-                      ) : (
-                        <span className="text-gray-300">---</span>
-                      )}
                     </div>
                     <div className="col-span-2 text-center">
                       <span
@@ -605,6 +741,32 @@ export default function BatteryArbitrageMiniGame({
                             ? 'DIS'
                             : 'IDLE'}
                       </span>
+                    </div>
+                    <div className="col-span-2 text-center">
+                      {revealed ? (
+                        <span className="flex items-center justify-center gap-1">
+                          <span
+                            className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              optimalMode === 'charge'
+                                ? 'bg-green-50 text-green-600'
+                                : optimalMode === 'discharge'
+                                  ? 'bg-blue-50 text-blue-600'
+                                  : 'bg-gray-50 text-gray-400'
+                            }`}
+                          >
+                            {optimalMode === 'charge'
+                              ? 'CHG'
+                              : optimalMode === 'discharge'
+                                ? 'DIS'
+                                : 'IDLE'}
+                          </span>
+                          <span className="text-xs">
+                            {matchesOptimal ? '✓' : '✗'}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">---</span>
+                      )}
                     </div>
                     <div
                       className={`col-span-2 text-right font-mono text-xs ${
@@ -658,47 +820,86 @@ export default function BatteryArbitrageMiniGame({
 
   const renderResults = () => {
     const profit = actualResult.profit;
-    const ratio = optimalProfit > 0 ? profit / optimalProfit : 0;
+    const decisionQuality = decisionsMatchingOptimal / HOURS;
+    const predispatchOptimalActualProfit = predispatchOptimalActualResult.profit;
+    const perfectForesightProfit = optimalProfit;
 
+    // Insight based on decision quality (not just raw profit)
     let insightTitle: string;
     let insightText: string;
     let insightColor: string;
 
-    if (profit < 0) {
-      insightTitle = 'Room for Improvement';
-      insightText =
-        'You lost money. Remember: charge LOW, discharge HIGH, and account for the 8% efficiency loss.';
-      insightColor = 'border-red-200 bg-red-50 text-red-800';
-    } else if (ratio >= 0.8) {
-      insightTitle = 'Excellent!';
-      insightText =
-        'You captured most of the available value. Strong understanding of battery arbitrage.';
+    if (decisionQuality >= 0.83) {
+      // 20+ / 24
+      insightTitle = 'Excellent Decision Making!';
+      insightText = `You made the right call in ${decisionsMatchingOptimal}/${HOURS} hours based on the forecast data. ${
+        profit < predispatchOptimalActualProfit * 0.8
+          ? 'Market uncertainty reduced your returns, but your strategy was sound.'
+          : 'Your strategy and execution were both strong.'
+      }`;
       insightColor = 'border-green-200 bg-green-50 text-green-800';
-    } else if (ratio >= 0.5) {
-      insightTitle = 'Great work!';
-      insightText =
-        'You made money from battery arbitrage. With better timing you could capture even more value.';
+    } else if (decisionQuality >= 0.67) {
+      // 16+ / 24
+      insightTitle = 'Good Strategy!';
+      insightText = `You matched the optimal decision in ${decisionsMatchingOptimal}/${HOURS} hours. Look at the red rows above to see where you could improve.`;
       insightColor = 'border-blue-200 bg-blue-50 text-blue-800';
-    } else {
-      insightTitle = 'Keep Practicing';
-      insightText =
-        'Tip: Focus on charging during the lowest-price hours and discharging during the highest.';
+    } else if (decisionQuality >= 0.5) {
+      // 12+ / 24
+      insightTitle = 'Getting There';
+      insightText = `You got ${decisionsMatchingOptimal}/${HOURS} decisions right. Tip: charge during the lowest forecast prices and discharge during the highest.`;
       insightColor = 'border-amber-200 bg-amber-50 text-amber-800';
+    } else {
+      insightTitle = 'Room for Improvement';
+      insightText = `Only ${decisionsMatchingOptimal}/${HOURS} decisions matched optimal. Focus on the price pattern: charge LOW, discharge HIGH, accounting for the 8% efficiency loss.`;
+      insightColor = 'border-red-200 bg-red-50 text-red-800';
     }
 
+    // Market uncertainty: gap between forecast-optimal and actual-optimal
+    const uncertaintyGap = perfectForesightProfit > 0
+      ? ((perfectForesightProfit - predispatchOptimalActualProfit) / perfectForesightProfit * 100).toFixed(0)
+      : '0';
+
+    // Compute average charging cost and discharge revenue per hour
+    let totalChargeCost = 0;
+    let totalChargeHours = 0;
+    let totalDischargeRevenue = 0;
+    let totalDischargeHours = 0;
+    let totalChargeMWh = 0;
+    let totalDischargeMWh = 0;
+    for (let h = 0; h < HOURS; h++) {
+      if (decisions[h] === 'charge') {
+        const roomForCharge = (MAX_STORAGE - actualResult.socHistory[h]) / EFFICIENCY;
+        const amt = Math.min(MAX_MW, Math.max(0, roomForCharge));
+        if (amt > 0.01) {
+          totalChargeCost += prices.actuals[h] * amt;
+          totalChargeMWh += amt;
+          totalChargeHours++;
+        }
+      } else if (decisions[h] === 'discharge') {
+        const amt = Math.min(MAX_MW, actualResult.socHistory[h]);
+        if (amt > 0.01) {
+          totalDischargeRevenue += prices.actuals[h] * amt;
+          totalDischargeMWh += amt;
+          totalDischargeHours++;
+        }
+      }
+    }
+    const avgChargePricePerMWh = totalChargeMWh > 0 ? totalChargeCost / totalChargeMWh : 0;
+    const avgDischargePricePerMWh = totalDischargeMWh > 0 ? totalDischargeRevenue / totalDischargeMWh : 0;
+    const idleHours = HOURS - totalChargeHours - totalDischargeHours;
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-full px-4 py-12">
-        <div className="max-w-xl w-full text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
+      <div className="flex flex-col items-center min-h-full px-4 py-8 overflow-y-auto">
+        <div className="max-w-2xl w-full">
+          <h2 className="text-3xl font-bold text-gray-800 mb-2 text-center">
             Your Results
           </h2>
-          <p className="text-sm text-gray-500 mb-8">
-            Here's how your battery strategy performed against actual market
-            prices.
+          <p className="text-sm text-gray-500 mb-6 text-center">
+            How your battery strategy performed — judged against what was optimal given the forecast prices you could see.
           </p>
 
-          {/* Profit card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-6">
+          {/* ── Section A: Profit Hero Card ── */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-6 text-center">
             <div className="text-sm text-gray-500 mb-1">Your Actual Profit</div>
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
@@ -710,12 +911,23 @@ export default function BatteryArbitrageMiniGame({
             >
               {formatCurrency(profit)}
             </motion.div>
+            <div className="mt-2 text-sm text-gray-400">
+              Decision quality: <span className="font-semibold text-gray-700">{decisionsMatchingOptimal}/{HOURS}</span> matched optimal
+            </div>
           </div>
 
-          {/* Optimal comparison */}
+          {/* ── Section A2: 3-Level Comparison ── */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              Profit Comparison
+            </h3>
+
+            {/* Your profit */}
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-gray-500">Your profit</span>
+              <div>
+                <span className="text-sm text-gray-700">Your profit</span>
+                <span className="text-xs text-gray-400 ml-1">(actual prices)</span>
+              </div>
               <span
                 className={`font-mono font-bold ${
                   profit >= 0 ? 'text-green-600' : 'text-red-600'
@@ -724,55 +936,274 @@ export default function BatteryArbitrageMiniGame({
                 {formatCurrency(profit)}
               </span>
             </div>
+
+            {/* Best with forecast */}
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-gray-500">Optimal profit</span>
-              <span className="font-mono font-bold text-gray-700">
-                {formatCurrency(optimalProfit)}
-              </span>
-            </div>
-            <div className="h-px bg-gray-200 mb-3" />
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-600">
-                Capture rate
-              </span>
-              <span className="text-lg font-bold text-gray-800">
-                {optimalProfit > 0
-                  ? `${(ratio * 100).toFixed(0)}%`
-                  : 'N/A'}
+              <div>
+                <span className="text-sm text-gray-700">Best with forecast info</span>
+                <span className="text-xs text-gray-400 ml-1">(fair benchmark)</span>
+              </div>
+              <span className="font-mono font-bold text-gray-600">
+                {formatCurrency(predispatchOptimalActualProfit)}
               </span>
             </div>
 
-            {/* Capture bar */}
-            {optimalProfit > 0 && (
-              <div className="mt-3 h-3 bg-gray-200 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{
-                    width: `${Math.min(100, Math.max(0, ratio * 100))}%`,
-                  }}
-                  transition={{ duration: 1, delay: 0.3 }}
-                  className="h-full rounded-full"
-                  style={{
-                    backgroundColor:
-                      ratio >= 0.8
-                        ? '#22c55e'
-                        : ratio >= 0.5
-                          ? '#3b82f6'
-                          : ratio >= 0
-                            ? '#f59e0b'
-                            : '#ef4444',
-                  }}
-                />
+            {/* Perfect foresight */}
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className="text-sm text-gray-700">Perfect foresight</span>
+                <span className="text-xs text-gray-400 ml-1">(hindsight optimal)</span>
+              </div>
+              <span className="font-mono font-bold text-gray-400">
+                {formatCurrency(perfectForesightProfit)}
+              </span>
+            </div>
+
+            <div className="h-px bg-gray-200 my-3" />
+
+            {/* Decision quality bar */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">
+                Decision quality
+              </span>
+              <span className="text-lg font-bold text-gray-800">
+                {(decisionQuality * 100).toFixed(0)}%
+              </span>
+            </div>
+            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{
+                  width: `${Math.min(100, Math.max(0, decisionQuality * 100))}%`,
+                }}
+                transition={{ duration: 1, delay: 0.3 }}
+                className="h-full rounded-full"
+                style={{
+                  backgroundColor:
+                    decisionQuality >= 0.83
+                      ? '#22c55e'
+                      : decisionQuality >= 0.67
+                        ? '#3b82f6'
+                        : decisionQuality >= 0.5
+                          ? '#f59e0b'
+                          : '#ef4444',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* ── Section A3: Charging & Discharging Stats ── */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              Charging &amp; Discharging Summary
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Charging stats */}
+              <div className="bg-green-50 rounded-lg border border-green-200 p-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className="text-green-600 text-sm font-bold">⬇ Charging</span>
+                  <span className="text-[10px] text-green-500 bg-green-100 px-1.5 py-0.5 rounded font-semibold">
+                    {totalChargeHours} hr{totalChargeHours !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="text-2xl font-bold font-mono text-green-700 mb-1">
+                  ${Math.round(avgChargePricePerMWh)}<span className="text-sm font-normal text-green-500">/MWh</span>
+                </div>
+                <div className="text-[11px] text-green-600">
+                  Avg. price paid &middot; {formatCurrency(totalChargeCost)} total cost
+                </div>
+                {totalChargeMWh > 0 && (
+                  <div className="text-[10px] text-green-500 mt-1">
+                    {Math.round(totalChargeMWh).toLocaleString()} MWh purchased
+                  </div>
+                )}
+              </div>
+
+              {/* Discharging stats */}
+              <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className="text-blue-600 text-sm font-bold">⬆ Discharging</span>
+                  <span className="text-[10px] text-blue-500 bg-blue-100 px-1.5 py-0.5 rounded font-semibold">
+                    {totalDischargeHours} hr{totalDischargeHours !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="text-2xl font-bold font-mono text-blue-700 mb-1">
+                  ${Math.round(avgDischargePricePerMWh)}<span className="text-sm font-normal text-blue-500">/MWh</span>
+                </div>
+                <div className="text-[11px] text-blue-600">
+                  Avg. price received &middot; {formatCurrency(totalDischargeRevenue)} total revenue
+                </div>
+                {totalDischargeMWh > 0 && (
+                  <div className="text-[10px] text-blue-500 mt-1">
+                    {Math.round(totalDischargeMWh).toLocaleString()} MWh sold
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Spread + idle summary */}
+            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+              <div>
+                Price spread: <span className="font-bold font-mono text-gray-700">
+                  ${Math.round(avgDischargePricePerMWh - avgChargePricePerMWh)}/MWh
+                </span>
+                {avgChargePricePerMWh > 0 && avgDischargePricePerMWh > avgChargePricePerMWh && (
+                  <span className="text-gray-400 ml-1">
+                    ({((avgDischargePricePerMWh / avgChargePricePerMWh - 1) * 100).toFixed(0)}% markup)
+                  </span>
+                )}
+              </div>
+              <div>
+                <span className="text-gray-400">Idle: {idleHours} hr{idleHours !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section B: Detailed 24-Hour Breakdown (collapsible) ── */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+            <button
+              onClick={() => setShowDetailedBreakdown(prev => !prev)}
+              className="w-full flex items-center justify-between px-6 py-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <span>Detailed 24-Hour Breakdown</span>
+              <span className="text-gray-400 text-xs">
+                {showDetailedBreakdown ? '▲ Hide' : '▼ Show'}
+              </span>
+            </button>
+
+            {showDetailedBreakdown && (
+              <div className="border-t border-gray-200">
+                {/* Table header */}
+                <div className="grid grid-cols-12 px-4 py-2 bg-gray-50 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
+                  <div className="col-span-1">Hr</div>
+                  <div className="col-span-2 text-right">Forecast</div>
+                  <div className="col-span-2 text-right">Actual</div>
+                  <div className="col-span-2 text-center">Yours</div>
+                  <div className="col-span-2 text-center">Optimal*</div>
+                  <div className="col-span-2 text-center">Match</div>
+                  <div className="col-span-1 text-right">P&L</div>
+                </div>
+
+                {/* Rows */}
+                <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+                  {Array.from({ length: HOURS }, (_, h) => {
+                    const predPrice = prices.predispatch[h];
+                    const actPrice = prices.actuals[h];
+                    const mode = decisions[h];
+                    const optMode = predispatchOptimal.decisions[h];
+                    const match = mode === optMode;
+
+                    let hourPL = 0;
+                    if (mode === 'charge') {
+                      const roomForCharge = (MAX_STORAGE - actualResult.socHistory[h]) / EFFICIENCY;
+                      const amt = Math.min(MAX_MW, Math.max(0, roomForCharge));
+                      hourPL = -actPrice * amt;
+                    } else if (mode === 'discharge') {
+                      const amt = Math.min(MAX_MW, actualResult.socHistory[h]);
+                      hourPL = actPrice * amt;
+                    }
+
+                    return (
+                      <div
+                        key={h}
+                        className={`grid grid-cols-12 px-4 py-1.5 items-center text-xs ${
+                          h % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                        }`}
+                        style={{
+                          borderLeft: match ? '3px solid #22c55e' : '3px solid #ef4444',
+                        }}
+                      >
+                        <div className="col-span-1 font-mono text-gray-500">
+                          {h.toString().padStart(2, '0')}
+                        </div>
+                        <div className={`col-span-2 text-right font-mono ${priceColor(predPrice)}`}>
+                          ${predPrice}
+                        </div>
+                        <div className={`col-span-2 text-right font-mono ${priceColor(actPrice)}`}>
+                          ${actPrice}
+                        </div>
+                        <div className="col-span-2 text-center">
+                          <span
+                            className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              mode === 'charge'
+                                ? 'bg-green-100 text-green-700'
+                                : mode === 'discharge'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-gray-100 text-gray-400'
+                            }`}
+                          >
+                            {mode === 'charge' ? 'CHG' : mode === 'discharge' ? 'DIS' : 'IDLE'}
+                          </span>
+                        </div>
+                        <div className="col-span-2 text-center">
+                          <span
+                            className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              optMode === 'charge'
+                                ? 'bg-green-50 text-green-600'
+                                : optMode === 'discharge'
+                                  ? 'bg-blue-50 text-blue-600'
+                                  : 'bg-gray-50 text-gray-400'
+                            }`}
+                          >
+                            {optMode === 'charge' ? 'CHG' : optMode === 'discharge' ? 'DIS' : 'IDLE'}
+                          </span>
+                        </div>
+                        <div className="col-span-2 text-center">
+                          {match ? (
+                            <span className="text-green-500 font-semibold">✓</span>
+                          ) : (
+                            <span className="text-red-400 font-semibold">✗</span>
+                          )}
+                        </div>
+                        <div
+                          className={`col-span-1 text-right font-mono ${
+                            hourPL > 0
+                              ? 'text-green-600'
+                              : hourPL < 0
+                                ? 'text-red-500'
+                                : 'text-gray-300'
+                          }`}
+                        >
+                          {hourPL !== 0 ? formatCurrency(hourPL) : '-'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="px-4 py-2 bg-gray-50 text-[10px] text-gray-400">
+                  *Optimal = best strategy given the forecast prices you could see
+                </div>
               </div>
             )}
           </div>
 
-          {/* Insight card */}
+          {/* ── Section C: Insight Cards ── */}
+
+          {/* Decision quality insight */}
           <div
             className={`rounded-xl border p-5 mb-4 text-left ${insightColor}`}
           >
             <div className="font-semibold mb-1">{insightTitle}</div>
             <div className="text-sm">{insightText}</div>
+          </div>
+
+          {/* Market uncertainty insight */}
+          <div className="rounded-xl border border-purple-200 bg-purple-50 text-purple-800 p-5 mb-4 text-left">
+            <div className="font-semibold mb-1">📊 Market Uncertainty</div>
+            <div className="text-sm">
+              Even perfect forecast-based decisions would have earned{' '}
+              <strong>{formatCurrency(predispatchOptimalActualProfit)}</strong> against actual prices —{' '}
+              {perfectForesightProfit > 0 ? (
+                <>
+                  capturing {((predispatchOptimalActualProfit / perfectForesightProfit) * 100).toFixed(0)}% of
+                  the theoretical maximum. The remaining {uncertaintyGap}% gap is market uncertainty
+                  that no forecast can predict.
+                </>
+              ) : (
+                'the market was volatile.'
+              )}
+            </div>
           </div>
 
           {/* Market impact insight */}
@@ -798,6 +1229,9 @@ export default function BatteryArbitrageMiniGame({
                 onComplete({
                   totalProfit: Math.round(profit),
                   optimalProfit: Math.round(optimalProfit),
+                  predispatchOptimalProfit: Math.round(predispatchOptimalActualProfit),
+                  decisionsCorrect: decisionsMatchingOptimal,
+                  decisionsTotal: HOURS,
                 })
               }
               className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors shadow-sm"
@@ -852,9 +1286,15 @@ interface HourRowProps {
 }
 
 function HourRow({ hour, price, mode, onSetMode, socBefore }: HourRowProps) {
-  // Check if charge/discharge is feasible
-  const canCharge = socBefore + MAX_MW * EFFICIENCY <= MAX_STORAGE + 0.01;
-  const canDischarge = socBefore >= MAX_MW - 0.01;
+  // Allow partial charge/discharge — simulation handles clamping via Math.min()
+  const canCharge = socBefore < MAX_STORAGE - 0.01;
+  const canDischarge = socBefore > 0.01;
+
+  // Compute effective MW for partial operations
+  const effectiveChargeMW = Math.min(MAX_MW, (MAX_STORAGE - socBefore) / EFFICIENCY);
+  const effectiveDischargeMW = Math.min(MAX_MW, socBefore);
+  const isPartialCharge = effectiveChargeMW < MAX_MW - 0.01;
+  const isPartialDischarge = effectiveDischargeMW < MAX_MW - 0.01;
 
   return (
     <div
@@ -879,46 +1319,59 @@ function HourRow({ hour, price, mode, onSetMode, socBefore }: HourRowProps) {
       </div>
 
       {/* Toggle buttons */}
-      <div className="flex gap-0.5 ml-auto shrink-0">
-        <button
-          onClick={() => onSetMode(mode === 'charge' ? 'idle' : 'charge')}
-          disabled={!canCharge && mode !== 'charge'}
-          className={`px-2 py-1 text-[10px] font-semibold rounded-l-md transition-colors ${
-            mode === 'charge'
-              ? 'bg-green-500 text-white'
-              : canCharge
-                ? 'bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700'
-                : 'bg-gray-50 text-gray-300 cursor-not-allowed'
-          }`}
-          title="Charge"
-        >
-          CHG
-        </button>
-        <button
-          onClick={() => onSetMode('idle')}
-          className={`px-2 py-1 text-[10px] font-semibold transition-colors ${
-            mode === 'idle'
-              ? 'bg-gray-400 text-white'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-          }`}
-          title="Idle"
-        >
-          IDLE
-        </button>
-        <button
-          onClick={() => onSetMode(mode === 'discharge' ? 'idle' : 'discharge')}
-          disabled={!canDischarge && mode !== 'discharge'}
-          className={`px-2 py-1 text-[10px] font-semibold rounded-r-md transition-colors ${
-            mode === 'discharge'
-              ? 'bg-blue-500 text-white'
-              : canDischarge
-                ? 'bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-700'
-                : 'bg-gray-50 text-gray-300 cursor-not-allowed'
-          }`}
-          title="Discharge"
-        >
-          DIS
-        </button>
+      <div className="flex items-center gap-1 ml-auto shrink-0">
+        <div className="flex gap-0.5">
+          <button
+            onClick={() => onSetMode(mode === 'charge' ? 'idle' : 'charge')}
+            disabled={!canCharge && mode !== 'charge'}
+            className={`px-2 py-1 text-[10px] font-semibold rounded-l-md transition-colors ${
+              mode === 'charge'
+                ? 'bg-green-500 text-white'
+                : canCharge
+                  ? 'bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700'
+                  : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+            }`}
+            title="Charge"
+          >
+            CHG
+          </button>
+          <button
+            onClick={() => onSetMode('idle')}
+            className={`px-2 py-1 text-[10px] font-semibold transition-colors ${
+              mode === 'idle'
+                ? 'bg-gray-400 text-white'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+            title="Idle"
+          >
+            IDLE
+          </button>
+          <button
+            onClick={() => onSetMode(mode === 'discharge' ? 'idle' : 'discharge')}
+            disabled={!canDischarge && mode !== 'discharge'}
+            className={`px-2 py-1 text-[10px] font-semibold rounded-r-md transition-colors ${
+              mode === 'discharge'
+                ? 'bg-blue-500 text-white'
+                : canDischarge
+                  ? 'bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-700'
+                  : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+            }`}
+            title="Discharge"
+          >
+            DIS
+          </button>
+        </div>
+        {/* Partial amount indicator */}
+        {mode === 'charge' && isPartialCharge && (
+          <span className="text-[9px] text-green-600 font-mono w-10 text-right">
+            {Math.round(effectiveChargeMW)}MW
+          </span>
+        )}
+        {mode === 'discharge' && isPartialDischarge && (
+          <span className="text-[9px] text-blue-600 font-mono w-10 text-right">
+            {Math.round(effectiveDischargeMW)}MW
+          </span>
+        )}
       </div>
     </div>
   );

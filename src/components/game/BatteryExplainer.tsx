@@ -405,29 +405,29 @@ export default function BatteryExplainer({ onClose }: BatteryExplainerProps) {
       <p className="text-lg text-navy-300 mb-2 max-w-2xl text-center">
         The core concept:
       </p>
-      <p className="text-2xl font-bold text-electric-300 mb-8">
+      <p className="text-2xl font-bold text-electric-300 mb-6">
         "Buy low, sell high — with electrons"
       </p>
 
-      {/* Price curve visualization */}
-      <div className="max-w-3xl w-full bg-white/5 rounded-2xl border border-white/10 p-6 mb-8">
-        <div className="text-sm font-semibold text-navy-300 mb-4 text-center">Typical Daily Price Pattern</div>
+      {/* Combined price + action visualization */}
+      <div className="max-w-3xl w-full bg-white/5 rounded-2xl border border-white/10 p-6 mb-6">
+        <div className="text-sm font-semibold text-navy-300 mb-4 text-center">Typical Daily Strategy</div>
 
-        {/* Bar chart */}
-        <div className="flex items-end gap-1 h-40 px-4">
+        {/* Price bar chart with action indicators below */}
+        <div className="flex items-end gap-1 h-32 px-4">
           {[
-            { label: '12am', h: 20, color: 'bg-green-500/50' },
-            { label: '2am', h: 15, color: 'bg-green-500/50' },
-            { label: '4am', h: 18, color: 'bg-green-500/50' },
-            { label: '6am', h: 35, color: 'bg-navy-500/50' },
-            { label: '8am', h: 50, color: 'bg-amber-500/50' },
-            { label: '10am', h: 40, color: 'bg-navy-500/50' },
-            { label: '12pm', h: 22, color: 'bg-green-500/50' },
-            { label: '2pm', h: 18, color: 'bg-green-500/50' },
-            { label: '4pm', h: 45, color: 'bg-amber-500/50' },
-            { label: '6pm', h: 85, color: 'bg-red-500/50' },
-            { label: '8pm', h: 95, color: 'bg-red-500/50' },
-            { label: '10pm', h: 55, color: 'bg-amber-500/50' },
+            { label: '12am', h: 20, color: 'bg-green-500/50', action: 'charge' as const },
+            { label: '2am', h: 15, color: 'bg-green-500/50', action: 'charge' as const },
+            { label: '4am', h: 18, color: 'bg-green-500/50', action: 'charge' as const },
+            { label: '6am', h: 35, color: 'bg-navy-500/50', action: 'idle' as const },
+            { label: '8am', h: 50, color: 'bg-amber-500/50', action: 'discharge' as const },
+            { label: '10am', h: 40, color: 'bg-navy-500/50', action: 'idle' as const },
+            { label: '12pm', h: 22, color: 'bg-green-500/50', action: 'charge' as const },
+            { label: '2pm', h: 18, color: 'bg-green-500/50', action: 'charge' as const },
+            { label: '4pm', h: 45, color: 'bg-amber-500/50', action: 'idle' as const },
+            { label: '6pm', h: 85, color: 'bg-red-500/50', action: 'discharge' as const },
+            { label: '8pm', h: 95, color: 'bg-red-500/50', action: 'discharge' as const },
+            { label: '10pm', h: 55, color: 'bg-amber-500/50', action: 'discharge' as const },
           ].map((bar, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-1">
               <div
@@ -439,32 +439,81 @@ export default function BatteryExplainer({ onClose }: BatteryExplainerProps) {
           ))}
         </div>
 
-        {/* Annotations on chart */}
-        <div className="flex justify-between mt-3 px-2">
-          <div className="text-[10px] text-green-400 font-medium">Low overnight</div>
-          <div className="text-[10px] text-green-400 font-medium">Solar glut</div>
-          <div className="text-[10px] text-red-400 font-medium">Evening peak</div>
+        {/* Action row beneath bars — shows charge/idle/discharge pattern */}
+        <div className="flex gap-1 px-4 mt-2">
+          {[
+            { action: 'charge' as const },
+            { action: 'charge' as const },
+            { action: 'charge' as const },
+            { action: 'idle' as const },
+            { action: 'discharge' as const },
+            { action: 'idle' as const },
+            { action: 'charge' as const },
+            { action: 'charge' as const },
+            { action: 'idle' as const },
+            { action: 'discharge' as const },
+            { action: 'discharge' as const },
+            { action: 'discharge' as const },
+          ].map((item, i) => (
+            <div
+              key={i}
+              className={`flex-1 h-5 rounded-sm flex items-center justify-center text-[7px] font-bold tracking-tight ${
+                item.action === 'charge'
+                  ? 'bg-green-500/30 text-green-300 border border-green-500/30'
+                  : item.action === 'discharge'
+                    ? 'bg-blue-500/30 text-blue-300 border border-blue-500/30'
+                    : 'bg-gray-500/20 text-gray-400 border border-gray-500/20'
+              }`}
+            >
+              {item.action === 'charge' ? 'CHG' : item.action === 'discharge' ? 'DIS' : 'IDLE'}
+            </div>
+          ))}
+        </div>
+
+        {/* Annotations with flow arrows */}
+        <div className="flex items-center justify-between mt-3 px-2">
+          <div className="text-center flex-1">
+            <div className="text-[10px] text-green-400 font-semibold">⬇ Charge overnight</div>
+          </div>
+          <div className="text-navy-600 text-xs">→</div>
+          <div className="text-center flex-1">
+            <div className="text-[10px] text-blue-400 font-semibold">⬆ Discharge AM peak</div>
+          </div>
+          <div className="text-navy-600 text-xs">→</div>
+          <div className="text-center flex-1">
+            <div className="text-[10px] text-green-400 font-semibold">⬇ Top-up midday</div>
+          </div>
+          <div className="text-navy-600 text-xs">→</div>
+          <div className="text-center flex-1">
+            <div className="text-[10px] text-blue-400 font-semibold">⬆ Discharge PM peak</div>
+          </div>
         </div>
       </div>
 
-      {/* Strategy cards */}
-      <div className="max-w-3xl w-full grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
-          <div className="text-sm font-semibold text-green-400 mb-1">⬇️ Charge Low</div>
+      {/* Strategy cards — now 4 cards including IDLE */}
+      <div className="max-w-3xl w-full grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3">
+          <div className="text-sm font-semibold text-green-400 mb-1">⬇️ Charge</div>
           <div className="text-xs text-navy-300">
-            Charge when prices are <strong className="text-white">LOW</strong> — overnight and during the midday solar glut.
+            Buy when prices are <strong className="text-white">LOW</strong>
           </div>
         </div>
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-          <div className="text-sm font-semibold text-red-400 mb-1">⬆️ Discharge High</div>
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+          <div className="text-sm font-semibold text-blue-400 mb-1">⬆️ Discharge</div>
           <div className="text-xs text-navy-300">
-            Discharge when prices are <strong className="text-white">HIGH</strong> — the morning ramp and evening peak.
+            Sell when prices are <strong className="text-white">HIGH</strong>
           </div>
         </div>
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-          <div className="text-sm font-semibold text-amber-400 mb-1">💰 Your Profit</div>
+        <div className="bg-gray-500/10 border border-gray-500/20 rounded-xl p-3">
+          <div className="text-sm font-semibold text-gray-400 mb-1">⏸️ Idle</div>
           <div className="text-xs text-navy-300">
-            Profit = <strong className="text-white">discharge revenue</strong> - charge cost - efficiency losses.
+            Wait when prices are <strong className="text-white">MID-RANGE</strong>
+          </div>
+        </div>
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+          <div className="text-sm font-semibold text-amber-400 mb-1">💰 Profit</div>
+          <div className="text-xs text-navy-300">
+            Revenue − cost − <strong className="text-white">8% losses</strong>
           </div>
         </div>
       </div>

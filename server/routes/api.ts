@@ -9,6 +9,7 @@ import { getTechnicalNotesHTML } from '../pages/technical-notes.ts';
 import { getVibeCodingNotesHTML } from '../pages/vibe-coding-notes.ts';
 import { getGameMasterGuideHTML } from '../pages/game-master-guide.ts';
 import { getRecommendedImprovementsHTML } from '../pages/recommended-improvements.ts';
+import { getGameplaySummaryHTML } from '../pages/gameplay-summary.ts';
 import { getCinematicTrailerHTML } from '../pages/cinematic-trailer.ts';
 import { listConfigs, saveConfig, deleteConfig } from '../data/configs.ts';
 import { getWifiConfig, saveWifiConfig, deleteWifiConfig, generateWifiQRString, type WifiConfig } from '../data/wifi.ts';
@@ -95,6 +96,12 @@ apiRouter.get('/game-master-guide', (req, res) => {
 apiRouter.get('/recommended-improvements', (req, res) => {
   res.setHeader('Content-Type', 'text/html');
   res.send(getRecommendedImprovementsHTML());
+});
+
+// Gameplay Mechanics Summary
+apiRouter.get('/gameplay-summary', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getGameplaySummaryHTML());
 });
 
 // ---- Development Notes ----

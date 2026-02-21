@@ -132,7 +132,7 @@ function generateStrategyBids(
 
       // Apply capacity factors for renewables
       if (def.type === 'wind') {
-        availableMW = Math.round(availableMW * getWindCapacityFactor(roundConfig.season, period as TimePeriod));
+        availableMW = Math.round(availableMW * getWindCapacityFactor(roundConfig.season, period as TimePeriod, def));
       } else if (def.type === 'solar') {
         availableMW = Math.round(availableMW * getSolarCapacityFactor(roundConfig.season, period as TimePeriod));
       }

@@ -134,8 +134,8 @@ export default function RoundStartTransition({
           25%  { left: 80%; top: 25%; transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
           45%  { left: 25%; top: 20%; transform: translate(-50%, -50%) scale(0.7); opacity: 0.5; }
           65%  { left: 70%; top: 65%; transform: translate(-50%, -50%) scale(0.85); opacity: 0.6; }
-          85%  { left: 50%; top: 38%; transform: translate(-50%, -50%) scale(1.0); opacity: 0.9; }
-          100% { left: 50%; top: 38%; transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+          85%  { left: 50%; top: 45%; transform: translate(-50%, -50%) scale(1.0); opacity: 0.9; }
+          100% { left: 50%; top: 45%; transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
         }
       `}</style>
 

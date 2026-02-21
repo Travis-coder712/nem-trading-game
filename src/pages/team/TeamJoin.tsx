@@ -5,11 +5,13 @@ import { useSocket } from '../../contexts/SocketContext';
 export default function TeamJoin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { joinGame, gameState, connected, reconnecting, clearSession, lastError, clearLastError } = useSocket();
+  const { joinGame, gameState, connected, reconnecting, clearSession, lastError, clearLastError, lateJoinTeam, isLateJoiner } = useSocket();
   const [teamName, setTeamName] = useState('');
   const [gameId, setGameId] = useState(searchParams.get('game') || '');
   const [error, setError] = useState('');
   const [joining, setJoining] = useState(false);
+  const inviteCode = searchParams.get('invite') || '';
+  const [lateJoining, setLateJoining] = useState(false);
 
   // If we have stored credentials, try to redirect to game (reconnection will happen via SocketContext)
   useEffect(() => {
@@ -40,11 +42,27 @@ export default function TeamJoin() {
     }
   }, [gameState, navigate]);
 
+  // If we have an invite code, auto-trigger late-join once connected
+  useEffect(() => {
+    if (inviteCode && connected && !lateJoining && gameId) {
+      setLateJoining(true);
+      lateJoinTeam(gameId, inviteCode, `Observer-${inviteCode.slice(0, 3)}`);
+    }
+  }, [inviteCode, connected, gameId, lateJoining, lateJoinTeam]);
+
+  // Redirect late-joiners to team game page once joined
+  useEffect(() => {
+    if (isLateJoiner && gameState?.myTeam) {
+      navigate('/team/game');
+    }
+  }, [isLateJoiner, gameState, navigate]);
+
   // Show socket errors (e.g., duplicate team name)
   useEffect(() => {
     if (lastError) {
       setError(lastError);
       setJoining(false);
+      setLateJoining(false);
       clearLastError();
     }
   }, [lastError, clearLastError]);
@@ -74,6 +92,30 @@ export default function TeamJoin() {
       }
     }, 5000);
   };
+
+  // Show a different screen while late-joining via invite code
+  if (inviteCode && lateJoining) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-navy-800 to-navy-950 flex items-center justify-center px-4">
+        <div className="max-w-sm w-full text-center">
+          <div className="text-5xl mb-4 animate-pulse">🔗</div>
+          <h1 className="text-2xl font-bold text-white mb-2">Joining Team...</h1>
+          <p className="text-navy-300 text-sm">Using invite code: <span className="font-mono text-electric-300">{inviteCode}</span></p>
+          {error && (
+            <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-2 text-red-300 text-sm">
+              {error}
+              <button
+                onClick={() => navigate('/team/join')}
+                className="block mt-2 text-electric-400 hover:text-electric-300 text-xs underline"
+              >
+                Try joining manually instead
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-800 to-navy-950 flex items-center justify-center px-4">
@@ -127,12 +169,21 @@ export default function TeamJoin() {
           </button>
         </div>
 
-        <div className="text-center mt-6">
+        <div className="text-center mt-6 space-y-3">
           <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs ${
             connected ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
           }`}>
             <div className={`w-2 h-2 rounded-full mr-2 ${connected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
             {connected ? 'Connected to server' : 'Connecting...'}
+          </div>
+
+          <div>
+            <button
+              onClick={() => navigate(`/spectate${gameId ? `?game=${gameId}` : ''}`)}
+              className="text-navy-400 hover:text-electric-300 text-xs transition-colors"
+            >
+              👁️ Just watching? Join as an observer
+            </button>
           </div>
         </div>
       </div>

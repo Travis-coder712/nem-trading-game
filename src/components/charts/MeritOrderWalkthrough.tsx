@@ -30,10 +30,19 @@ const TEAM_COLORS = [
   '#2f855a', '#2b6cb0', '#6b46c1', '#b83280', '#e53e3e',
 ];
 
-const STEP_INTERVAL = 1200;
 const CHART_HEIGHT = 400;
 const MARGIN = { top: 20, right: 30, bottom: 45, left: 60 };
 const MIN_BAR_HEIGHT_PX = 6; // minimum visible height for $0 bids
+const Y_BREAK = 500; // price threshold where compression starts
+
+/** Adaptive animation speed based on band count */
+function getStepInterval(bandCount: number): number {
+  if (bandCount <= 20) return 1200;
+  if (bandCount <= 40) return 800;
+  if (bandCount <= 80) return 400;
+  if (bandCount <= 120) return 250;
+  return 150;
+}
 
 export default function MeritOrderWalkthrough({ periodResults, initialPeriod, startAtEnd, onClose }: Props) {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(
@@ -149,17 +158,45 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
   const plotW = chartWidth - MARGIN.left - MARGIN.right;
   const plotH = CHART_HEIGHT - MARGIN.top - MARGIN.bottom;
 
+  // Whether piecewise scale is active (prices exceed the break threshold)
+  const usePiecewise = yMax > Y_BREAK * 1.5;
+
   // Scale functions
   const xScale = useCallback((mw: number) => MARGIN.left + (mw / totalMW) * plotW, [totalMW, plotW]);
-  const yScale = useCallback((price: number) => MARGIN.top + plotH - (price / yMax) * plotH, [yMax, plotH]);
+  const yScale = useCallback((price: number) => {
+    if (!usePiecewise) {
+      // Normal linear scale
+      return MARGIN.top + plotH - (price / yMax) * plotH;
+    }
+    // Piecewise: bottom 80% for $0-500, top 20% for $500-yMax
+    const lowerH = plotH * 0.8;
+    const upperH = plotH * 0.2;
+    if (price <= Y_BREAK) {
+      return MARGIN.top + upperH + lowerH - (price / Y_BREAK) * lowerH;
+    }
+    return MARGIN.top + upperH - ((price - Y_BREAK) / (yMax - Y_BREAK)) * upperH;
+  }, [yMax, plotH, usePiecewise]);
 
-  // Y-axis ticks
+  // Y-axis ticks — split between two zones when piecewise
   const yTicks = useMemo(() => {
-    const step = yMax <= 100 ? 20 : yMax <= 300 ? 50 : 100;
-    const ticks = [];
-    for (let v = 0; v <= yMax; v += step) ticks.push(v);
-    return ticks;
-  }, [yMax]);
+    if (!usePiecewise) {
+      const step = yMax <= 100 ? 20 : yMax <= 300 ? 50 : 100;
+      const ticks = [];
+      for (let v = 0; v <= yMax; v += step) ticks.push(v);
+      return ticks;
+    }
+    // Zone 1: $0-500 at $100 intervals
+    const lower = [0, 100, 200, 300, 400, 500];
+    // Zone 2: adaptive ticks above $500
+    const upper: number[] = [];
+    const upperStep = yMax <= 5000 ? 1000 : yMax <= 15000 ? 2500 : 5000;
+    for (let v = upperStep; v <= yMax; v += upperStep) {
+      if (v > Y_BREAK) upper.push(v);
+    }
+    // Always include yMax if it's the price cap
+    if (yMax >= 15000 && !upper.includes(yMax)) upper.push(yMax);
+    return [...lower, ...upper];
+  }, [yMax, usePiecewise]);
 
   // X-axis ticks
   const xTicks = useMemo(() => {
@@ -219,6 +256,9 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
     return { title: '', text: '', highlight: 'info' };
   }, [currentStep, isIntroStep, isFinalStep, currentBand, cumulativeMW, demandMW, periodResult]);
 
+  // Adaptive step interval based on band count
+  const stepInterval = useMemo(() => getStepInterval(allBands.length), [allBands.length]);
+
   // Auto-play
   useEffect(() => {
     if (isPlaying) {
@@ -230,12 +270,12 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
           }
           return prev + 1;
         });
-      }, STEP_INTERVAL);
+      }, stepInterval);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPlaying, totalSteps]);
+  }, [isPlaying, totalSteps, stepInterval]);
 
   // Reset when period changes — jump to end if startAtEnd, otherwise start from beginning
   useEffect(() => {
@@ -345,6 +385,89 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
           <line x1={MARGIN.left} y1={MARGIN.top + plotH} x2={MARGIN.left + plotW} y2={MARGIN.top + plotH}
             stroke="rgba(255,255,255,0.2)" />
 
+          {/* Axis break indicator (zigzag) when piecewise scale is active */}
+          {usePiecewise && (() => {
+            const breakY = yScale(Y_BREAK);
+            const zigW = 8;
+            const zigH = 6;
+            const x0 = MARGIN.left - zigW;
+            const x1 = MARGIN.left + zigW;
+            return (
+              <g>
+                {/* White background to mask the axis line */}
+                <rect x={x0 - 2} y={breakY - zigH - 2} width={x1 - x0 + 4} height={zigH * 2 + 4}
+                  fill="#0f1729" />
+                {/* Zigzag path */}
+                <path
+                  d={`M${x0},${breakY - zigH} L${MARGIN.left},${breakY - zigH / 2} L${x0},${breakY} L${MARGIN.left},${breakY + zigH / 2} L${x0},${breakY + zigH}`}
+                  stroke="rgba(255,255,255,0.4)" strokeWidth={1.5} fill="none"
+                />
+                {/* Dashed line across the chart at break point */}
+                <line x1={MARGIN.left} y1={breakY} x2={MARGIN.left + plotW} y2={breakY}
+                  stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" strokeWidth={1} />
+                <text x={MARGIN.left + plotW + 4} y={breakY + 3}
+                  fill="rgba(255,255,255,0.3)" fontSize={9} textAnchor="start">scale break</text>
+              </g>
+            );
+          })()}
+
+          {/* Team separator labels when many bands */}
+          {allBands.length > 30 && (() => {
+            // Group visible bands by team and show team name above their group
+            const teamGroups: { teamName: string; startMW: number; endMW: number; color: string }[] = [];
+            let groupStart = 0;
+            let lastTeamId = '';
+            for (let i = 0; i < Math.min(visibleBandCount, allBands.length); i++) {
+              const band = allBands[i];
+              if (band.teamId !== lastTeamId) {
+                if (lastTeamId && i > 0) {
+                  const prev = allBands[i - 1];
+                  teamGroups.push({
+                    teamName: prev.teamName,
+                    startMW: groupStart,
+                    endMW: prev.cumulativeMW + prev.offeredMW,
+                    color: prev.color,
+                  });
+                }
+                groupStart = band.cumulativeMW;
+                lastTeamId = band.teamId;
+              }
+            }
+            // Push last group
+            if (visibleBandCount > 0 && lastTeamId) {
+              const last = allBands[Math.min(visibleBandCount - 1, allBands.length - 1)];
+              teamGroups.push({
+                teamName: last.teamName,
+                startMW: groupStart,
+                endMW: last.cumulativeMW + last.offeredMW,
+                color: last.color,
+              });
+            }
+            return teamGroups.map((g, i) => {
+              const midX = xScale((g.startMW + g.endMW) / 2);
+              const groupW = xScale(g.endMW) - xScale(g.startMW);
+              // Only show label if group is wide enough
+              if (groupW < 30) return null;
+              return (
+                <g key={`team-sep-${i}`}>
+                  {/* Separator line at group boundary */}
+                  {i > 0 && (
+                    <line x1={xScale(g.startMW)} y1={MARGIN.top + plotH - 5}
+                      x2={xScale(g.startMW)} y2={MARGIN.top + plotH + 3}
+                      stroke="rgba(255,255,255,0.25)" strokeWidth={1} />
+                  )}
+                  {/* Team name below x-axis */}
+                  <text x={midX} y={MARGIN.top + plotH + 30}
+                    textAnchor="middle" fill={g.color} fontSize={8} fontWeight="bold"
+                    opacity={0.7}
+                  >
+                    {g.teamName.length > 8 ? g.teamName.slice(0, 7) + '…' : g.teamName}
+                  </text>
+                </g>
+              );
+            });
+          })()}
+
           {/* Demand line (always visible) */}
           <line
             x1={xScale(demandMW)} y1={MARGIN.top - 5}
@@ -379,9 +502,11 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
             const isZeroPrice = band.bidPriceMWh === 0;
 
             // For $0 bids: use a minimum visual height so they're visible
-            const priceBarH = (band.bidPriceMWh / yMax) * plotH;
+            const barBottom = MARGIN.top + plotH;
+            const barTop = yScale(band.bidPriceMWh);
+            const priceBarH = barBottom - barTop;
             const barH = Math.max(priceBarH, MIN_BAR_HEIGHT_PX);
-            const barY = MARGIN.top + plotH - barH;
+            const barY = barBottom - barH;
 
             const fillOpacity = band.isDispatched ? 1 : 0.2;
             const fill = band.color;
@@ -507,18 +632,52 @@ export default function MeritOrderWalkthrough({ periodResults, initialPeriod, st
           >
             Next
           </button>
+          <button
+            onClick={() => { setIsPlaying(false); setCurrentStep(totalSteps - 1); }}
+            disabled={isFinalStep}
+            className="px-3 py-2 bg-white/10 hover:bg-white/20 text-navy-300 rounded-lg text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Skip to clearing price reveal"
+          >
+            Skip to End ⏭
+          </button>
         </div>
 
         <div className="text-xs text-navy-400">
           Step {currentStep + 1} of {totalSteps}
         </div>
 
-        {/* Progress bar */}
-        <div className="w-32 bg-navy-700 rounded-full h-1.5 overflow-hidden">
-          <div
-            className="h-full bg-electric-500 transition-all duration-300"
-            style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
-          />
+        <div className="flex items-center gap-3">
+          {/* Progress bar */}
+          <div className="w-32 bg-navy-700 rounded-full h-1.5 overflow-hidden">
+            <div
+              className="h-full bg-electric-500 transition-all duration-300"
+              style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+            />
+          </div>
+
+          {/* Next Period button */}
+          {periodResults.length > 1 && (() => {
+            const currentIdx = periodResults.findIndex(pr => pr.timePeriod === selectedPeriod);
+            const nextIdx = currentIdx + 1;
+            const isLast = nextIdx >= periodResults.length;
+            const nextPeriod = !isLast ? periodResults[nextIdx] : null;
+            return (
+              <button
+                onClick={() => {
+                  if (nextPeriod) {
+                    setIsPlaying(false);
+                    setSelectedPeriod(nextPeriod.timePeriod as TimePeriod);
+                  }
+                }}
+                disabled={isLast}
+                className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 rounded-lg text-sm font-semibold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                {isLast
+                  ? 'Last Period'
+                  : `${TIME_PERIOD_SHORT_LABELS[(nextPeriod!.timePeriod as TimePeriod)] || nextPeriod!.timePeriod} →`}
+              </button>
+            );
+          })()}
         </div>
       </div>
     </div>

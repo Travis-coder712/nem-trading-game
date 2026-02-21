@@ -61,15 +61,12 @@ export function registerHostHandlers(
     // Send round started to all
     io.to(`game:${gameId}`).emit('game:phase_changed', 'briefing');
 
-    // Send each team their assets
+    // Send each team their assets — via team ROOM so observers also receive
     for (const team of game.teams) {
-      const teamSocket = io.sockets.sockets.get(team.socketId || '');
-      if (teamSocket) {
-        teamSocket.emit('game:round_started', {
-          roundConfig,
-          teamAssets: team.assets,
-        });
-      }
+      io.to(`game:${gameId}:team:${team.id}`).emit('game:round_started', {
+        roundConfig,
+        teamAssets: team.assets,
+      });
     }
 
     // Also send to host
@@ -105,7 +102,45 @@ export function registerHostHandlers(
     }, 1000);
 
     (socket as any).biddingTimer = timer;
+    (socket as any).timerPaused = false;
     broadcastSnapshot(io, engine, gameId);
+  }));
+
+  socket.on('host:pause_game', safe(() => {
+    const gameId = (socket as any).gameId;
+    if (!gameId) return;
+
+    // Clear the interval to stop the countdown
+    const timer = (socket as any).biddingTimer;
+    if (timer) clearInterval(timer);
+    (socket as any).timerPaused = true;
+
+    io.to(`game:${gameId}`).emit('bidding:timer_paused', true);
+  }));
+
+  socket.on('host:resume_game', safe(() => {
+    const gameId = (socket as any).gameId;
+    if (!gameId) return;
+
+    (socket as any).timerPaused = false;
+    io.to(`game:${gameId}`).emit('bidding:timer_paused', false);
+
+    // Restart the interval from where we left off
+    const newTimer = setInterval(() => {
+      try {
+        const remaining = engine.tickTimer(gameId);
+        io.to(`game:${gameId}`).emit('bidding:time_remaining', remaining);
+
+        if (remaining <= 0) {
+          clearInterval(newTimer);
+          endBiddingAndDispatch(io, socket, engine, gameId);
+        }
+      } catch (err) {
+        console.error('Error in bidding timer:', err);
+        clearInterval(newTimer);
+      }
+    }, 1000);
+    (socket as any).biddingTimer = newTimer;
   }));
 
   socket.on('host:end_bidding', safe(() => {
@@ -114,6 +149,7 @@ export function registerHostHandlers(
 
     const timer = (socket as any).biddingTimer;
     if (timer) clearInterval(timer);
+    (socket as any).timerPaused = false;
 
     endBiddingAndDispatch(io, socket, engine, gameId);
   }));
@@ -157,15 +193,12 @@ export function registerHostHandlers(
     // Send round started to all
     io.to(`game:${gameId}`).emit('game:phase_changed', 'briefing');
 
-    // Send each team their assets
+    // Send each team their assets — via team ROOM so observers also receive
     for (const team of game.teams) {
-      const teamSocket = io.sockets.sockets.get(team.socketId || '');
-      if (teamSocket) {
-        teamSocket.emit('game:round_started', {
-          roundConfig,
-          teamAssets: team.assets,
-        });
-      }
+      io.to(`game:${gameId}:team:${team.id}`).emit('game:round_started', {
+        roundConfig,
+        teamAssets: team.assets,
+      });
     }
 
     // Also send to host
@@ -186,6 +219,39 @@ export function registerHostHandlers(
       game.biddingTimeRemaining = Math.max(0, seconds);
       io.to(`game:${gameId}`).emit('bidding:time_remaining', game.biddingTimeRemaining);
     }
+  }));
+
+  socket.on('host:jump_to_round', safe((data) => {
+    const gameId = (socket as any).gameId;
+    if (!gameId || !data?.roundNumber) return;
+
+    const roundConfig = engine.jumpToRound(gameId, data.roundNumber);
+    if (!roundConfig) {
+      socket.emit('error', `Cannot jump to round ${data.roundNumber}`);
+      return;
+    }
+
+    const game = engine.getGame(gameId);
+    if (!game) return;
+
+    // Send round started to all
+    io.to(`game:${gameId}`).emit('game:phase_changed', 'briefing');
+
+    // Send each team their assets — via team ROOM so observers also receive
+    for (const team of game.teams) {
+      io.to(`game:${gameId}:team:${team.id}`).emit('game:round_started', {
+        roundConfig,
+        teamAssets: team.assets,
+      });
+    }
+
+    // Also send to host
+    socket.emit('game:round_started', {
+      roundConfig,
+      teamAssets: [],
+    });
+
+    broadcastSnapshot(io, engine, gameId);
   }));
 
   socket.on('host:set_demand', safe((demand) => {
@@ -218,9 +284,15 @@ export function registerHostHandlers(
     }
   }));
 
-  socket.on('host:reset_game', safe(() => {
+  socket.on('host:reset_game', safe((...args: any[]) => {
+    // Support optional ack callback (last argument if it's a function)
+    const ack = typeof args[args.length - 1] === 'function' ? args[args.length - 1] : null;
+
     const gameId = (socket as any).gameId;
-    if (!gameId) return;
+    if (!gameId) {
+      if (ack) ack({ ok: true });
+      return;
+    }
 
     // Delete game and get team socket IDs
     const teamSocketIds = engine.resetGame(gameId);
@@ -242,6 +314,9 @@ export function registerHostHandlers(
     socket.leave(`game:${gameId}`);
     socket.leave(`game:${gameId}:host`);
     (socket as any).gameId = null;
+
+    // Acknowledge reset complete so client can safely create a new game
+    if (ack) ack({ ok: true });
   }));
 
   socket.on('host:view_team_screen', safe((data) => {
@@ -251,6 +326,18 @@ export function registerHostHandlers(
     const teamSnapshot = engine.getSnapshot(gameId, data.teamId);
     if (teamSnapshot) {
       socket.emit('host:team_screen_data', teamSnapshot);
+    }
+  }));
+
+  socket.on('host:invite_to_team', safe((data) => {
+    const gameId = (socket as any).gameId;
+    if (!gameId || !data?.teamId) return;
+
+    const code = engine.generateInviteCode(gameId, data.teamId);
+    if (code) {
+      socket.emit('host:invite_code', { teamId: data.teamId, inviteCode: code });
+    } else {
+      socket.emit('error', 'Could not generate invite code');
     }
   }));
 }
@@ -290,16 +377,11 @@ function broadcastSnapshot(
     io.to(`game:${gameId}:host`).emit('game:state_update', hostSnapshot);
   }
 
-  // Each team gets their own snapshot
+  // Each team gets their own snapshot — broadcast to team ROOM so observers also receive it
   for (const team of game.teams) {
-    if (team.socketId) {
-      const teamSnapshot = engine.getSnapshot(gameId, team.id);
-      if (teamSnapshot) {
-        const teamSocket = io.sockets.sockets.get(team.socketId);
-        if (teamSocket) {
-          teamSocket.emit('game:state_update', teamSnapshot);
-        }
-      }
+    const teamSnapshot = engine.getSnapshot(gameId, team.id);
+    if (teamSnapshot) {
+      io.to(`game:${gameId}:team:${team.id}`).emit('game:state_update', teamSnapshot);
     }
   }
 }

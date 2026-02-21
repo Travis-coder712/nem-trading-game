@@ -10,8 +10,10 @@ const HostDashboard = lazy(() => import('./pages/host/HostDashboard'));
 const TeamJoin = lazy(() => import('./pages/team/TeamJoin'));
 const TeamGame = lazy(() => import('./pages/team/TeamGame'));
 const GameGuide = lazy(() => import('./pages/presentation/GameGuide'));
+const GuidesPage = lazy(() => import('./pages/GuidesPage'));
 const SpectatorView = lazy(() => import('./pages/spectator/SpectatorView'));
 const PostGameReport = lazy(() => import('./pages/report/PostGameReport'));
+const BatteryTest = lazy(() => import('./pages/BatteryTest'));
 
 function LoadingSpinner() {
   return (
@@ -34,8 +36,10 @@ export default function App() {
         <Route path="/team/join" element={<TeamJoin />} />
         <Route path="/team/game" element={<TeamGame />} />
         <Route path="/guide" element={<GameGuide />} />
+        <Route path="/guides" element={<GuidesPage />} />
         <Route path="/spectate" element={<SpectatorView />} />
         <Route path="/report" element={<PostGameReport />} />
+        <Route path="/battery-test" element={<BatteryTest />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

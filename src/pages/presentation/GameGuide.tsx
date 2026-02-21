@@ -19,7 +19,7 @@ export default function GameGuide() {
         <div className="text-center mb-10 print:mb-6">
           <div className="text-4xl mb-2 print:text-2xl">⚡</div>
           <h1 className="text-3xl md:text-4xl font-bold print:text-2xl">
-            Watt Street
+            GridRival
           </h1>
           <p className="text-navy-300 print:text-gray-600 mt-2 text-lg print:text-sm">
             Quick Reference Guide
@@ -54,10 +54,10 @@ export default function GameGuide() {
                 <AssetRow icon="🏭" type="Coal" capacity="800 MW" srmc="$25–45" desc="Baseload. Low cost, slow to ramp. Runs 24/7." />
                 <AssetRow icon="🔥" type="Gas CCGT" capacity="350 MW" srmc="$65–85" desc="Mid-merit. Flexible, moderate cost." />
                 <AssetRow icon="⚡" type="Gas Peaker" capacity="150 MW" srmc="$120–160" desc="Peak only. Very fast start, expensive." />
-                <AssetRow icon="💧" type="Hydro" capacity="250 MW" srmc="$8" desc="Flexible, cheap, but limited water each round." />
-                <AssetRow icon="🌬️" type="Wind" capacity="300 MW" srmc="$0" desc="Zero fuel cost. Output varies by wind conditions." />
-                <AssetRow icon="☀️" type="Solar" capacity="200 MW" srmc="$0" desc="Zero fuel cost. Daytime only, peak in afternoon." />
-                <AssetRow icon="🔋" type="Battery" capacity="500 MW / 2,000 MWh" srmc="$0" desc="Charge cheap, discharge expensive. 92% round-trip efficiency. 4-hour duration." />
+                <AssetRow icon="💧" type="Hydro" capacity="250 MW" srmc="$8" desc="Flexible, cheap, limited water. Can only dispatch in ONE period per round." />
+                <AssetRow icon="🌬️" type="Wind" capacity="300 MW" srmc="$0" desc="Zero fuel cost. Auto-bid at $0. Output varies by wind profile." />
+                <AssetRow icon="☀️" type="Solar" capacity="200 MW" srmc="$0" desc="Zero fuel cost. Auto-bid at $0. Daytime only, zero overnight." />
+                <AssetRow icon="🔋" type="Battery" capacity="500 MW / 3,000 MWh" srmc="$0" desc="Charge cheap, discharge expensive. 92% round-trip efficiency. 6-hour duration. Target SOC controls." />
               </tbody>
             </table>
           </div>
@@ -71,6 +71,7 @@ export default function GameGuide() {
             <li>You can split bids into <strong>multiple bands</strong> (e.g., 200 MW at $30, 300 MW at $80)</li>
             <li>Bids can range from <strong>-$1,000</strong> to <strong>$20,000</strong> per MWh</li>
             <li>Wind and solar bids are limited by weather-dependent capacity factors</li>
+            <li>Asset types bid differently: renewables <strong>auto-bid at $0</strong>, hydro picks <strong>one dispatch period</strong>, batteries toggle <strong>charge/idle/discharge</strong> with target SOC</li>
           </ol>
         </Section>
 
@@ -83,6 +84,7 @@ export default function GameGuide() {
             <li><strong>ALL</strong> dispatched generators receive the clearing price — even if they bid lower</li>
             <li>Generators not dispatched earn nothing (but avoid fuel costs)</li>
             <li>When multiple teams bid the <strong>same price</strong> at the margin, dispatch is split <strong>pro-rata</strong> (proportionally by capacity offered) — just like the real AEMO NEMDE</li>
+            <li>Renewables (wind, solar) are dispatched <strong>first</strong> at tied prices — matching AEMO's real dispatch priority</li>
           </ol>
           <div className="bg-navy-800/30 print:bg-blue-50 rounded-lg p-3 mt-3 text-xs">
             <strong>Pro-rata example:</strong> If 200 MW of demand remains and three teams all bid $75/MWh offering 300, 200, and 100 MW respectively (600 MW total), each gets dispatched proportionally: 100, 67, and 33 MW.
@@ -113,7 +115,7 @@ export default function GameGuide() {
             <StrategyCard name="Price Maker" desc="Bid high on some capacity to push up the clearing price for all your dispatched units." />
             <StrategyCard name="Portfolio Optimizer" desc="Mix strategies: $0 on renewables, marginal cost on baseload, high on peakers." />
             <StrategyCard name="Strategic Withdrawal" desc="Withhold 20-30% of capacity to tighten supply and raise prices." />
-            <StrategyCard name="Battery Arbitrage" desc="Charge at low prices, discharge at peak. Arbitrage revenue = discharge earnings minus charging cost. Note: charging adds to market demand and can push prices higher." />
+            <StrategyCard name="Battery Arbitrage" desc="Charge at low prices, discharge at peak. 6-hour battery. Use target SOC buttons. Battery strategy is independent — combine with thermal strategies." />
           </div>
         </Section>
 
@@ -215,7 +217,7 @@ export default function GameGuide() {
         {/* Footer */}
         <div className="text-center mt-10 pt-6 border-t border-white/10 print:border-gray-300">
           <p className="text-navy-400 print:text-gray-500 text-xs">
-            Watt Street — Bid. Dispatch. Dominate. — 5 game modes, 7 asset types, sound effects, dark mode, spectator mode & more
+            GridRival — Bid. Dispatch. DOMINATE. — Every Megawatt has its price. — 5 game modes, 7 asset types, 4 bidding modes, sound effects, dark mode, spectator mode & more
           </p>
         </div>
       </div>

@@ -24,6 +24,10 @@ import type {
 } from '../../../shared/types';
 import BatteryModeToggle from './BatteryModeToggle';
 import type { BatteryMode } from '../../../shared/types';
+import RenewableInfoCard from './RenewableInfoCard';
+import HydroDispatchSelector from './HydroDispatchSelector';
+import SupplyDemandDiagram from './SupplyDemandDiagram';
+import type { Season } from '../../../shared/types';
 
 // ═══════════════════════════════════════════════════════
 //  TYPES
@@ -46,7 +50,7 @@ export interface GuidedBiddingProps {
   onUpdateBand: (assetId: string, period: TimePeriod, bandIndex: number, field: 'pricePerMWh' | 'quantityMW', value: number) => void;
   onAddBand: (assetId: string, period: TimePeriod) => void;
   onQuickBid: (assetId: string, period: TimePeriod, strategy: 'zero' | 'srmc' | 'high') => void;
-  onApplyStrategy: (stratId: StrategyId, intensity: Intensity) => void;
+  onApplyStrategy: (stratId: StrategyId, intensity: Intensity, applyMode?: 'all' | 'selected', assetIds?: Set<string>) => void;
 
   // Help modals
   onShowHowToBid: () => void;
@@ -69,6 +73,16 @@ export interface GuidedBiddingProps {
   chargeMWs?: Map<string, number>;
   onBatteryModeChange?: (assetId: string, period: TimePeriod, mode: BatteryMode) => void;
   onChargeMWChange?: (assetId: string, period: TimePeriod, mw: number) => void;
+
+  // Hydro-specific
+  hydroDispatchPeriods?: Map<string, TimePeriod | null>;
+  hydroBidPrices?: Map<string, number>;
+  onHydroDispatchPeriodChange?: (assetId: string, period: TimePeriod | null) => void;
+  onHydroBidPriceChange?: (assetId: string, price: number) => void;
+
+  // Strategy per-period toggle (kept for classic view compatibility)
+  strategyApplyScope?: 'current_period' | 'all_periods';
+  onStrategyApplyScopeChange?: (scope: 'current_period' | 'all_periods') => void;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -348,13 +362,19 @@ function Step2Demand({ roundConfig, gameState, assets, assetDefs, selectedPeriod
 //  STEP 3: PLACE BIDS (main bidding interface)
 // ═══════════════════════════════════════════════════════
 
-function Step3Bids({
-  roundConfig, gameState, assets, assetDefs, walkthrough,
-  bids, selectedPeriod, onPeriodChange,
-  onUpdateBand, onAddBand, onQuickBid, onApplyStrategy,
-  onShowStrategyGuide, getAssetDef, getBidBands, onBack,
-}: GuidedBiddingProps & { onBack: () => void }) {
-  const [strategyOpen, setStrategyOpen] = useState(false);
+function Step3Bids(props: GuidedBiddingProps & { onBack: () => void }) {
+  const {
+    roundConfig, gameState, assets, assetDefs, walkthrough,
+    bids, selectedPeriod, onPeriodChange,
+    onUpdateBand, onAddBand, onQuickBid, onApplyStrategy,
+    onShowStrategyGuide, getAssetDef, getBidBands, onBack,
+    batteryModes, onBatteryModeChange, onChargeMWChange, chargeMWs,
+    hydroDispatchPeriods, hydroBidPrices,
+    onHydroDispatchPeriodChange, onHydroBidPriceChange,
+    strategyApplyScope, onStrategyApplyScopeChange,
+  } = props;
+
+  const [strategyOpen, setStrategyOpen] = useState(true);
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyId | ''>('');
   const [selectedIntensity, setSelectedIntensity] = useState<Intensity>('medium');
   const [strategyApplyMode, setStrategyApplyMode] = useState<'all' | 'selected'>('all');
@@ -372,6 +392,165 @@ function Step3Bids({
   const filteredStrategies = useMemo(() => {
     return getAvailableStrategies(availableAssetTypes);
   }, [availableAssetTypes]);
+
+  // ── Group assets by category ──
+  const renewableAssets = useMemo(() => assets.filter(a => {
+    const def = getAssetDef(a.assetDefinitionId);
+    return def?.type === 'wind' || def?.type === 'solar';
+  }), [assets, getAssetDef]);
+
+  const batteryAssets = useMemo(() => assets.filter(a => {
+    const def = getAssetDef(a.assetDefinitionId);
+    return def?.type === 'battery';
+  }), [assets, getAssetDef]);
+
+  const hydroAssets = useMemo(() => assets.filter(a => {
+    const def = getAssetDef(a.assetDefinitionId);
+    return def?.type === 'hydro';
+  }), [assets, getAssetDef]);
+
+  const thermalAssets = useMemo(() => assets.filter(a => {
+    const def = getAssetDef(a.assetDefinitionId);
+    return def && def.type !== 'wind' && def.type !== 'solar' && def.type !== 'battery' && def.type !== 'hydro';
+  }), [assets, getAssetDef]);
+
+  // Helper to get full type key for an asset
+  const getFullTypeKey = (assetDefId: string): AssetType => {
+    if (assetDefId.includes('ccgt')) return 'gas_ccgt';
+    if (assetDefId.includes('peaker')) return 'gas_peaker';
+    return assetDefId.split('_')[0] as AssetType;
+  };
+
+  // ── Supply totals per period (shared by thermal table & battery diagram) ──
+  const periods = roundConfig.timePeriods;
+  const teamCount = gameState.expectedTeamCount || gameState.teams?.length || 1;
+
+  const thermalTotalByPeriod = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const p of periods) {
+      result[p] = thermalAssets.reduce((sum, asset) => {
+        const bands = getBidBands(asset.assetDefinitionId, p as TimePeriod);
+        return sum + bands.reduce((s, b) => s + (b.quantityMW || 0), 0);
+      }, 0);
+    }
+    return result;
+  }, [periods, thermalAssets, getBidBands]);
+
+  const renewableTotalByPeriod = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const p of periods) {
+      result[p] = renewableAssets.reduce((sum, asset) => {
+        const def = getAssetDef(asset.assetDefinitionId);
+        return sum + (def?.availabilityByPeriod?.[p] ?? asset.currentAvailableMW);
+      }, 0);
+    }
+    return result;
+  }, [periods, renewableAssets, getAssetDef]);
+
+  const hydroTotalByPeriod = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const p of periods) {
+      result[p] = hydroAssets.reduce((sum, asset) => {
+        const dispatchPeriod = hydroDispatchPeriods?.get(asset.assetDefinitionId);
+        if (dispatchPeriod === p) {
+          return sum + asset.currentAvailableMW;
+        }
+        return sum;
+      }, 0);
+    }
+    return result;
+  }, [periods, hydroAssets, hydroDispatchPeriods]);
+
+  // ── Projected SOC per period per battery asset ──
+  // Iterates through periods in order, applying charge/discharge/idle effects
+  // to compute what the SOC will be at the START of each period.
+  const projectedSOCByAssetPeriod = useMemo(() => {
+    const result: Record<string, Record<string, number>> = {};
+
+    for (const asset of batteryAssets) {
+      const assetId = asset.assetDefinitionId;
+      const def = getAssetDef(assetId);
+      if (!def) continue;
+
+      const maxStorage = asset.maxStorageMWh ?? def.maxStorageMWh ?? 0;
+      const efficiency = (def as any).roundTripEfficiency ?? 1;
+      const startSOC = asset.currentStorageMWh ?? 0;
+
+      const assetSOC: Record<string, number> = {};
+      let runningSOC = startSOC;
+
+      for (const p of periods) {
+        const period = p as TimePeriod;
+        const key = `${assetId}_${period}`;
+        const hours = 6; // All periods are 6 hours
+
+        // This period starts with the running SOC
+        assetSOC[period] = runningSOC;
+
+        const mode = batteryModes?.get(key) || 'idle';
+
+        if (mode === 'charge') {
+          const chargeMW = chargeMWs?.get(key) || 0;
+          // Energy stored = grid draw × efficiency × hours
+          const energyStored = chargeMW * efficiency * hours;
+          runningSOC = Math.min(maxStorage, runningSOC + energyStored);
+        } else if (mode === 'discharge') {
+          const bands = getBidBands(assetId, period);
+          const totalDischargeMW = bands.reduce((s, b) => s + (b.quantityMW || 0), 0);
+          const energyDischarged = totalDischargeMW * hours;
+          runningSOC = Math.max(0, runningSOC - energyDischarged);
+        }
+        // idle: no change
+      }
+
+      result[assetId] = assetSOC;
+    }
+
+    return result;
+  }, [batteryAssets, periods, batteryModes, chargeMWs, getBidBands, getAssetDef]);
+
+  // Battery net MW for current period: sum of discharge (positive) and charge (negative)
+  const batteryNetMW = useMemo(() => {
+    let net = 0;
+    for (const asset of batteryAssets) {
+      const key = `${asset.assetDefinitionId}_${selectedPeriod}`;
+      const mode = batteryModes?.get(key) || 'idle';
+      if (mode === 'discharge') {
+        const bands = getBidBands(asset.assetDefinitionId, selectedPeriod);
+        net += bands.reduce((s, b) => s + (b.quantityMW || 0), 0);
+      } else if (mode === 'charge') {
+        const chargeMW = chargeMWs?.get(key) || 0;
+        net -= chargeMW;
+      }
+    }
+    return net;
+  }, [batteryAssets, selectedPeriod, batteryModes, chargeMWs, getBidBands]);
+
+  const batteryCapacityMW = useMemo(() => {
+    return batteryAssets.reduce((sum, a) => sum + a.currentAvailableMW, 0);
+  }, [batteryAssets]);
+
+  // ── Stress period detection ──
+  // Identify periods where non-battery supply < pro-rata demand share
+  const stressPeriods = useMemo(() => {
+    if (!gameState.fleetInfo) return [] as TimePeriod[];
+    return (periods as TimePeriod[]).filter(p => {
+      const supply = (thermalTotalByPeriod[p] || 0) + (renewableTotalByPeriod[p] || 0) + (hydroTotalByPeriod[p] || 0);
+      const demand = teamCount > 0 ? Math.round((gameState.fleetInfo!.demandMW[p] || 0) / teamCount) : 0;
+      return supply < demand;
+    });
+  }, [periods, thermalTotalByPeriod, renewableTotalByPeriod, hydroTotalByPeriod, gameState.fleetInfo, teamCount]);
+
+  // Is the currently selected period a stress period?
+  const isCurrentPeriodStress = stressPeriods.includes(selectedPeriod);
+
+  // Current period gap info for smart warnings
+  const currentPeriodGap = useMemo(() => {
+    if (!gameState.fleetInfo) return 0;
+    const supply = (thermalTotalByPeriod[selectedPeriod] || 0) + (renewableTotalByPeriod[selectedPeriod] || 0) + (hydroTotalByPeriod[selectedPeriod] || 0);
+    const demand = teamCount > 0 ? Math.round((gameState.fleetInfo.demandMW[selectedPeriod] || 0) / teamCount) : 0;
+    return Math.max(0, demand - supply);
+  }, [selectedPeriod, thermalTotalByPeriod, renewableTotalByPeriod, hydroTotalByPeriod, gameState.fleetInfo, teamCount]);
 
   return (
     <div className="space-y-3">
@@ -395,351 +574,633 @@ function Step3Bids({
         </div>
       )}
 
-      {/* Period Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-1">
-        {roundConfig.timePeriods.map(p => {
-          const desc = getPeriodDescriptions(p as TimePeriod, roundConfig.season, availableAssetTypes);
-          const demandMW = roundConfig.baseDemandMW[p] || 0;
-          return (
-            <button
-              key={p}
-              onClick={() => onPeriodChange(p as TimePeriod)}
-              className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                selectedPeriod === p
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-gray-600 border border-gray-200'
-              }`}
-            >
-              <div>{desc.icon} {desc.label}</div>
-              <div className={`text-[10px] font-mono mt-0.5 ${selectedPeriod === p ? 'text-white/70' : 'text-gray-400'}`}>
-                {formatMW(demandMW)}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Strategy Auto-Fill (Compact) */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <button
-          onClick={() => setStrategyOpen(!strategyOpen)}
-          className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-base">🧠</span>
-            <span className="text-xs font-semibold text-gray-800">Auto-Fill with Strategy</span>
-            <button
-              onClick={(e) => { e.stopPropagation(); onShowStrategyGuide(); }}
-              className="px-1.5 py-0.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded text-[10px] font-bold transition-colors"
-            >
-              📖
-            </button>
-            {selectedStrategy && (
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                {STRATEGIES.find(s => s.id === selectedStrategy)?.icon}{' '}
-                {STRATEGIES.find(s => s.id === selectedStrategy)?.name} ({selectedIntensity})
-              </span>
-            )}
-          </div>
-          <span className={`text-gray-400 text-xs transition-transform ${strategyOpen ? 'rotate-180' : ''}`}>▼</span>
-        </button>
-
-        {strategyOpen && (
-          <div className="border-t border-gray-100 px-4 py-3 space-y-3">
-            <p className="text-[11px] text-gray-500">
-              Pick a strategy to auto-populate bids. You can still edit individual bids afterwards.
+      {/* ══════════════════════════════════════════════════ */}
+      {/*  Section A: Renewables                           */}
+      {/* ══════════════════════════════════════════════════ */}
+      {renewableAssets.length > 0 && (
+        <div className="space-y-2">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+            <h4 className="text-sm font-bold text-emerald-800 mb-0.5">
+              ☀️💨 Renewables — Generation Pattern Already Set
+            </h4>
+            <p className="text-[11px] text-emerald-700 leading-relaxed">
+              The MW values below reflect each asset's <strong>expected generation pattern</strong> based on weather and time of day.
+              Renewables always bid at $0/MWh (matching AEMO rules), so dispatch is already determined — <strong>no action needed from you</strong>.
             </p>
+          </div>
+          {renewableAssets.map(asset => {
+            const def = getAssetDef(asset.assetDefinitionId);
+            if (!def) return null;
+            return (
+              <RenewableInfoCard
+                key={asset.assetDefinitionId}
+                asset={asset}
+                assetDef={def}
+                periods={roundConfig.timePeriods}
+                selectedPeriod={selectedPeriod}
+                season={roundConfig.season}
+              />
+            );
+          })}
+        </div>
+      )}
 
-            <select
-              value={selectedStrategy}
-              onChange={e => setSelectedStrategy(e.target.value as StrategyId)}
-              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em', paddingRight: '2.5rem' }}
+      {/* ══════════════════════════════════════════════════ */}
+      {/*  Section B: Hydro                                */}
+      {/* ══════════════════════════════════════════════════ */}
+      {hydroAssets.length > 0 && (
+        <div className="space-y-2">
+          <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3">
+            <h4 className="text-sm font-bold text-sky-800 mb-0.5">
+              💧 Hydro — Strategic Dispatch
+            </h4>
+            <p className="text-[11px] text-sky-700 leading-relaxed">
+              Choose ONE period to dispatch. Hydro has limited water storage — pick your best opportunity.
+            </p>
+          </div>
+          {hydroAssets.map(asset => {
+            const def = getAssetDef(asset.assetDefinitionId);
+            if (!def) return null;
+            const assetId = asset.assetDefinitionId;
+
+            return (
+              <HydroDispatchSelector
+                key={assetId}
+                asset={asset}
+                assetDef={def}
+                periods={roundConfig.timePeriods}
+                selectedDispatchPeriod={hydroDispatchPeriods?.get(assetId) ?? null}
+                bidPrice={hydroBidPrices?.get(assetId) ?? 8}
+                onDispatchPeriodChange={(period) => onHydroDispatchPeriodChange?.(assetId, period)}
+                onBidPriceChange={(price) => onHydroBidPriceChange?.(assetId, price)}
+                season={roundConfig.season}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════ */}
+      {/*  Section C: Thermal — Strategy + Bid Table       */}
+      {/* ══════════════════════════════════════════════════ */}
+      {thermalAssets.length > 0 && (
+        <div className="space-y-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+            <h4 className="text-sm font-bold text-orange-800 mb-0.5">
+              🏭 Thermal — Place Your Bids
+            </h4>
+          </div>
+
+          {/* Strategy Auto-Fill — auto-applies on selection */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <button
+              onClick={() => setStrategyOpen(!strategyOpen)}
+              className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
-              <option value="">Select a strategy...</option>
-              {filteredStrategies.map(s => (
-                <option key={s.id} value={s.id}>{s.icon} {s.name} — {s.shortDescription}</option>
-              ))}
-            </select>
+              <div className="flex items-center gap-2">
+                <span className="text-base">🧠</span>
+                <span className="text-xs font-semibold text-gray-800">Auto-Fill with Strategy</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onShowStrategyGuide(); }}
+                  className="px-1.5 py-0.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded text-[10px] font-bold transition-colors"
+                >
+                  📖
+                </button>
+                {selectedStrategy && (
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                    {STRATEGIES.find(s => s.id === selectedStrategy)?.icon}{' '}
+                    {STRATEGIES.find(s => s.id === selectedStrategy)?.name} ({selectedIntensity})
+                  </span>
+                )}
+              </div>
+              <span className={`text-gray-400 text-xs transition-transform ${strategyOpen ? 'rotate-180' : ''}`}>▼</span>
+            </button>
 
-            {selectedStrategy && (
-              <>
-                {/* Strategy description */}
-                {(() => {
-                  const strat = STRATEGIES.find(s => s.id === selectedStrategy);
-                  if (!strat) return null;
-                  return (
-                    <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                      <p className="text-[11px] text-gray-600 leading-relaxed">{strat.description}</p>
-                    </div>
-                  );
-                })()}
+            {strategyOpen && (
+              <div className="border-t border-gray-100 px-4 py-3 space-y-3">
+                <p className="text-[11px] text-gray-500">
+                  Select a strategy below — bids auto-populate immediately. Change intensity to see different bid levels.
+                </p>
 
-                {/* Intensity */}
-                <div className="flex gap-1.5">
-                  {(['low', 'medium', 'max'] as Intensity[]).map(level => {
-                    const strat = STRATEGIES.find(s => s.id === selectedStrategy);
-                    const isActive = selectedIntensity === level;
-                    const colors = level === 'low'
-                      ? 'bg-green-50 text-green-700 border-green-300'
-                      : level === 'medium'
-                      ? 'bg-blue-50 text-blue-700 border-blue-300'
-                      : 'bg-red-50 text-red-700 border-red-300';
-                    const activeColors = level === 'low'
-                      ? 'bg-green-500 text-white border-green-500'
-                      : level === 'medium'
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'bg-red-500 text-white border-red-500';
+                <select
+                  value={selectedStrategy}
+                  onChange={e => {
+                    const newStrat = e.target.value as StrategyId;
+                    setSelectedStrategy(newStrat);
+                    if (newStrat) {
+                      onApplyStrategy(newStrat, selectedIntensity, strategyApplyMode, selectedAssetIds);
+                    }
+                  }}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em', paddingRight: '2.5rem' }}
+                >
+                  <option value="">Select a strategy...</option>
+                  {filteredStrategies.map(s => (
+                    <option key={s.id} value={s.id}>{s.icon} {s.name} — {s.shortDescription}</option>
+                  ))}
+                </select>
 
-                    return (
-                      <button
-                        key={level}
-                        onClick={() => setSelectedIntensity(level)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${
-                          isActive ? activeColors : `${colors} hover:opacity-80`
-                        }`}
-                      >
-                        <div className="font-bold capitalize">{level}</div>
-                        <div className={`text-[10px] mt-0.5 ${isActive ? 'text-white/80' : 'opacity-70'}`}>
-                          {strat?.intensityLabels[level]}
+                {selectedStrategy && (
+                  <>
+                    {/* Strategy description */}
+                    {(() => {
+                      const strat = STRATEGIES.find(s => s.id === selectedStrategy);
+                      if (!strat) return null;
+                      return (
+                        <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                          <p className="text-[11px] text-gray-600 leading-relaxed">{strat.description}</p>
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                      );
+                    })()}
 
-                {/* Apply to selection */}
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={strategyApplyMode === 'all'}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setStrategyApplyMode('all');
-                          setSelectedAssetIds(new Set(assets.map(a => a.assetDefinitionId)));
-                        } else {
-                          setStrategyApplyMode('selected');
-                          setSelectedAssetIds(new Set(assets.map(a => a.assetDefinitionId)));
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">All Assets</span>
-                  </label>
+                    {/* Intensity — auto-applies on click */}
+                    <div className="flex gap-1.5">
+                      {(['low', 'medium', 'max'] as Intensity[]).map(level => {
+                        const strat = STRATEGIES.find(s => s.id === selectedStrategy);
+                        const isActive = selectedIntensity === level;
+                        const colors = level === 'low'
+                          ? 'bg-green-50 text-green-700 border-green-300'
+                          : level === 'medium'
+                          ? 'bg-blue-50 text-blue-700 border-blue-300'
+                          : 'bg-red-50 text-red-700 border-red-300';
+                        const activeColors = level === 'low'
+                          ? 'bg-green-500 text-white border-green-500'
+                          : level === 'medium'
+                          ? 'bg-blue-500 text-white border-blue-500'
+                          : 'bg-red-500 text-white border-red-500';
 
-                  {strategyApplyMode === 'selected' && (
-                    <div className="ml-6 space-y-1 border-l-2 border-gray-200 pl-3">
-                      {assets.map(asset => {
-                        const typeKey = asset.assetDefinitionId.includes('ccgt') ? 'gas_ccgt' as AssetType :
-                                       asset.assetDefinitionId.includes('peaker') ? 'gas_peaker' as AssetType :
-                                       asset.assetDefinitionId.split('_')[0] as AssetType;
-                        const def = assetDefs.find((d: AssetInfo) => d.id === asset.assetDefinitionId);
-                        const isChecked = selectedAssetIds.has(asset.assetDefinitionId);
                         return (
-                          <label
-                            key={asset.assetDefinitionId}
-                            className={`flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-lg transition-colors ${
-                              isChecked ? 'bg-blue-50' : 'hover:bg-gray-50'
+                          <button
+                            key={level}
+                            onClick={() => {
+                              setSelectedIntensity(level);
+                              if (selectedStrategy) {
+                                onApplyStrategy(selectedStrategy as StrategyId, level, strategyApplyMode, selectedAssetIds);
+                              }
+                            }}
+                            className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${
+                              isActive ? activeColors : `${colors} hover:opacity-80`
                             }`}
                           >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              disabled={asset.isForceOutage}
-                              onChange={(e) => {
-                                const next = new Set(selectedAssetIds);
-                                if (e.target.checked) next.add(asset.assetDefinitionId);
-                                else next.delete(asset.assetDefinitionId);
-                                setSelectedAssetIds(next);
-                              }}
-                              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm">{ASSET_ICONS[typeKey] || '⚡'}</span>
-                            <span className="text-xs text-gray-700 font-medium truncate">{def?.name || asset.assetDefinitionId}</span>
-                            <span className="text-[10px] text-gray-400 ml-auto">{Math.round(asset.currentAvailableMW)} MW</span>
-                          </label>
+                            <div className="font-bold capitalize">{level}</div>
+                            <div className={`text-[10px] mt-0.5 ${isActive ? 'text-white/80' : 'opacity-70'}`}>
+                              {strat?.intensityLabels[level]}
+                            </div>
+                          </button>
                         );
                       })}
                     </div>
-                  )}
-                </div>
 
-                <button
-                  onClick={() => onApplyStrategy(selectedStrategy as StrategyId, selectedIntensity)}
-                  disabled={strategyApplyMode === 'selected' && selectedAssetIds.size === 0}
-                  className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white font-bold text-sm rounded-lg shadow-sm active:scale-[0.98] transition-all disabled:opacity-40"
-                >
-                  Apply {STRATEGIES.find(s => s.id === selectedStrategy)?.name}
-                </button>
-              </>
+                    {/* Asset selection (only show if >1 thermal asset) */}
+                    {thermalAssets.length > 1 && (
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={strategyApplyMode === 'all'}
+                            onChange={(e) => {
+                              const newMode = e.target.checked ? 'all' as const : 'selected' as const;
+                              const newIds = new Set(thermalAssets.map(a => a.assetDefinitionId));
+                              setStrategyApplyMode(newMode);
+                              setSelectedAssetIds(newIds);
+                              if (selectedStrategy) {
+                                onApplyStrategy(selectedStrategy as StrategyId, selectedIntensity, newMode, newIds);
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm font-medium text-gray-700">All Thermal Assets</span>
+                        </label>
+
+                        {strategyApplyMode === 'selected' && (
+                          <div className="ml-6 space-y-1 border-l-2 border-gray-200 pl-3">
+                            {thermalAssets.map(asset => {
+                              const typeKey = getFullTypeKey(asset.assetDefinitionId);
+                              const def = assetDefs.find((d: AssetInfo) => d.id === asset.assetDefinitionId);
+                              const isChecked = selectedAssetIds.has(asset.assetDefinitionId);
+                              return (
+                                <label
+                                  key={asset.assetDefinitionId}
+                                  className={`flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-lg transition-colors ${
+                                    isChecked ? 'bg-blue-50' : 'hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    disabled={asset.isForceOutage}
+                                    onChange={(e) => {
+                                      const next = new Set(selectedAssetIds);
+                                      if (e.target.checked) next.add(asset.assetDefinitionId);
+                                      else next.delete(asset.assetDefinitionId);
+                                      setSelectedAssetIds(next);
+                                      if (selectedStrategy) {
+                                        onApplyStrategy(selectedStrategy as StrategyId, selectedIntensity, strategyApplyMode, next);
+                                      }
+                                    }}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-sm">{ASSET_ICONS[typeKey] || '⚡'}</span>
+                                  <span className="text-xs text-gray-700 font-medium truncate">{def?.name || asset.assetDefinitionId}</span>
+                                  <span className="text-[10px] text-gray-400 ml-auto">{Math.round(asset.currentAvailableMW)} MW</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
 
-      {/* Asset Bid Cards */}
-      <div className="space-y-3">
-        {assets.map((asset, assetIndex) => {
-          const typeKey = asset.assetDefinitionId.split('_')[0] as AssetType;
-          const fullTypeKey = asset.assetDefinitionId.includes('ccgt') ? 'gas_ccgt' :
-                              asset.assetDefinitionId.includes('peaker') ? 'gas_peaker' : typeKey;
-          const bands = getBidBands(asset.assetDefinitionId, selectedPeriod);
-          const totalBid = bands.reduce((s, b) => s + (b.quantityMW || 0), 0);
-          const maxBands = roundConfig.maxBidBandsPerAsset;
-          const def = getAssetDef(asset.assetDefinitionId);
+          {/* ── Thermal Bid Table ── */}
+          {(() => {
+            const maxBands = roundConfig.maxBidBandsPerAsset;
 
-          return (
-            <div key={asset.assetDefinitionId} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
-              asset.isForceOutage ? 'border-red-300 opacity-70' : 'border-gray-200'
-            }`}>
-              {/* Asset Header */}
-              <div className="px-4 py-3 flex items-center gap-2 border-b border-gray-100"
-                   style={{ borderLeft: `4px solid ${ASSET_COLORS[fullTypeKey as AssetType] || '#999'}` }}>
-                <span className="text-lg">{ASSET_ICONS[fullTypeKey as AssetType] || '🏭'}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-800">
-                      {def?.name || ASSET_TYPE_LABELS[fullTypeKey as AssetType] || typeKey}
-                    </span>
-                    {def && (
-                      <span className={`text-xs font-extrabold px-2 py-0.5 rounded-lg border ${
-                        def.srmcPerMWh === 0 ? 'bg-green-100 text-green-800 border-green-300' :
-                        def.srmcPerMWh < 50 ? 'bg-blue-100 text-blue-800 border-blue-300' :
-                        def.srmcPerMWh < 100 ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                        'bg-red-100 text-red-800 border-red-300'
-                      }`}>
-                        Cost ${def.srmcPerMWh}/MWh
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {formatMW(asset.currentAvailableMW)} available
-                    {asset.isForceOutage && <span className="text-red-500"> (OUTAGE)</span>}
-                  </div>
-                </div>
-                <div className={`text-xs font-mono px-2 py-1 rounded flex-shrink-0 ${
-                  totalBid > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                }`}>
-                  {totalBid}/{asset.currentAvailableMW} MW
+            return (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-gray-200 bg-gray-50">
+                        <th className="text-left py-2 pl-3 pr-2 text-gray-600 font-semibold text-xs sticky left-0 bg-gray-50 z-10 min-w-[140px]">Asset</th>
+                        {periods.map(p => {
+                          const desc = getPeriodDescriptions(p as TimePeriod, roundConfig.season, availableAssetTypes);
+                          return (
+                            <th key={p} className="text-center py-2 px-1 text-gray-600 font-semibold text-xs min-w-[120px]">
+                              <div>{desc.icon} {desc.label}</div>
+                              <div className="text-[9px] font-normal text-gray-400">{formatMW(roundConfig.baseDemandMW[p] || 0)} demand</div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* ── Renewable rows (read-only — generation pattern) ── */}
+                      {renewableAssets.map(asset => {
+                        const def = getAssetDef(asset.assetDefinitionId);
+                        const typeKey = getFullTypeKey(asset.assetDefinitionId);
+                        return (
+                          <tr key={asset.assetDefinitionId} className="border-b border-gray-100 bg-green-50/30">
+                            <td className="py-2 pl-3 pr-2 sticky left-0 bg-green-50/30 z-10">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm">{ASSET_ICONS[typeKey] || '⚡'}</span>
+                                <div>
+                                  <div className="text-xs font-medium text-gray-700">{def?.name || typeKey}</div>
+                                  <div className="text-[10px] text-green-600 italic">Generation forecast · $0/MWh</div>
+                                </div>
+                              </div>
+                            </td>
+                            {periods.map(p => {
+                              const mw = def?.availabilityByPeriod?.[p] ?? asset.currentAvailableMW;
+                              return (
+                                <td key={p} className="py-2 px-1 text-center">
+                                  <div className={`text-xs font-mono ${mw > 0 ? 'text-green-700' : 'text-gray-300'}`}>
+                                    {mw > 0 ? `${Math.round(mw)} MW` : '—'}
+                                  </div>
+                                  {mw > 0 && <div className="text-[8px] text-green-500">auto</div>}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+
+                      {/* ── Thermal rows (editable) ── */}
+                      {thermalAssets.map(asset => {
+                        const typeKey = getFullTypeKey(asset.assetDefinitionId);
+                        const def = getAssetDef(asset.assetDefinitionId);
+                        return (
+                          <tr key={asset.assetDefinitionId} className={`border-b border-gray-100 ${
+                            asset.isForceOutage ? 'opacity-50' : ''
+                          }`}>
+                            <td className="py-2 pl-3 pr-2 sticky left-0 bg-white z-10">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm">{ASSET_ICONS[typeKey] || '🏭'}</span>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-semibold text-gray-800 truncate">{def?.name || typeKey}</div>
+                                  <div className="text-[10px] text-gray-400">
+                                    ${def?.srmcPerMWh}/MWh · {Math.round(asset.currentAvailableMW)} MW
+                                    {asset.isForceOutage && <span className="text-red-500 ml-1">OUTAGE</span>}
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Quick bid row — applies to all periods */}
+                              {!asset.isForceOutage && (
+                                <div className="flex gap-1 mt-1">
+                                  <button
+                                    onClick={() => periods.forEach(p => onQuickBid(asset.assetDefinitionId, p as TimePeriod, 'zero'))}
+                                    className="px-1.5 py-0.5 bg-green-50 text-green-700 text-[9px] rounded border border-green-200 hover:bg-green-100"
+                                  >$0 all</button>
+                                  <button
+                                    onClick={() => periods.forEach(p => onQuickBid(asset.assetDefinitionId, p as TimePeriod, 'srmc'))}
+                                    className="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[9px] rounded border border-blue-200 hover:bg-blue-100 font-medium"
+                                  >${def?.srmcPerMWh} all</button>
+                                  <button
+                                    onClick={() => periods.forEach(p => onQuickBid(asset.assetDefinitionId, p as TimePeriod, 'high'))}
+                                    className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[9px] rounded border border-amber-200 hover:bg-amber-100"
+                                  >$500 all</button>
+                                </div>
+                              )}
+                            </td>
+                            {periods.map(p => {
+                              const period = p as TimePeriod;
+                              const bands = getBidBands(asset.assetDefinitionId, period);
+                              return (
+                                <td key={p} className="py-2 px-1 align-top">
+                                  <div className="flex flex-col items-center space-y-1">
+                                    {bands.map((band, i) => {
+                                      const walkthroughExpl = walkthrough?.suggestedBids
+                                        ?.filter(s => s.period === period && (s.assetType === typeKey || s.assetType === asset.assetDefinitionId.split('_')[0]))
+                                        ?.[i]?.explanation;
+                                      return (
+                                        <div key={i} className="flex gap-0.5">
+                                          <input
+                                            type="number"
+                                            value={band.pricePerMWh ?? ''}
+                                            onChange={e => onUpdateBand(asset.assetDefinitionId, period, i, 'pricePerMWh', parseFloat(e.target.value) || 0)}
+                                            onFocus={e => e.target.select()}
+                                            placeholder="$"
+                                            className={`w-14 px-1 py-0.5 border rounded text-[11px] font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                                              walkthroughExpl ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
+                                            }`}
+                                            min={-1000}
+                                            max={20000}
+                                          />
+                                          <input
+                                            type="number"
+                                            value={band.quantityMW ?? ''}
+                                            onChange={e => onUpdateBand(asset.assetDefinitionId, period, i, 'quantityMW', parseFloat(e.target.value) || 0)}
+                                            onFocus={e => e.target.select()}
+                                            placeholder="MW"
+                                            className={`w-14 px-1 py-0.5 border rounded text-[11px] font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                                              walkthroughExpl ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
+                                            }`}
+                                            min={0}
+                                            max={asset.currentAvailableMW}
+                                          />
+                                        </div>
+                                      );
+                                    })}
+                                    {bands.length < maxBands && !asset.isForceOutage && (
+                                      <button
+                                        onClick={() => onAddBand(asset.assetDefinitionId, period)}
+                                        className="text-[9px] text-blue-500 hover:text-blue-700 hover:underline"
+                                      >
+                                        + band
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+
+                      {/* ── Summary rows ── */}
+                      <tr className="bg-gray-50 font-bold border-t-2 border-gray-300">
+                        <td className="py-2 pl-3 pr-2 text-xs text-gray-700 sticky left-0 bg-gray-50 z-10">Thermal Total</td>
+                        {periods.map(p => (
+                          <td key={p} className="py-2 px-1 text-center text-xs text-gray-700">
+                            {formatMW(thermalTotalByPeriod[p] || 0)}
+                          </td>
+                        ))}
+                      </tr>
+                      {renewableAssets.length > 0 && (
+                        <tr className="bg-green-50/50">
+                          <td className="py-1.5 pl-3 pr-2 text-xs text-green-700 sticky left-0 bg-green-50/50 z-10">+ Renewables</td>
+                          {periods.map(p => (
+                            <td key={p} className="py-1.5 px-1 text-center text-xs text-green-700">
+                              {formatMW(renewableTotalByPeriod[p] || 0)}
+                            </td>
+                          ))}
+                        </tr>
+                      )}
+                      <tr className="bg-blue-50 font-bold">
+                        <td className="py-2 pl-3 pr-2 text-xs text-blue-800 sticky left-0 bg-blue-50 z-10">= Total Offered</td>
+                        {periods.map(p => {
+                          const total = (thermalTotalByPeriod[p] || 0) + (renewableTotalByPeriod[p] || 0);
+                          return (
+                            <td key={p} className="py-2 px-1 text-center text-xs text-blue-800">
+                              {formatMW(total)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr className="border-t border-gray-200">
+                        <td className="py-1.5 pl-3 pr-2 text-xs text-gray-500 sticky left-0 bg-white z-10">Demand (your share)</td>
+                        {periods.map(p => {
+                          const demand = roundConfig.baseDemandMW[p] || 0;
+                          const proRata = Math.round(demand / teamCount);
+                          return (
+                            <td key={p} className="py-1.5 px-1 text-center text-xs text-gray-500">
+                              {formatMW(proRata)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr>
+                        <td className="py-2 pl-3 pr-2 text-xs font-bold text-gray-700 sticky left-0 bg-white z-10">% of Demand</td>
+                        {periods.map(p => {
+                          const totalOffered = (thermalTotalByPeriod[p] || 0) + (renewableTotalByPeriod[p] || 0);
+                          const demand = roundConfig.baseDemandMW[p] || 0;
+                          const proRata = Math.round(demand / teamCount);
+                          const pct = proRata > 0 ? Math.round((totalOffered / proRata) * 100) : 0;
+                          const colorCls = pct >= 100
+                            ? 'text-green-700 bg-green-50'
+                            : pct >= 80
+                            ? 'text-amber-700 bg-amber-50'
+                            : 'text-red-700 bg-red-50';
+                          return (
+                            <td key={p} className={`py-2 px-1 text-center text-xs font-bold rounded ${colorCls}`}>
+                              {pct}%
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
+            );
+          })()}
+        </div>
+      )}
 
-              {/* Battery Mode Toggle (replaces normal bid inputs for battery assets) */}
-              {def?.type === 'battery' && props.batteryModes && props.onBatteryModeChange && props.onChargeMWChange ? (
-                <div className="px-4 py-3">
-                  <BatteryModeToggle
-                    asset={asset}
-                    assetDef={def as any}
-                    period={selectedPeriod}
-                    mode={props.batteryModes.get(`${asset.assetDefinitionId}_${selectedPeriod}`) || 'idle'}
-                    chargeMW={props.chargeMWs?.get(`${asset.assetDefinitionId}_${selectedPeriod}`) || 0}
-                    bands={bands}
-                    maxBands={maxBands}
-                    onModeChange={(mode) => props.onBatteryModeChange!(asset.assetDefinitionId, selectedPeriod, mode)}
-                    onChargeMWChange={(mw) => props.onChargeMWChange!(asset.assetDefinitionId, selectedPeriod, mw)}
-                    onUpdateBand={(bandIndex, field, value) => onUpdateBand(asset.assetDefinitionId, selectedPeriod, bandIndex, field, value)}
-                    onAddBand={() => onAddBand(asset.assetDefinitionId, selectedPeriod)}
-                    walkthroughExplanation={walkthrough?.suggestedBids
-                      ?.filter(s => s.period === selectedPeriod && (s.assetType === fullTypeKey || s.assetType === typeKey))
-                      ?.[0]?.explanation}
-                  />
-                </div>
-              ) : (
-                <>
-                  {/* Quick Bid Buttons */}
-                  <div className="px-4 py-2 flex gap-2 border-b border-gray-50 bg-gray-50/50">
-                    <span className="text-[10px] text-gray-400 self-center mr-1">Quick:</span>
-                    <button
-                      onClick={() => onQuickBid(asset.assetDefinitionId, selectedPeriod, 'zero')}
-                      className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200 hover:bg-green-100"
-                    >
-                      $0
-                    </button>
-                    <button
-                      onClick={() => onQuickBid(asset.assetDefinitionId, selectedPeriod, 'srmc')}
-                      className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs rounded border border-blue-200 hover:bg-blue-100 font-medium"
-                    >
-                      ${def?.srmcPerMWh ?? '?'} (cost)
-                    </button>
-                    <button
-                      onClick={() => onQuickBid(asset.assetDefinitionId, selectedPeriod, 'high')}
-                      className="px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded border border-amber-200 hover:bg-amber-100"
-                    >
-                      $500
-                    </button>
-                  </div>
-
-                  {/* Bid Bands */}
-                  <div className="px-4 py-3 space-y-2">
-                    {bands.map((band, i) => {
-                      const walkthroughExplanation = walkthrough?.suggestedBids
-                        ?.filter(s => s.period === selectedPeriod && (s.assetType === fullTypeKey || s.assetType === typeKey))
-                        ?.[i]?.explanation;
-
-                      return (
-                        <div key={i}>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400 w-4">{i + 1}</span>
-                            <div className="flex-1 flex gap-2">
-                              <div className="flex-1">
-                                <label className="text-[10px] text-gray-400">Price $/MWh</label>
-                                <input
-                                  type="number"
-                                  value={band.pricePerMWh ?? ''}
-                                  onChange={e => onUpdateBand(asset.assetDefinitionId, selectedPeriod, i, 'pricePerMWh', parseFloat(e.target.value) || 0)}
-                                  onFocus={e => e.target.select()}
-                                  placeholder="Price"
-                                  className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-                                    walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
-                                  }`}
-                                  min={-1000}
-                                  max={20000}
-                                />
-                              </div>
-                              <div className="flex-1">
-                                <label className="text-[10px] text-gray-400">Quantity MW</label>
-                                <input
-                                  type="number"
-                                  value={band.quantityMW ?? ''}
-                                  onChange={e => onUpdateBand(asset.assetDefinitionId, selectedPeriod, i, 'quantityMW', parseFloat(e.target.value) || 0)}
-                                  onFocus={e => e.target.select()}
-                                  placeholder="MW"
-                                  className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-                                    walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
-                                  }`}
-                                  min={0}
-                                  max={asset.currentAvailableMW}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          {walkthroughExplanation && (
-                            <div className="ml-6 mt-1 mb-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
-                              <div className="flex items-start gap-1.5">
-                                <span className="text-purple-500 text-xs mt-0.5">💡</span>
-                                <p className="text-[11px] text-purple-700 leading-relaxed">{walkthroughExplanation}</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {bands.length < maxBands && (
-                      <button
-                        onClick={() => onAddBand(asset.assetDefinitionId, selectedPeriod)}
-                        className="w-full py-1.5 text-xs text-blue-600 hover:bg-blue-50 rounded border border-dashed border-blue-200"
-                      >
-                        + Add Bid Band
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
+      {/* ══════════════════════════════════════════════════ */}
+      {/*  Section D: Battery                              */}
+      {/* ══════════════════════════════════════════════════ */}
+      {batteryAssets.length > 0 && (
+        <div className="space-y-2">
+          {stressPeriods.length > 0 ? (
+            <div className="bg-red-50 border border-red-300 rounded-xl px-4 py-3">
+              <h4 className="text-sm font-bold text-red-800 mb-0.5">
+                🔋⚠️ Battery is CRITICAL This Round
+              </h4>
+              <p className="text-[11px] text-red-700 leading-relaxed">
+                Without battery discharge, supply can't meet demand in <strong>{stressPeriods.length} period{stressPeriods.length > 1 ? 's' : ''}</strong>. Every team's battery must contribute to keep the grid balanced.
+              </p>
             </div>
-          );
-        })}
-      </div>
+          ) : (
+            <div className="bg-lime-50 border border-lime-200 rounded-xl px-4 py-3">
+              <h4 className="text-sm font-bold text-lime-800 mb-0.5">
+                🔋 Battery — Choose Based on Supply/Demand Balance
+              </h4>
+              <p className="text-[11px] text-lime-700 leading-relaxed">
+                Use the supply/demand balance below to decide: <strong>charge</strong> when supply is surplus (cheap prices), <strong>discharge</strong> when supply is tight (high prices), or <strong>idle</strong> to hold.
+              </p>
+            </div>
+          )}
+
+          {/* Period Tabs — battery mode is per-period */}
+          <div className="flex gap-1 overflow-x-auto pb-1">
+            {roundConfig.timePeriods.map(p => {
+              const desc = getPeriodDescriptions(p as TimePeriod, roundConfig.season, availableAssetTypes);
+              const demandMW = roundConfig.baseDemandMW[p] || 0;
+              return (
+                <button
+                  key={p}
+                  onClick={() => onPeriodChange(p as TimePeriod)}
+                  className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                    selectedPeriod === p
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-white text-gray-600 border border-gray-200'
+                  }`}
+                >
+                  <div>{desc.icon} {desc.label}</div>
+                  <div className={`text-[10px] font-mono mt-0.5 ${selectedPeriod === p ? 'text-white/70' : 'text-gray-400'}`}>
+                    {formatMW(demandMW)}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── Supply/Demand Balance Diagram ── */}
+          {gameState.fleetInfo && (
+            <SupplyDemandDiagram
+              selectedPeriod={selectedPeriod}
+              periods={periods as TimePeriod[]}
+              fleetInfo={gameState.fleetInfo}
+              teamCount={teamCount}
+              season={roundConfig.season}
+              availableAssetTypes={availableAssetTypes}
+              thermalTotalByPeriod={thermalTotalByPeriod}
+              renewableTotalByPeriod={renewableTotalByPeriod}
+              hydroTotalByPeriod={hydroTotalByPeriod}
+              batteryNetMW={batteryNetMW}
+              batteryCapacityMW={batteryCapacityMW}
+            />
+          )}
+
+          {/* ── Smart Battery Warning (stress period + battery not discharging) ── */}
+          {isCurrentPeriodStress && batteryNetMW <= 0 && batteryCapacityMW > 0 && onBatteryModeChange && (
+            <div className={`rounded-xl border-2 px-4 py-3 ${
+              batteryNetMW < 0 ? 'bg-red-50 border-red-400' : 'bg-amber-50 border-amber-300'
+            }`}>
+              <div className="flex items-start gap-2">
+                <span className="text-lg animate-pulse">
+                  {batteryNetMW < 0 ? '🚨' : '⚠️'}
+                </span>
+                <div className="flex-1">
+                  {batteryNetMW < 0 ? (
+                    <div className="text-xs text-red-800 leading-relaxed">
+                      <span className="font-bold">Charging adds {Math.round(Math.abs(batteryNetMW))} MW to your demand during a supply shortfall.</span>{' '}
+                      Your effective shortfall is {Math.round(currentPeriodGap + Math.abs(batteryNetMW))} MW. Switch to Discharge to help the grid.
+                    </div>
+                  ) : (
+                    <div className="text-xs text-amber-800 leading-relaxed">
+                      <span className="font-bold">Your supply doesn't meet your demand share — {Math.round(currentPeriodGap)} MW shortfall.</span>{' '}
+                      Switch to Discharge to contribute up to {Math.round(Math.min(currentPeriodGap, batteryCapacityMW))} MW and help the grid stay balanced.
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      batteryAssets.forEach(a => {
+                        onBatteryModeChange(a.assetDefinitionId, selectedPeriod, 'discharge');
+                      });
+                    }}
+                    className="mt-2 px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                  >
+                    🔋 Switch to Discharge
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {batteryAssets.map(asset => {
+            const typeKey = asset.assetDefinitionId.split('_')[0] as AssetType;
+            const fullTypeKey = asset.assetDefinitionId.includes('ccgt') ? 'gas_ccgt' :
+                                asset.assetDefinitionId.includes('peaker') ? 'gas_peaker' : typeKey;
+            const bands = getBidBands(asset.assetDefinitionId, selectedPeriod);
+            const totalBid = bands.reduce((s, b) => s + (b.quantityMW || 0), 0);
+            const maxBands = roundConfig.maxBidBandsPerAsset;
+            const def = getAssetDef(asset.assetDefinitionId);
+            if (!def) return null;
+
+            return (
+              <div key={asset.assetDefinitionId} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
+                asset.isForceOutage ? 'border-red-300 opacity-70' : 'border-gray-200'
+              }`}>
+                {/* Asset Header */}
+                <div className="px-4 py-3 flex items-center gap-2 border-b border-gray-100"
+                     style={{ borderLeft: `4px solid ${ASSET_COLORS[fullTypeKey as AssetType] || '#999'}` }}>
+                  <span className="text-lg">{ASSET_ICONS[fullTypeKey as AssetType] || '🏭'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-800">
+                        {def.name}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatMW(asset.currentAvailableMW)} available
+                      {asset.isForceOutage && <span className="text-red-500"> (OUTAGE)</span>}
+                    </div>
+                  </div>
+                  <div className={`text-xs font-mono px-2 py-1 rounded flex-shrink-0 ${
+                    totalBid > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {totalBid}/{asset.currentAvailableMW} MW
+                  </div>
+                </div>
+
+                {/* Battery Mode Toggle */}
+                {batteryModes && onBatteryModeChange && onChargeMWChange ? (
+                  <div className="px-4 py-3">
+                    <BatteryModeToggle
+                      asset={asset}
+                      assetDef={def as any}
+                      period={selectedPeriod}
+                      mode={batteryModes.get(`${asset.assetDefinitionId}_${selectedPeriod}`) || 'idle'}
+                      chargeMW={chargeMWs?.get(`${asset.assetDefinitionId}_${selectedPeriod}`) || 0}
+                      bands={bands}
+                      maxBands={maxBands}
+                      onModeChange={(mode) => onBatteryModeChange(asset.assetDefinitionId, selectedPeriod, mode)}
+                      onChargeMWChange={(mw) => onChargeMWChange(asset.assetDefinitionId, selectedPeriod, mw)}
+                      onUpdateBand={(bandIndex, field, value) => onUpdateBand(asset.assetDefinitionId, selectedPeriod, bandIndex, field, value)}
+                      onAddBand={() => onAddBand(asset.assetDefinitionId, selectedPeriod)}
+                      walkthroughExplanation={walkthrough?.suggestedBids
+                        ?.filter(s => s.period === selectedPeriod && (s.assetType === fullTypeKey || s.assetType === typeKey))
+                        ?.[0]?.explanation}
+                      projectedSOCMWh={projectedSOCByAssetPeriod[asset.assetDefinitionId]?.[selectedPeriod]}
+                      allPeriods={periods as TimePeriod[]}
+                      projectedSOCByPeriod={projectedSOCByAssetPeriod[asset.assetDefinitionId]}
+                      stressPeriods={stressPeriods}
+                    />
+                  </div>
+                ) : (
+                  <div className="px-4 py-3 text-xs text-gray-400">Battery controls unavailable</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Back button */}
       <button

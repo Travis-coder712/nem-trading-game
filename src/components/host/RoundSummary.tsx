@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type {
   RoundDispatchResult, RoundAnalysis, LeaderboardEntry,
-  RoundConfig, TimePeriod,
+  RoundConfig, TimePeriod, AssetCategoryBreakdown,
 } from '../../../shared/types';
 import { TIME_PERIOD_SHORT_LABELS, SEASON_LABELS, ASSET_TYPE_LABELS } from '../../../shared/types';
 import { ASSET_ICONS } from '../../lib/colors';
-import { formatCurrency, formatMW, formatNumber } from '../../lib/formatters';
+import { formatCurrency, formatMW, formatMWh, formatNumber } from '../../lib/formatters';
 import MeritOrderChart from '../charts/MeritOrderChart';
 import StackedMeritOrderChart from '../charts/StackedMeritOrderChart';
 import ProfitLossBar from '../charts/ProfitLossBar';
@@ -32,6 +32,7 @@ const SEASON_CONFIG: Record<string, { icon: string; color: string }> = {
 const SLIDE_TITLES = [
   'What Happened',
   'The Merit Order',
+  'Performance by Asset Type',
   'Winners & Losers',
   'Key Takeaways',
   'Coming Up Next',
@@ -51,7 +52,7 @@ export default function RoundSummary({
   const [direction, setDirection] = useState(1);
   const [chartTab, setChartTab] = useState<'stacked' | 'merit'>('stacked');
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('day_peak');
-  const totalSlides = 5;
+  const totalSlides = 6;
 
   const seasonCfg = SEASON_CONFIG[roundConfig.season] || SEASON_CONFIG.summer;
   const isLastRound = roundNumber >= totalRounds;
@@ -138,7 +139,9 @@ export default function RoundSummary({
               className={`border rounded-2xl p-5 text-center ${
                 pr.oversupplyNegativePriceTriggered
                   ? 'bg-red-500/10 border-red-500/30'
-                  : 'bg-white/5 border-white/10'
+                  : pr.aemoInterventionTriggered
+                    ? 'bg-amber-500/10 border-amber-500/30'
+                    : 'bg-white/5 border-white/10'
               }`}
             >
               <div className="text-sm text-navy-400 mb-1 uppercase tracking-wide">{label}</div>
@@ -156,6 +159,14 @@ export default function RoundSummary({
                   ⚡ Oversupply! Supply {'>'} 3× demand → price floor
                 </div>
               )}
+              {pr.aemoInterventionTriggered && (
+                <div className="mt-2 px-2 py-1 bg-amber-500/20 rounded-lg text-xs text-amber-300 font-medium">
+                  🚨 AEMO Intervention: Emergency gen after 1hr
+                  <div className="text-amber-400 font-mono mt-0.5">
+                    Effective: ${formatNumber(pr.aemoEffectivePriceMWh || 0)}/MWh
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -167,6 +178,18 @@ export default function RoundSummary({
           {roundAnalysis.overallSummary}
         </p>
       </div>
+
+      {/* Strategic withdrawal warnings */}
+      {roundAnalysis.strategicWithdrawalWarnings && roundAnalysis.strategicWithdrawalWarnings.length > 0 && (
+        <div className="max-w-3xl w-full mt-6 bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
+          <div className="text-sm font-semibold text-red-400 uppercase tracking-wide mb-2">
+            ⚠️ Strategic Withdrawal Detected
+          </div>
+          {roundAnalysis.strategicWithdrawalWarnings.map((w, i) => (
+            <p key={i} className="text-sm text-navy-200 mb-1">{w.explanation}</p>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -261,7 +284,90 @@ export default function RoundSummary({
   };
 
   // ═══════════════════════════════════════
-  //  SLIDE 2: Winners & Losers
+  //  SLIDE 2: Performance by Asset Type
+  // ═══════════════════════════════════════
+  const renderSlideAssetCategory = () => {
+    const breakdown = roundAnalysis.assetCategoryBreakdown;
+    if (!breakdown || breakdown.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full px-12 py-8">
+          <div className="text-4xl mb-4">📊</div>
+          <h2 className="text-2xl font-bold text-white mb-2">Performance by Asset Type</h2>
+          <p className="text-navy-300">No asset category data available for this round.</p>
+        </div>
+      );
+    }
+
+    // Category-specific card styling
+    const categoryStyles: Record<string, { bg: string; border: string; accent: string }> = {
+      renewables: { bg: 'bg-green-500/5', border: 'border-green-500/20', accent: 'text-green-400' },
+      battery:    { bg: 'bg-emerald-500/5', border: 'border-emerald-500/20', accent: 'text-emerald-400' },
+      hydro:      { bg: 'bg-sky-500/5', border: 'border-sky-500/20', accent: 'text-sky-400' },
+      fossil:     { bg: 'bg-amber-500/5', border: 'border-amber-500/20', accent: 'text-amber-400' },
+    };
+
+    // Responsive grid: 2x2 on mobile, up to 4 columns on desktop
+    const gridCols = breakdown.length >= 4
+      ? 'grid-cols-2 md:grid-cols-4'
+      : breakdown.length === 3
+        ? 'grid-cols-2 md:grid-cols-3'
+        : breakdown.length === 2
+          ? 'grid-cols-1 md:grid-cols-2'
+          : '';
+
+    return (
+      <div className="flex flex-col h-full px-8 py-6">
+        <h2 className="text-2xl font-bold text-white mb-6 text-center">
+          📊 Performance by Asset Type
+        </h2>
+
+        <div className={`grid ${gridCols} gap-4 flex-1`}>
+          {breakdown.map(cat => {
+            const style = categoryStyles[cat.category] || categoryStyles.fossil;
+            return (
+              <div key={cat.category} className={`${style.bg} ${style.border} border rounded-2xl p-5 flex flex-col`}>
+                <div className="text-center mb-4">
+                  <span className="text-3xl">{cat.categoryIcon}</span>
+                  <h3 className={`text-lg font-bold mt-2 ${style.accent}`}>{cat.categoryLabel}</h3>
+                  <div className={`text-2xl font-mono font-bold mt-1 ${
+                    cat.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {formatCurrency(cat.totalProfit)}
+                  </div>
+                  <div className="text-xs text-navy-400 mt-1">
+                    {formatMWh(cat.totalEnergyMWh)} generated
+                  </div>
+                  {cat.totalRevenue > 0 && (
+                    <div className="text-xs text-navy-500 mt-0.5">
+                      Revenue: {formatCurrency(cat.totalRevenue)} | Cost: {formatCurrency(cat.totalCost)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Per-team bars */}
+                <div className="space-y-2 mt-auto">
+                  {cat.teamBreakdowns.map(tb => (
+                    <div key={tb.teamId} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: tb.color }} />
+                      <span className="text-xs text-navy-300 flex-1 truncate">{tb.teamName}</span>
+                      <span className={`text-xs font-mono font-medium ${
+                        tb.profit >= 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {formatCurrency(tb.profit)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ═══════════════════════════════════════
+  //  SLIDE 3: Winners & Losers
   // ═══════════════════════════════════════
   const renderSlide2 = () => {
     const top3 = leaderboard.slice(0, 3);
@@ -488,7 +594,7 @@ export default function RoundSummary({
     );
   };
 
-  const slides = [renderSlide0, renderSlide1, renderSlide2, renderSlide3, renderSlide4];
+  const slides = [renderSlide0, renderSlide1, renderSlideAssetCategory, renderSlide2, renderSlide3, renderSlide4];
 
   return (
     <div className="fixed inset-0 z-[100] bg-gradient-to-br from-navy-800 to-navy-950 flex flex-col">

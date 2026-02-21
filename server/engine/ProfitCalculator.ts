@@ -9,9 +9,11 @@ import type {
  *
  * Revenue = dispatched_MW * period_hours * clearing_price
  * Variable Cost = dispatched_MW * period_hours * SRMC
- * Startup Cost = fixed cost if unit was not dispatched in prior period
  * Battery Charge Cost = charge_MW * period_hours * clearing_price
- * Profit = Revenue - Variable Cost - Startup Cost - Battery Charge Cost
+ * Profit = Revenue - Variable Cost - Battery Charge Cost
+ *
+ * Note: Startup costs are intentionally excluded so that bidding at SRMC
+ * results in break-even, which is more intuitive for learners.
  */
 export function calculateTeamResults(
   teamId: string,
@@ -34,10 +36,17 @@ export function calculateTeamResults(
 
   // Track battery SOC across periods (keyed by assetDefinitionId)
   const batterySOC = new Map<string, number>();
+  // Track hydro SOC across periods (keyed by assetDefinitionId)
+  const hydroSOC = new Map<string, number>();
   if (teamAssets) {
     for (const asset of teamAssets) {
       if (asset.currentStorageMWh != null && asset.maxStorageMWh != null) {
-        batterySOC.set(asset.assetDefinitionId, asset.currentStorageMWh);
+        const def = assetDefs.get(asset.assetDefinitionId);
+        if (def?.type === 'hydro') {
+          hydroSOC.set(asset.assetDefinitionId, asset.currentStorageMWh);
+        } else {
+          batterySOC.set(asset.assetDefinitionId, asset.currentStorageMWh);
+        }
       }
     }
   }
@@ -46,6 +55,14 @@ export function calculateTeamResults(
     const period = periodResult.timePeriod;
     const hours = periodDurations[period] || 6;
     const clearingPrice = periodResult.clearingPriceMWh;
+
+    // AEMO Intervention: When price cap was hit, emergency generation restores
+    // supply after 1 hour. Use blended price: 1/6 at cap + 5/6 at restored price.
+    // This prevents unrealistically large profits from full-period price cap.
+    let effectivePrice = clearingPrice;
+    if (periodResult.aemoInterventionTriggered && periodResult.aemoRestoredPriceMWh != null) {
+      effectivePrice = (clearingPrice * 1 + periodResult.aemoRestoredPriceMWh * 5) / 6;
+    }
 
     // Find this team's dispatched bands
     const teamDispatchedBands = periodResult.meritOrderStack.filter(
@@ -90,14 +107,11 @@ export function calculateTeamResults(
       }
 
       const energyMWh = dispatchedMW * hours;
-      const revenue = energyMWh * clearingPrice;
+      const revenue = energyMWh * effectivePrice;
       const variableCost = energyMWh * assetDef.srmcPerMWh;
 
-      // Startup cost if unit was off in previous period
-      const wasRunning = previouslyDispatched.has(assetId);
-      const startupCost = (!wasRunning && dispatchedMW > 0)
-        ? assetDef.startupCostDollars
-        : 0;
+      // Startup costs excluded — bidding at SRMC should break even
+      const startupCost = 0;
 
       // Battery discharge: track SOC
       let storageAtStartMWh: number | undefined;
@@ -110,6 +124,19 @@ export function calculateTeamResults(
         const energyUsed = Math.min(energyMWh, storageAtStartMWh);
         storageAtEndMWh = Math.max(0, storageAtStartMWh - energyUsed);
         batterySOC.set(assetId, storageAtEndMWh);
+      }
+
+      // Hydro storage tracking: deduct dispatched energy from water storage
+      let hydroStorageAtStartMWh: number | undefined;
+      let hydroStorageAtEndMWh: number | undefined;
+      let isHydroDispatchPeriod: boolean | undefined;
+
+      if (assetDef.type === 'hydro' && hydroSOC.has(assetId)) {
+        hydroStorageAtStartMWh = hydroSOC.get(assetId)!;
+        const energyUsed = Math.min(energyMWh, hydroStorageAtStartMWh);
+        hydroStorageAtEndMWh = Math.max(0, hydroStorageAtStartMWh - energyUsed);
+        hydroSOC.set(assetId, hydroStorageAtEndMWh);
+        isHydroDispatchPeriod = dispatchedMW > 0;
       }
 
       const profit = revenue - variableCost - startupCost;
@@ -128,12 +155,15 @@ export function calculateTeamResults(
         batteryMode,
         storageAtStartMWh,
         storageAtEndMWh,
+        hydroStorageAtStartMWh: hydroStorageAtStartMWh != null ? Math.round(hydroStorageAtStartMWh * 100) / 100 : undefined,
+        hydroStorageAtEndMWh: hydroStorageAtEndMWh != null ? Math.round(hydroStorageAtEndMWh * 100) / 100 : undefined,
+        isHydroDispatchPeriod,
       });
 
       totalRevenue += revenue;
-      totalCost += variableCost + startupCost;
+      totalCost += variableCost;
       totalEnergy += energyMWh;
-      weightedPriceSum += clearingPrice * energyMWh;
+      weightedPriceSum += effectivePrice * energyMWh;
       weightedPriceWeight += energyMWh;
     }
 
@@ -158,7 +188,7 @@ export function calculateTeamResults(
         const actualEnergyFromGrid = Math.min(requestedEnergyMWh, maxChargeEnergyMWh);
         const energyStored = actualEnergyFromGrid * efficiency;
 
-        const chargeCost = actualEnergyFromGrid * clearingPrice;
+        const chargeCost = actualEnergyFromGrid * effectivePrice;
         const storageAtEnd = Math.min(maxStorage, currentSOC + energyStored);
         batterySOC.set(assetId, storageAtEnd);
 

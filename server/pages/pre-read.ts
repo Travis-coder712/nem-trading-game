@@ -1,5 +1,5 @@
 /**
- * Pre-Read Document for Watt Street
+ * Pre-Read Document for GridRival
  *
  * Served at /api/pre-read — open in browser, then File > Print > Save as PDF
  * to distribute to players before the session.
@@ -10,7 +10,7 @@ export function getPreReadHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Watt Street — Player Pre-Read</title>
+<title>GridRival — Player Pre-Read</title>
 <style>
   @page { margin: 1.5cm 2cm; size: A4; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -76,7 +76,7 @@ export function getPreReadHTML(): string {
 <!-- PAGE 1: COVER -->
 <div class="page cover">
   <div class="bolt">&#9889;</div>
-  <h1>Watt Street</h1>
+  <h1>GridRival</h1>
   <div class="subtitle">Player Pre-Read</div>
   <p class="tagline">
     An interactive electricity market simulation where you take on the role of a power generator,
@@ -116,6 +116,27 @@ export function getPreReadHTML(): string {
     <div class="card">
       <h4>Quantity (MW)</h4>
       <p>How many megawatts you're offering from each asset. You can split capacity across multiple bid bands at different prices.</p>
+    </div>
+  </div>
+
+  <h3>Bidding by Asset Type</h3>
+  <p>Different assets bid differently, just like the real NEM:</p>
+  <div class="two-col">
+    <div class="card">
+      <h4>&#127981; Thermal (Coal, Gas)</h4>
+      <p>Normal bidding. Set a price and quantity for each period. Strategy auto-fill available.</p>
+    </div>
+    <div class="card">
+      <h4>&#9728;&#65039;&#128168; Renewables (Solar, Wind)</h4>
+      <p>Auto-bid at <span class="stat">$0/MWh</span>. Capacity set by weather. No action needed &mdash; shown as read-only info cards.</p>
+    </div>
+    <div class="card">
+      <h4>&#128167; Hydro</h4>
+      <p>Choose <strong>ONE period</strong> to dispatch. Limited water &mdash; use it when prices are highest. Set your own bid price.</p>
+    </div>
+    <div class="card">
+      <h4>&#128267; Battery</h4>
+      <p>Toggle <strong>Charge / Idle / Discharge</strong> each period. 6-hour battery. Use &ldquo;Charge to X%&rdquo; target buttons.</p>
     </div>
   </div>
 
@@ -346,8 +367,9 @@ export function getPreReadHTML(): string {
     </div>
     <div class="card">
       <h4>&#128267; Battery Arbitrageur</h4>
-      <p>Charge your battery during cheap off-peak or solar-surplus periods, then discharge at premium during the evening peak. Your profit is the spread minus 8% efficiency loss.</p>
+      <p>Charge your 6-hour battery during cheap off-peak or solar-surplus periods, then discharge at premium during the evening peak. Use target SOC controls to set charge levels. Your profit is the spread minus 8% efficiency loss.</p>
       <p><em>Best when:</em> There are large price differences between periods (e.g., cheap solar midday, expensive evening).</p>
+      <p><em>Note:</em> Battery strategies work independently from thermal strategies &mdash; you can combine them.</p>
     </div>
     <div class="card">
       <h4>&#128202; Portfolio Thinker</h4>
@@ -370,6 +392,7 @@ export function getPreReadHTML(): string {
       <p><strong>Clearing Price</strong> &mdash; The price of the last (most expensive) dispatched generator. Everyone dispatched receives this price.</p>
       <p><strong>Dispatch</strong> &mdash; The process of AEMO selecting which generators run to meet demand.</p>
       <p><strong>Market Cap</strong> &mdash; Maximum price: $20,000/MWh. Floor: -$1,000/MWh.</p>
+      <p><strong>SOC (State of Charge)</strong> &mdash; How full a battery or hydro dam is, shown as a percentage bar. Tracks across periods within a round.</p>
     </div>
     <div>
       <p><strong>Merit Order</strong> &mdash; Bids sorted cheapest to most expensive. AEMO dispatches up the stack.</p>
@@ -379,11 +402,12 @@ export function getPreReadHTML(): string {
       <p><strong>Reserve Margin</strong> &mdash; How much spare capacity exists above demand. Low margins = high prices.</p>
       <p><strong>Gentailer</strong> &mdash; A company that both generates and retails electricity. The Big 3 in Australia&rsquo;s NEM (AGL, Origin, EnergyAustralia) are all gentailers.</p>
       <p><strong>Portfolio Effect</strong> &mdash; When losses on one asset are offset by gains on another, reducing overall risk and smoothing returns.</p>
+      <p><strong>Auto-bid</strong> &mdash; Renewable assets (wind, solar) automatically bid at $0/MWh. No team action needed.</p>
     </div>
   </div>
 
   <div class="footer" style="margin-top:2rem">
-    <p>Watt Street &mdash; Player Pre-Read Document &middot; 5 game modes &middot; 7 asset types</p>
+    <p>GridRival &mdash; Player Pre-Read Document &middot; 5 game modes &middot; 7 asset types</p>
     <p>Bring your device charged. No installation required. See you at the session!</p>
   </div>
 </div>

@@ -16,6 +16,31 @@ export const SOLAR_CAPACITY_FACTORS: Record<Season, Record<TimePeriod, number>> 
   spring: { night_offpeak: 0, day_offpeak: 0.50, day_peak: 0.65, night_peak: 0.08 },
 };
 
+// Seasonal multipliers for per-asset wind profiles (applied on top of the asset's base factors)
+// Summer = weakest wind, winter = strongest
+export const WIND_SEASONAL_MULTIPLIERS: Record<Season, number> = {
+  summer: 0.75,
+  autumn: 1.0,
+  winter: 1.2,
+  spring: 1.0,
+};
+
+/**
+ * Per-asset wind profiles representing different geographic locations.
+ * Each profile defines base capacity factors by time-of-day (season is applied as a multiplier).
+ * These stay the same for a given wind asset every round — only season changes the output.
+ */
+export const WIND_ASSET_PROFILES: Array<{ name: string; factors: Record<TimePeriod, number> }> = [
+  { name: 'Coastal',       factors: { night_offpeak: 0.38, day_offpeak: 0.32, day_peak: 0.28, night_peak: 0.40 } },
+  { name: 'Inland Plains',  factors: { night_offpeak: 0.30, day_offpeak: 0.25, day_peak: 0.20, night_peak: 0.35 } },
+  { name: 'Highland',       factors: { night_offpeak: 0.42, day_offpeak: 0.35, day_peak: 0.30, night_peak: 0.38 } },
+  { name: 'Southern Coast',  factors: { night_offpeak: 0.35, day_offpeak: 0.30, day_peak: 0.22, night_peak: 0.42 } },
+  { name: 'Northern Range',  factors: { night_offpeak: 0.28, day_offpeak: 0.22, day_peak: 0.18, night_peak: 0.32 } },
+  { name: 'Tablelands',      factors: { night_offpeak: 0.33, day_offpeak: 0.28, day_peak: 0.24, night_peak: 0.36 } },
+  { name: 'Western Corridor', factors: { night_offpeak: 0.36, day_offpeak: 0.30, day_peak: 0.26, night_peak: 0.38 } },
+  { name: 'Bass Strait',     factors: { night_offpeak: 0.44, day_offpeak: 0.38, day_peak: 0.32, night_peak: 0.45 } },
+];
+
 // SRMC variants for different teams to create natural merit order diversity
 const COAL_SRMC_VARIANTS = [28, 30, 32, 34, 36, 38, 40, 42, 35, 33, 31, 37, 39, 29, 41];
 const GAS_CCGT_SRMC_VARIANTS = [68, 72, 75, 78, 82, 70, 74, 80, 76, 73, 71, 77, 79, 69, 81];
@@ -117,9 +142,7 @@ export function createAssetDefinitionsForTeam(
       startupCostDollars: 0,
       mustRun: false,
       availableFromRound: 6,
-      capacityFactors: WIND_CAPACITY_FACTORS.autumn.night_offpeak !== undefined
-        ? WIND_CAPACITY_FACTORS.autumn as unknown as Record<TimePeriod, number>
-        : undefined,
+      capacityFactors: WIND_ASSET_PROFILES[teamIndex % WIND_ASSET_PROFILES.length].factors,
     },
     {
       id: `solar_${teamIndex}`,
@@ -165,11 +188,148 @@ export function createAssetDefinitionsForTeam(
       startupCostDollars: 0,
       mustRun: false,
       availableFromRound: 8,
-      maxStorageMWh: Math.round((batteryOverride?.nameplateMW ?? 500) * 4), // 4 hours of storage
+      maxStorageMWh: Math.round((batteryOverride?.nameplateMW ?? 500) * 6), // 6 hours of storage (matches period length)
       roundTripEfficiency: 0.92,
       maxChargeMW: batteryOverride?.nameplateMW ?? 500,
     },
   ];
+}
+
+/**
+ * Create a lean asset portfolio for First Run mode.
+ * Each team gets: 1 coal, 1 gas (CCGT or Peaker), 1 renewable (Wind or Solar), 1 battery.
+ * The gas/renewable assignment is deterministic per team index to ensure diversity and stable reconnects.
+ */
+export function createFirstRunAssetDefinitionsForTeam(
+  teamIndex: number,
+  overrides?: AssetConfigOverrides,
+  applyVariation: boolean = true,
+  teamCount: number = 15,
+): AssetDefinition[] {
+  const coalOverride = overrides?.coal;
+  const ccgtOverride = overrides?.gas_ccgt;
+  const peakerOverride = overrides?.gas_peaker;
+  const windOverride = overrides?.wind;
+  const solarOverride = overrides?.solar;
+  const batteryOverride = overrides?.battery;
+
+  // Deterministic assignment: alternate gas type and renewable type across teams
+  const getsGasCCGT = teamIndex % 2 === 0;
+  const getsWind = Math.floor(teamIndex / 2) % 2 === 0;
+
+  const assets: AssetDefinition[] = [
+    // Coal — always included (smaller for first run: 400 MW)
+    {
+      id: `coal_${teamIndex}`,
+      name: coalOverride?.name
+        ? `${coalOverride.name} ${teamIndex + 1}`
+        : getCoalPlantName(teamIndex),
+      type: 'coal',
+      nameplateMW: coalOverride?.nameplateMW ?? 400,
+      srmcPerMWh: coalOverride?.srmcPerMWh != null
+        ? getSrmcWithVariation(coalOverride.srmcPerMWh, teamIndex, teamCount, applyVariation)
+        : COAL_SRMC_VARIANTS[teamIndex % COAL_SRMC_VARIANTS.length],
+      minStableLoadMW: 120,
+      rampRateMWPerMin: 5,
+      startupCostDollars: 30000,
+      mustRun: false,
+      availableFromRound: 1,
+    },
+  ];
+
+  // Gas — either CCGT (200 MW) or Peaker (100 MW)
+  if (getsGasCCGT) {
+    assets.push({
+      id: `gas_ccgt_${teamIndex}`,
+      name: ccgtOverride?.name
+        ? `${ccgtOverride.name} ${teamIndex + 1}`
+        : getGasCCGTName(teamIndex),
+      type: 'gas_ccgt',
+      nameplateMW: ccgtOverride?.nameplateMW ?? 200,
+      srmcPerMWh: ccgtOverride?.srmcPerMWh != null
+        ? getSrmcWithVariation(ccgtOverride.srmcPerMWh, teamIndex, teamCount, applyVariation)
+        : GAS_CCGT_SRMC_VARIANTS[teamIndex % GAS_CCGT_SRMC_VARIANTS.length],
+      minStableLoadMW: 60,
+      rampRateMWPerMin: 10,
+      startupCostDollars: 15000,
+      mustRun: false,
+      availableFromRound: 5,
+    });
+  } else {
+    assets.push({
+      id: `gas_peaker_${teamIndex}`,
+      name: peakerOverride?.name
+        ? `${peakerOverride.name} ${teamIndex + 1}`
+        : getGasPeakerName(teamIndex),
+      type: 'gas_peaker',
+      nameplateMW: peakerOverride?.nameplateMW ?? 100,
+      srmcPerMWh: peakerOverride?.srmcPerMWh != null
+        ? getSrmcWithVariation(peakerOverride.srmcPerMWh, teamIndex, teamCount, applyVariation)
+        : GAS_PEAKER_SRMC_VARIANTS[teamIndex % GAS_PEAKER_SRMC_VARIANTS.length],
+      minStableLoadMW: 20,
+      rampRateMWPerMin: 25,
+      startupCostDollars: 3000,
+      mustRun: false,
+      availableFromRound: 5,
+    });
+  }
+
+  // Renewable — either Wind (200 MW) or Solar (150 MW)
+  if (getsWind) {
+    const windProfile = WIND_ASSET_PROFILES[teamIndex % WIND_ASSET_PROFILES.length];
+    assets.push({
+      id: `wind_${teamIndex}`,
+      name: windOverride?.name
+        ? `${windOverride.name} ${teamIndex + 1}`
+        : getWindFarmName(teamIndex),
+      type: 'wind',
+      nameplateMW: windOverride?.nameplateMW ?? 200,
+      srmcPerMWh: 0,
+      minStableLoadMW: 0,
+      rampRateMWPerMin: 50,
+      startupCostDollars: 0,
+      mustRun: false,
+      availableFromRound: 6,
+      capacityFactors: windProfile.factors,
+    });
+  } else {
+    assets.push({
+      id: `solar_${teamIndex}`,
+      name: solarOverride?.name
+        ? `${solarOverride.name} ${teamIndex + 1}`
+        : getSolarFarmName(teamIndex),
+      type: 'solar',
+      nameplateMW: solarOverride?.nameplateMW ?? 150,
+      srmcPerMWh: 0,
+      minStableLoadMW: 0,
+      rampRateMWPerMin: 100,
+      startupCostDollars: 0,
+      mustRun: false,
+      availableFromRound: 6,
+    });
+  }
+
+  // Battery — always included (smaller: 200 MW / 800 MWh)
+  const batteryMW = batteryOverride?.nameplateMW ?? 200;
+  assets.push({
+    id: `battery_${teamIndex}`,
+    name: batteryOverride?.name
+      ? `${batteryOverride.name} ${teamIndex + 1}`
+      : getBatteryName(teamIndex),
+    type: 'battery',
+    nameplateMW: batteryMW,
+    srmcPerMWh: 0,
+    minStableLoadMW: 0,
+    rampRateMWPerMin: 200,
+    startupCostDollars: 0,
+    mustRun: false,
+    availableFromRound: 8,
+    maxStorageMWh: Math.round(batteryMW * 6), // 6 hours of storage (matches period length)
+    roundTripEfficiency: 0.92,
+    maxChargeMW: batteryMW,
+  });
+
+  return assets;
 }
 
 export function getAvailableAssets(allAssets: AssetDefinition[], roundNumber: number, gameMode: string): AssetDefinition[] {
@@ -192,10 +352,18 @@ export function getAvailableAssets(allAssets: AssetDefinition[], roundNumber: nu
     1: 1, 2: 1, 3: 1, 4: 5, 5: 7, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8,
   };
 
+  // First Run: 8 rounds, lean portfolio (coal → +gas → +renewable → +battery)
+  // Round 1-3: coal only, Round 4: +gas, Round 5: +renewable, Round 6+: +battery
+  const firstRunModeRoundMap: Record<number, number> = {
+    1: 1, 2: 1, 3: 1, 4: 5, 5: 7, 6: 8, 7: 8, 8: 8,
+  };
+
   const effectiveRound = gameMode === 'quick'
     ? (quickModeRoundMap[roundNumber] || roundNumber)
     : gameMode === 'progressive'
     ? (progressiveModeRoundMap[roundNumber] || roundNumber)
+    : gameMode === 'first_run'
+    ? (firstRunModeRoundMap[roundNumber] || roundNumber)
     : roundNumber;
 
   return allAssets.filter(a => a.availableFromRound <= effectiveRound);
@@ -272,10 +440,23 @@ function getBatteryName(i: number): string {
   return `${names[i % names.length]} Battery`;
 }
 
-export function getWindCapacityFactor(season: Season, period: TimePeriod): number {
+/**
+ * Get wind capacity factor for a given season and period.
+ * If an asset definition is provided and has per-asset capacityFactors, use those
+ * as a base and apply a seasonal multiplier. Otherwise fall back to the global table.
+ */
+export function getWindCapacityFactor(season: Season, period: TimePeriod, assetDef?: AssetDefinition): number {
+  if (assetDef?.capacityFactors) {
+    // Per-asset wind profile: use asset's base factors and apply seasonal multiplier
+    const baseFactor = assetDef.capacityFactors[period] ?? 0.25;
+    const seasonMultiplier = WIND_SEASONAL_MULTIPLIERS[season] ?? 1.0;
+    return Math.min(1.0, baseFactor * seasonMultiplier);
+  }
   return WIND_CAPACITY_FACTORS[season]?.[period] ?? 0.25;
 }
 
 export function getSolarCapacityFactor(season: Season, period: TimePeriod): number {
+  // Hard constraint: solar NEVER produces during overnight period (12am-6am)
+  if (period === 'night_offpeak') return 0;
   return SOLAR_CAPACITY_FACTORS[season]?.[period] ?? 0;
 }

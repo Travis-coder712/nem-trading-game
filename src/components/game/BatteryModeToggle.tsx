@@ -5,9 +5,10 @@
  * charge / idle / discharge toggle. Shows SOC bar, mode-specific controls,
  * and contextual hints.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { formatNumber } from '../../lib/formatters';
 import type { BatteryMode, BidBand, TimePeriod, TeamAssetInstance } from '../../../shared/types';
+import { TIME_PERIOD_SHORT_LABELS } from '../../../shared/types';
 
 // ── Extended AssetInfo with battery-specific fields ──────────────────
 // The server-sent AssetInfo may include these optional battery fields.
@@ -38,6 +39,14 @@ export interface BatteryModeToggleProps {
   onUpdateBand: (bandIndex: number, field: 'pricePerMWh' | 'quantityMW', value: number) => void;
   onAddBand: () => void;
   walkthroughExplanation?: string;
+  /** Projected SOC at the START of this period, accounting for prior period actions */
+  projectedSOCMWh?: number;
+  /** All periods in order for the SOC timeline display */
+  allPeriods?: TimePeriod[];
+  /** Projected SOC for each period (keyed by period) for timeline display */
+  projectedSOCByPeriod?: Record<string, number>;
+  /** Periods where non-battery supply < demand (grid stress) */
+  stressPeriods?: TimePeriod[];
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -94,6 +103,8 @@ function ChargeContent({
   headroomMWh,
   efficiency,
   period,
+  currentSOCMWh,
+  maxStorageMWh,
   onChargeMWChange,
 }: {
   chargeMW: number;
@@ -101,6 +112,8 @@ function ChargeContent({
   headroomMWh: number;
   efficiency: number;
   period: TimePeriod;
+  currentSOCMWh: number;
+  maxStorageMWh: number;
   onChargeMWChange: (mw: number) => void;
 }) {
   const hours = PERIOD_HOURS[period];
@@ -108,15 +121,89 @@ function ChargeContent({
   const maxByHeadroom = headroomMWh > 0 ? headroomMWh / hours : 0;
   const effectiveMax = Math.max(0, Math.min(maxChargeMW, maxByHeadroom));
 
-  const quickPercents = [
-    { label: '25%', factor: 0.25 },
-    { label: '50%', factor: 0.5 },
-    { label: '75%', factor: 0.75 },
-    { label: 'Max', factor: 1 },
+  const currentPct = maxStorageMWh > 0 ? Math.round((currentSOCMWh / maxStorageMWh) * 100) : 0;
+
+  // Target SOC buttons for charging
+  const chargeTargets = [
+    { label: 'Charge to 25%', targetPct: 0.25 },
+    { label: 'Charge to 50%', targetPct: 0.50 },
+    { label: 'Charge to 75%', targetPct: 0.75 },
+    { label: 'Charge to 100%', targetPct: 1.00 },
   ];
+
+  const [selectedTarget, setSelectedTarget] = useState<number | null>(null);
+
+  // Compute charge MW for a given target SOC percentage
+  function computeChargeMW(targetPct: number): number {
+    const targetMWh = maxStorageMWh * targetPct;
+    const energyToStore = targetMWh - currentSOCMWh;
+    if (energyToStore <= 0) return 0;
+    const gridEnergyNeeded = energyToStore / efficiency;
+    const chargeRate = Math.min(maxChargeMW, gridEnergyNeeded / hours);
+    return Math.min(chargeRate, effectiveMax);
+  }
+
+  // Info text for the selected target
+  const targetInfo = selectedTarget !== null ? (() => {
+    const targetPct = chargeTargets[selectedTarget].targetPct;
+    const computedMW = computeChargeMW(targetPct);
+    const targetPctDisplay = Math.round(targetPct * 100);
+    return {
+      fromPct: currentPct,
+      toPct: targetPctDisplay,
+      mw: computedMW,
+      hours,
+    };
+  })() : null;
 
   return (
     <div className="space-y-3">
+      {/* Target SOC buttons */}
+      <div>
+        <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
+          Charge to Target SOC
+        </label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {chargeTargets.map((t, i) => {
+            const computedMW = computeChargeMW(t.targetPct);
+            const isDisabled = t.targetPct * 100 <= currentPct;
+            const isSelected = selectedTarget === i;
+            return (
+              <button
+                key={t.label}
+                disabled={isDisabled}
+                onClick={() => {
+                  setSelectedTarget(i);
+                  onChargeMWChange(Math.round(computedMW * 100) / 100);
+                }}
+                className={`py-1.5 text-xs font-medium rounded border transition-colors ${
+                  isDisabled
+                    ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                    : isSelected
+                      ? 'bg-green-500 text-white border-green-500'
+                      : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Target info text */}
+      {targetInfo && targetInfo.mw > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+          <div className="text-xs text-green-700">
+            Will charge from <span className="font-bold">{targetInfo.fromPct}%</span> &rarr;{' '}
+            <span className="font-bold">{targetInfo.toPct}%</span>, drawing{' '}
+            <span className="font-bold font-mono">{formatNumber(Math.round(targetInfo.mw * 100) / 100)}</span> MW from grid for{' '}
+            {targetInfo.hours}h
+          </div>
+        </div>
+      )}
+
+      {/* Manual MW input */}
       <div>
         <label className="text-xs font-semibold text-gray-700 mb-1 block">
           Charge Rate (MW)
@@ -127,6 +214,7 @@ function ChargeContent({
           onChange={e => {
             const v = parseFloat(e.target.value) || 0;
             onChargeMWChange(clamp(v, 0, effectiveMax));
+            setSelectedTarget(null);
           }}
           onFocus={e => e.target.select()}
           placeholder="0"
@@ -134,19 +222,6 @@ function ChargeContent({
           max={effectiveMax}
           className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
         />
-      </div>
-
-      {/* Quick buttons */}
-      <div className="flex gap-1.5">
-        {quickPercents.map(q => (
-          <button
-            key={q.label}
-            onClick={() => onChargeMWChange(Math.round(effectiveMax * q.factor))}
-            className="flex-1 py-1.5 text-xs font-medium bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100 transition-colors"
-          >
-            {q.label}
-          </button>
-        ))}
       </div>
 
       {/* Headroom info */}
@@ -188,6 +263,7 @@ function DischargeContent({
   bands,
   maxBands,
   currentSOCMWh,
+  maxStorageMWh,
   maxDischargeMW,
   srmcPerMWh,
   period,
@@ -198,6 +274,7 @@ function DischargeContent({
   bands: BidBand[];
   maxBands: number;
   currentSOCMWh: number;
+  maxStorageMWh: number;
   maxDischargeMW: number;
   srmcPerMWh: number;
   period: TimePeriod;
@@ -210,6 +287,38 @@ function DischargeContent({
   const maxMWFromSOC = currentSOCMWh > 0 ? currentSOCMWh / hours : 0;
   const effectiveMaxMW = Math.min(maxDischargeMW, maxMWFromSOC);
   const totalBidMW = bands.reduce((sum, b) => sum + (b.quantityMW || 0), 0);
+
+  const currentPct = maxStorageMWh > 0 ? Math.round((currentSOCMWh / maxStorageMWh) * 100) : 0;
+
+  // Target SOC buttons for discharging
+  const dischargeTargets = [
+    { label: 'Discharge to 0%', targetPct: 0 },
+    { label: 'Discharge to 25%', targetPct: 0.25 },
+    { label: 'Discharge to 50%', targetPct: 0.50 },
+  ];
+
+  const [selectedTarget, setSelectedTarget] = useState<number | null>(null);
+
+  // Compute discharge MW for a given target SOC percentage
+  function computeDischargeMW(targetPct: number): number {
+    const targetMWh = maxStorageMWh * targetPct;
+    const energyAvailable = currentSOCMWh - targetMWh;
+    if (energyAvailable <= 0) return 0;
+    return Math.min(maxDischargeMW, energyAvailable / hours);
+  }
+
+  // Info text for the selected target
+  const targetInfo = selectedTarget !== null ? (() => {
+    const targetPct = dischargeTargets[selectedTarget].targetPct;
+    const computedMW = computeDischargeMW(targetPct);
+    const targetPctDisplay = Math.round(targetPct * 100);
+    return {
+      fromPct: currentPct,
+      toPct: targetPctDisplay,
+      mw: computedMW,
+      hours,
+    };
+  })() : null;
 
   return (
     <div className="space-y-3">
@@ -224,6 +333,55 @@ function DischargeContent({
           Total bid: {Math.round(totalBidMW)} / {Math.round(effectiveMaxMW)} MW
         </div>
       </div>
+
+      {/* Target SOC discharge buttons */}
+      <div>
+        <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
+          Discharge to Target SOC
+        </label>
+        <div className="flex gap-1.5">
+          {dischargeTargets.map((t, i) => {
+            const computedMW = computeDischargeMW(t.targetPct);
+            const isDisabled = t.targetPct * 100 >= currentPct;
+            const isSelected = selectedTarget === i;
+            return (
+              <button
+                key={t.label}
+                disabled={isDisabled}
+                onClick={() => {
+                  setSelectedTarget(i);
+                  const mw = Math.round(computedMW * 100) / 100;
+                  // Auto-fill the first bid band quantity with this MW
+                  if (bands.length > 0) {
+                    onUpdateBand(0, 'quantityMW', mw);
+                  }
+                }}
+                className={`flex-1 py-1.5 text-xs font-medium rounded border transition-colors ${
+                  isDisabled
+                    ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                    : isSelected
+                      ? 'bg-blue-500 text-white border-blue-500'
+                      : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Target info text */}
+      {targetInfo && targetInfo.mw > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+          <div className="text-xs text-blue-700">
+            Will discharge from <span className="font-bold">{targetInfo.fromPct}%</span> &rarr;{' '}
+            <span className="font-bold">{targetInfo.toPct}%</span>, generating{' '}
+            <span className="font-bold font-mono">{formatNumber(Math.round(targetInfo.mw * 100) / 100)}</span> MW for{' '}
+            {targetInfo.hours}h
+          </div>
+        </div>
+      )}
 
       {/* Quick bid buttons */}
       <div className="flex gap-2 items-center">
@@ -333,6 +491,97 @@ function DischargeContent({
   );
 }
 
+// ── SOC Timeline ─────────────────────────────────────────────────────
+
+function SOCTimeline({
+  allPeriods,
+  projectedSOCByPeriod,
+  maxStorageMWh,
+  currentPeriod,
+  stressPeriods,
+}: {
+  allPeriods: TimePeriod[];
+  projectedSOCByPeriod: Record<string, number>;
+  maxStorageMWh: number;
+  currentPeriod: TimePeriod;
+  stressPeriods?: TimePeriod[];
+}) {
+  const stressSet = new Set(stressPeriods || []);
+
+  return (
+    <div className="bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-200">
+      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        Projected SOC Across Day
+      </div>
+      <div className="flex items-end gap-1">
+        {allPeriods.map((p, idx) => {
+          const soc = projectedSOCByPeriod[p] ?? 0;
+          const pct = maxStorageMWh > 0 ? clamp((soc / maxStorageMWh) * 100, 0, 100) : 0;
+          const isActive = p === currentPeriod;
+          const isStress = stressSet.has(p);
+          const isDepletedInStress = isStress && pct < 5;
+
+          const barColor =
+            pct > 50 ? 'bg-green-400' :
+            pct >= 20 ? 'bg-amber-400' :
+            'bg-red-400';
+
+          const activeBorder = isActive ? 'ring-2 ring-blue-500 ring-offset-1' :
+                               isDepletedInStress ? 'ring-2 ring-red-400 ring-offset-1' : '';
+
+          return (
+            <div key={p} className="flex-1 flex flex-col items-center">
+              {/* SOC value */}
+              <div className={`text-[9px] font-mono mb-1 ${
+                isActive ? 'font-bold text-blue-700' :
+                isDepletedInStress ? 'font-bold text-red-600' :
+                'text-gray-500'
+              }`}>
+                {Math.round(pct)}%
+              </div>
+              {/* Bar */}
+              <div className={`w-full h-10 bg-gray-200 rounded-sm overflow-hidden relative ${activeBorder}`}>
+                <div
+                  className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${barColor}`}
+                  style={{ height: `${pct}%` }}
+                />
+              </div>
+              {/* Stress indicator dot */}
+              {isStress && (
+                <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                  isDepletedInStress ? 'bg-red-500 animate-pulse' : 'bg-amber-400'
+                }`} title={isDepletedInStress ? 'Battery depleted in stress period!' : 'Grid stress period'} />
+              )}
+              {/* Period label */}
+              <div className={`text-[8px] mt-0.5 truncate w-full text-center ${
+                isActive ? 'font-bold text-blue-700' :
+                isStress ? 'font-semibold text-amber-600' :
+                'text-gray-400'
+              }`}>
+                {TIME_PERIOD_SHORT_LABELS[p]?.split(' ')[0] || p}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Legend for stress indicators */}
+      {stressSet.size > 0 && (
+        <div className="flex items-center gap-2 mt-1.5 text-[8px] text-gray-400">
+          <span className="flex items-center gap-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" /> Grid stress
+          </span>
+          <span className="flex items-center gap-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /> Depleted in stress
+          </span>
+        </div>
+      )}
+      <div className="text-[9px] text-gray-400 mt-1 text-center italic">
+        SOC updates as you set charge/discharge for each period
+      </div>
+    </div>
+  );
+}
+
 // ── Mode Info Hints ──────────────────────────────────────────────────
 
 const MODE_HINTS: Record<BatteryMode, string> = {
@@ -356,8 +605,13 @@ export default function BatteryModeToggle({
   onUpdateBand,
   onAddBand,
   walkthroughExplanation,
+  projectedSOCMWh,
+  allPeriods,
+  projectedSOCByPeriod,
+  stressPeriods,
 }: BatteryModeToggleProps) {
-  const currentSOCMWh = asset.currentStorageMWh ?? 0;
+  // Use projected SOC if provided, otherwise fall back to server value
+  const currentSOCMWh = projectedSOCMWh ?? asset.currentStorageMWh ?? 0;
   const maxStorageMWh = asset.maxStorageMWh ?? assetDef.maxStorageMWh ?? 0;
   const maxChargeMW = assetDef.maxChargeMW ?? asset.currentAvailableMW;
   const efficiency = assetDef.roundTripEfficiency ?? 1;
@@ -387,8 +641,19 @@ export default function BatteryModeToggle({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-4 py-4 space-y-4">
-        {/* ── SOC Bar ── */}
+        {/* ── SOC Bar (this period) ── */}
         <SOCBar currentMWh={currentSOCMWh} maxMWh={maxStorageMWh} />
+
+        {/* ── SOC Timeline (all periods) ── */}
+        {allPeriods && allPeriods.length > 1 && projectedSOCByPeriod && (
+          <SOCTimeline
+            allPeriods={allPeriods}
+            projectedSOCByPeriod={projectedSOCByPeriod}
+            maxStorageMWh={maxStorageMWh}
+            currentPeriod={period}
+            stressPeriods={stressPeriods}
+          />
+        )}
 
         {/* ── 3-Way Segmented Toggle ── */}
         <div className="flex rounded-lg overflow-hidden border border-gray-200">
@@ -417,6 +682,8 @@ export default function BatteryModeToggle({
             headroomMWh={headroomMWh}
             efficiency={efficiency}
             period={period}
+            currentSOCMWh={currentSOCMWh}
+            maxStorageMWh={maxStorageMWh}
             onChargeMWChange={onChargeMWChange}
           />
         )}
@@ -428,6 +695,7 @@ export default function BatteryModeToggle({
             bands={bands}
             maxBands={maxBands}
             currentSOCMWh={currentSOCMWh}
+            maxStorageMWh={maxStorageMWh}
             maxDischargeMW={asset.currentAvailableMW}
             srmcPerMWh={assetDef.srmcPerMWh}
             period={period}

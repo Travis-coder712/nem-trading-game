@@ -24,6 +24,14 @@ const GAME_MODES = [
     icon: '🎓',
   },
   {
+    id: 'first_run',
+    name: 'First Run',
+    rounds: 8,
+    duration: '45-60 min',
+    description: 'Lean portfolio: 1 coal, 1 gas, 1 renewable, 1 battery. Fast full-mix intro.',
+    icon: '🚀',
+  },
+  {
     id: 'quick',
     name: 'Quick Game',
     rounds: 8,
@@ -233,7 +241,7 @@ export default function GameSetup() {
             </button>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Game Setup</h1>
-          <p className="text-navy-300">Configure your Watt Street training session</p>
+          <p className="text-navy-300">Configure your GridRival training session</p>
           <div className={`inline-flex items-center mt-2 px-3 py-1 rounded-full text-xs font-medium ${
             connected ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
           }`}>
@@ -278,8 +286,8 @@ export default function GameSetup() {
             )}
           </button>
 
-          {/* Other 4 modes — balanced 2×2 grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Other modes — responsive grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {GAME_MODES.map(mode => (
               <button
                 key={mode.id}

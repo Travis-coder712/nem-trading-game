@@ -28,7 +28,9 @@ interface SocketContextValue {
   lastBalancing: BalancingResult | null;
   biddingTimeRemaining: number;
   bidStatus: Record<string, boolean>;
+  minigameStatus: Record<string, boolean>;
   allBidsIn: boolean;
+  timerPaused: boolean;
   teamScreenData: GameStateSnapshot | null;
   /** Set exactly once per `game:phase_changed` socket event */
   lastPhaseTransition: PhaseTransition | null;
@@ -45,17 +47,34 @@ interface SocketContextValue {
   showResults: () => void;
   nextRound: () => void;
   adjustTimer: (seconds: number) => void;
+  jumpToRound: (roundNumber: number) => void;
   setDemand: (demand: Record<string, number>) => void;
   applySurprises: (eventIds: string[]) => void;
-  resetGame: () => void;
+  pauseTimer: () => void;
+  resumeTimer: () => void;
+  resetGame: () => Promise<void>;
   viewTeamScreen: (teamId: string) => void;
   clearHostSession: () => void;
+  inviteToTeam: (teamId: string) => void;
+  lastInviteCode: { teamId: string; inviteCode: string } | null;
+  clearInviteCode: () => void;
 
   // Team actions
   joinGame: (teamName: string, gameId: string) => void;
   submitBids: (bids: any) => void;
+  notifyMinigameCompleted: () => void;
   requestState: () => void;
   clearSession: () => void;
+
+  // Observer actions
+  isObserverMode: boolean;
+  observerTeams: TeamPublicInfo[];
+  observedTeamId: string | null;
+  observedTeamName: string | null;
+  joinAsObserver: (gameId: string) => void;
+  selectObservedTeam: (teamId: string) => void;
+  lateJoinTeam: (gameId: string, inviteCode: string, playerName: string) => void;
+  isLateJoiner: boolean;
 }
 
 const SocketContext = createContext<SocketContextValue | null>(null);
@@ -69,10 +88,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [lastBalancing, setLastBalancing] = useState<BalancingResult | null>(null);
   const [biddingTimeRemaining, setBiddingTimeRemaining] = useState(0);
   const [bidStatus, setBidStatus] = useState<Record<string, boolean>>({});
+  const [minigameStatus, setMinigameStatus] = useState<Record<string, boolean>>({});
   const [allBidsIn, setAllBidsIn] = useState(false);
+  const [timerPaused, setTimerPaused] = useState(false);
   const [teamScreenData, setTeamScreenData] = useState<GameStateSnapshot | null>(null);
   const [lastPhaseTransition, setLastPhaseTransition] = useState<PhaseTransition | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [isObserverMode, setIsObserverMode] = useState(false);
+  const [observerTeams, setObserverTeams] = useState<TeamPublicInfo[]>([]);
+  const [observedTeamId, setObservedTeamId] = useState<string | null>(null);
+  const [observedTeamName, setObservedTeamName] = useState<string | null>(null);
+  const [isLateJoiner, setIsLateJoiner] = useState(false);
+  const [lastInviteCode, setLastInviteCode] = useState<{ teamId: string; inviteCode: string } | null>(null);
   const phaseTrackRef = useRef<{ currentPhase: GamePhase | null; nextId: number }>({ currentPhase: null, nextId: 1 });
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -111,6 +138,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setGameState(state);
       setBiddingTimeRemaining(state.biddingTimeRemaining);
       setBidStatus(state.bidStatus || {});
+      setMinigameStatus(state.minigameStatus || {});
       setReconnecting(false);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -128,6 +156,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setGameState(prev => prev ? { ...prev, phase } : null);
       if (phase !== 'bidding') {
         setAllBidsIn(false);
+        setTimerPaused(false);
       }
     });
 
@@ -139,12 +168,20 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setBiddingTimeRemaining(seconds);
     });
 
+    socket.on('bidding:timer_paused', (paused) => {
+      setTimerPaused(paused);
+    });
+
     socket.on('bidding:all_submitted', () => {
       setAllBidsIn(true);
     });
 
     socket.on('host:bid_status', (status) => {
       setBidStatus(status);
+    });
+
+    socket.on('host:minigame_status', (status) => {
+      setMinigameStatus(status);
     });
 
     socket.on('scenario:event_triggered', (event) => {
@@ -157,6 +194,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     socket.on('host:team_screen_data', (data) => {
       setTeamScreenData(data);
+    });
+
+    socket.on('host:invite_code', (data) => {
+      console.log(`Invite code for team ${data.teamId}: ${data.inviteCode}`);
+      setLastInviteCode(data);
     });
 
     socket.on('team:reconnected', (data) => {
@@ -172,6 +214,27 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem(SS_TEAM_NAME, data.teamName);
     });
 
+    // Observer events
+    socket.on('observer:joined', (data) => {
+      console.log(`Joined game ${data.gameId} as observer with ${data.teams.length} teams`);
+      setIsObserverMode(true);
+      setObserverTeams(data.teams);
+    });
+
+    socket.on('observer:team_selected', (data) => {
+      console.log(`Now observing team "${data.teamName}" (${data.teamId})`);
+      setObservedTeamId(data.teamId);
+      setObservedTeamName(data.teamName);
+    });
+
+    socket.on('team:late_joined', (data) => {
+      console.log(`Late-joined team "${data.teamName}" in game ${data.gameId}`);
+      setIsLateJoiner(true);
+      sessionStorage.setItem(SS_TEAM_ID, data.teamId);
+      sessionStorage.setItem(SS_GAME_ID, data.gameId);
+      sessionStorage.setItem(SS_TEAM_NAME, data.teamName);
+    });
+
     socket.on('game:reset', () => {
       console.log('Game was reset by host — clearing session');
       sessionStorage.removeItem(SS_TEAM_ID);
@@ -181,6 +244,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setRoundResults(null);
       setBiddingTimeRemaining(0);
       setReconnecting(false);
+      // Reset observer state
+      setIsObserverMode(false);
+      setObserverTeams([]);
+      setObservedTeamId(null);
+      setObservedTeamName(null);
+      setIsLateJoiner(false);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -201,12 +270,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       socket.off('game:phase_changed');
       socket.off('game:round_results');
       socket.off('bidding:time_remaining');
+      socket.off('bidding:timer_paused');
       socket.off('bidding:all_submitted');
       socket.off('host:bid_status');
+      socket.off('host:minigame_status');
       socket.off('scenario:event_triggered');
       socket.off('scenario:balancing_applied');
       socket.off('team:reconnected');
       socket.off('host:team_screen_data');
+      socket.off('host:invite_code');
+      socket.off('observer:joined');
+      socket.off('observer:team_selected');
+      socket.off('team:late_joined');
       socket.off('game:reset');
       socket.off('error');
       socket.disconnect();
@@ -223,10 +298,19 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const showResults = useCallback(() => socket.emit('host:show_results'), []);
   const nextRound = useCallback(() => socket.emit('host:next_round'), []);
   const adjustTimer = useCallback((s: number) => socket.emit('host:adjust_timer', s), []);
+  const jumpToRound = useCallback((roundNumber: number) => socket.emit('host:jump_to_round', { roundNumber }), []);
   const setDemand = useCallback((demand: Record<string, number>) => socket.emit('host:set_demand', demand), []);
   const applySurprises = useCallback((eventIds: string[]) => socket.emit('host:apply_surprises', eventIds), []);
-  const resetGame = useCallback(() => {
-    socket.emit('host:reset_game');
+  const pauseTimer = useCallback(() => socket.emit('host:pause_game'), []);
+  const resumeTimer = useCallback(() => socket.emit('host:resume_game'), []);
+  const resetGame = useCallback((): Promise<void> => {
+    return new Promise((resolve) => {
+      socket.emit('host:reset_game', (response: any) => {
+        resolve();
+      });
+      // Fallback timeout in case server doesn't ack (e.g. older server)
+      setTimeout(resolve, 500);
+    });
   }, []);
 
   const clearLastError = useCallback(() => setLastError(null), []);
@@ -237,6 +321,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     setBiddingTimeRemaining(0);
     setBidStatus({});
     setAllBidsIn(false);
+    setTimerPaused(false);
     setTeamScreenData(null);
     setLastPhaseTransition(null);
     setLastEvent(null);
@@ -271,6 +356,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     socket.emit('team:submit_bids', submission);
   }, []);
 
+  const notifyMinigameCompleted = useCallback(() => {
+    socket.emit('team:minigame_completed');
+  }, []);
+
   const requestState = useCallback(() => {
     socket.emit('team:request_state');
   }, []);
@@ -280,6 +369,24 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem(SS_GAME_ID);
     sessionStorage.removeItem(SS_TEAM_NAME);
     setGameState(null);
+  }, []);
+
+  const inviteToTeam = useCallback((teamId: string) => {
+    socket.emit('host:invite_to_team', { teamId });
+  }, []);
+
+  const clearInviteCode = useCallback(() => setLastInviteCode(null), []);
+
+  const joinAsObserver = useCallback((gameId: string) => {
+    socket.emit('observer:join', { gameId });
+  }, []);
+
+  const selectObservedTeam = useCallback((teamId: string) => {
+    socket.emit('observer:select_team', { teamId });
+  }, []);
+
+  const lateJoinTeam = useCallback((gameId: string, inviteCode: string, playerName: string) => {
+    socket.emit('team:late_join', { gameId, inviteCode, playerName });
   }, []);
 
   return (
@@ -292,7 +399,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       lastBalancing,
       biddingTimeRemaining,
       bidStatus,
+      minigameStatus,
       allBidsIn,
+      timerPaused,
       teamScreenData,
       lastPhaseTransition,
       lastError,
@@ -304,15 +413,30 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       showResults,
       nextRound,
       adjustTimer,
+      jumpToRound,
       setDemand,
       applySurprises,
+      pauseTimer,
+      resumeTimer,
       resetGame,
       viewTeamScreen,
       clearHostSession,
+      inviteToTeam,
+      lastInviteCode,
+      clearInviteCode,
       joinGame,
       submitBids,
+      notifyMinigameCompleted,
       requestState,
       clearSession,
+      isObserverMode,
+      observerTeams,
+      observedTeamId,
+      observedTeamName,
+      joinAsObserver,
+      selectObservedTeam,
+      lateJoinTeam,
+      isLateJoiner,
     }}>
       {children}
     </SocketContext.Provider>

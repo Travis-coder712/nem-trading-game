@@ -35,7 +35,7 @@ const slides: Slide[] = [
   {
     icon: '🏭',
     heading: 'Generator Types',
-    body: '<strong>Coal</strong> &mdash; Large baseload plants, low cost ($25&ndash;45), slow to start/stop.<br><strong>Gas CCGT</strong> &mdash; Mid-merit, moderate cost ($65&ndash;85), flexible.<br><strong>Gas Peaker</strong> &mdash; Fast start, high cost ($120&ndash;160), runs only at peak times.<br><strong>Hydro</strong> &mdash; Very flexible, low cost ($8), but limited water supply.<br><strong>Wind &amp; Solar</strong> &mdash; Zero fuel cost, but output depends on weather.<br><strong>Battery</strong> &mdash; Charge when cheap, discharge when expensive. Arbitrage profit.',
+    body: '<strong>Coal</strong> &mdash; Large baseload plants, low cost ($25&ndash;45), slow to start/stop.<br><strong>Gas CCGT</strong> &mdash; Mid-merit, moderate cost ($65&ndash;85), flexible.<br><strong>Gas Peaker</strong> &mdash; Fast start, high cost ($120&ndash;160), runs only at peak times.<br><strong>Hydro</strong> &mdash; Very flexible, low cost ($8), but limited water supply. Can only dispatch in ONE period per round.<br><strong>Wind &amp; Solar</strong> &mdash; Zero fuel cost, but output depends on weather.<br><strong>Battery</strong> &mdash; 6-hour battery. Charge when cheap, discharge when expensive. Target SOC controls. Charging adds to market demand.',
   },
   {
     icon: '💲',
@@ -55,12 +55,12 @@ const slides: Slide[] = [
   {
     icon: '🎯',
     heading: 'Bidding Strategies',
-    body: '<strong>Price Taker</strong> &mdash; Bid $0, guarantee dispatch, accept the clearing price.<br><strong>Marginal Cost Bidder</strong> &mdash; Bid at cost. Rational baseline, covers costs.<br><strong>Price Maker</strong> &mdash; Bid high to push up the clearing price for all your units.<br><strong>Portfolio Optimizer</strong> &mdash; Mix strategies across your different assets.<br><strong>Strategic Withdrawal</strong> &mdash; Withhold capacity to tighten supply and raise prices.<br><strong>Battery Arbitrage</strong> &mdash; Charge cheap, discharge expensive.',
+    body: '<strong>Price Taker</strong> &mdash; Bid $0, guarantee dispatch, accept the clearing price.<br><strong>Marginal Cost Bidder</strong> &mdash; Bid at cost. Rational baseline, covers costs.<br><strong>Price Maker</strong> &mdash; Bid high to push up the clearing price for all your units.<br><strong>Portfolio Optimizer</strong> &mdash; Mix strategies across your different assets.<br><strong>Strategic Withdrawal</strong> &mdash; Withhold capacity to tighten supply and raise prices.<br><strong>Battery Arbitrage</strong> &mdash; Charge cheap, discharge expensive.<br><strong>Independent Layers</strong> &mdash; Battery strategy is separate from thermal strategy. Apply both without conflicts.',
   },
   {
     icon: '🎮',
     heading: 'How This Game Works',
-    body: 'You and your team own a <strong>portfolio of power generation assets</strong>. Each round represents a day in the NEM. You submit <strong>price bids</strong> for each asset across multiple time periods (overnight, morning, afternoon, evening). The game engine runs the <strong>merit order dispatch</strong> to determine which generators run and what price everyone receives. Your <strong>profit = (Clearing Price &minus; Marginal Cost) &times; MW &times; Hours</strong>.',
+    body: 'You and your team own a <strong>portfolio of power generation assets</strong>. Each round represents a day in the NEM. You submit <strong>price bids</strong> for each asset across multiple time periods (overnight, morning, afternoon, evening). The game engine runs the <strong>merit order dispatch</strong> to determine which generators run and what price everyone receives. Your <strong>profit = (Clearing Price &minus; Marginal Cost) &times; MW &times; Hours</strong>. Each asset type has its own bidding interface: renewables auto-bid at $0, hydro chooses one dispatch period, batteries toggle charge/discharge with SOC targets, and thermal assets bid normally.',
   },
   {
     icon: '🕹️',
@@ -150,7 +150,7 @@ export function getLearnNemHTML(): string {
   <div class="subtitle">National Electricity Market Guide</div>
   <p class="tagline">
     Everything you need to know about how Australia's National Electricity Market works,
-    from the merit order to bidding strategies. Perfect preparation for Watt Street.
+    from the merit order to bidding strategies. Perfect preparation for GridRival.
   </p>
 </div>
 
@@ -158,7 +158,7 @@ export function getLearnNemHTML(): string {
 ${slideHTML}
 
   <div class="footer">
-    <p>Watt Street &mdash; Learn the NEM Guide &middot; 5 game modes &middot; 7 asset types</p>
+    <p>GridRival &mdash; Learn the NEM Guide &middot; 5 game modes &middot; 7 asset types</p>
   </div>
 </div>
 
