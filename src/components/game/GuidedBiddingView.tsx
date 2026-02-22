@@ -1056,6 +1056,63 @@ function Step3Bids(props: GuidedBiddingProps & { onBack: () => void }) {
             </div>
           )}
 
+          {/* Battery Arbitrageur Quick-Apply */}
+          {(() => {
+            const batteryStratAvailable = filteredStrategies.some(s => s.id === 'battery_arbitrageur');
+            if (!batteryStratAvailable) return null;
+            const isActive = selectedStrategy === 'battery_arbitrageur';
+            return (
+              <div className={`rounded-xl border overflow-hidden ${
+                isActive ? 'bg-yellow-50 border-yellow-300' : 'bg-white border-gray-200'
+              }`}>
+                <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-base">🟡</span>
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-gray-800">Battery Arbitrageur</div>
+                      <div className="text-[10px] text-gray-500">
+                        {isActive
+                          ? `Applied at ${selectedIntensity} intensity — adjust modes below`
+                          : 'Auto-set charge/discharge across all periods'}
+                      </div>
+                    </div>
+                  </div>
+                  {!isActive ? (
+                    <div className="flex gap-1 flex-shrink-0">
+                      {(['low', 'medium', 'max'] as Intensity[]).map(level => {
+                        const colors = level === 'low'
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                          : level === 'medium'
+                          ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          : 'bg-red-100 text-red-700 hover:bg-red-200';
+                        return (
+                          <button
+                            key={level}
+                            onClick={() => {
+                              setSelectedStrategy('battery_arbitrageur' as StrategyId);
+                              setSelectedIntensity(level);
+                              onApplyStrategy('battery_arbitrageur' as StrategyId, level, strategyApplyMode, selectedAssetIds);
+                            }}
+                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${colors}`}
+                          >
+                            {level === 'low' ? '$100' : level === 'medium' ? '$200' : '$400'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setSelectedStrategy('' as StrategyId)}
+                      className="px-2 py-1 rounded-lg text-[10px] font-medium bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors flex-shrink-0"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Period Tabs — battery mode is per-period */}
           <div className="flex gap-1 overflow-x-auto pb-1">
             {roundConfig.timePeriods.map(p => {

@@ -111,10 +111,12 @@ export function getEducationalCompendiumHTML(): string {
       <li>Seasons in the NEM</li>
       <li>Renewables &amp; the Merit Order Effect</li>
       <li>Hydro &amp; Opportunity Cost</li>
-      <li>Battery Storage &amp; Arbitrage</li>
+      <li>Battery Storage, Arbitrage &amp; the Park Spread</li>
+      <li>Pumped Hydro Energy Storage</li>
       <li>Bidding Strategies</li>
       <li>Market Scenarios</li>
       <li>The Energy Transition</li>
+      <li>The Real NEM: Asset Evolution &amp; 2030 Forecast</li>
       <li>Key Formulas &amp; Glossary</li>
     </ul>
   </div>
@@ -641,30 +643,46 @@ $155 |                                         | Gas Peaker|  &larr; Clearing Pr
 
   <h3>The Duck Curve</h3>
   <p>The "duck curve" describes the shape of <strong>net demand</strong> (total demand minus solar generation)
-  over a day. As solar capacity grows:</p>
+  over a day. It gets its name because the resulting chart looks remarkably like the profile of a duck.
+  As solar capacity grows:</p>
   <ol style="padding-left: 1.5rem; margin-bottom: 0.6rem;">
-    <li>Midday net demand drops dramatically (the duck's "belly")</li>
-    <li>The evening ramp becomes steeper (the duck's "neck") as solar drops off</li>
-    <li>Evening peak becomes the critical period for the grid</li>
+    <li>Midday net demand drops dramatically (the duck's <strong>belly</strong>)</li>
+    <li>The evening ramp becomes steeper (the duck's <strong>neck</strong>) as solar drops off</li>
+    <li>Evening peak becomes the critical period (the duck's <strong>head</strong>)</li>
+    <li>Overnight/early morning demand forms the duck's <strong>tail</strong></li>
   </ol>
 
   <div class="staircase">
-Demand
-(MW)
-  |        .                          .....
-  |       / \\                        /     \\
-  |      /   \\                      /       \\
-  |     /     \\                    /         \\
-  |    /       \\      Net Demand  /           \\
-  |   /         \\       (duck)   / &larr; Solar    \\
-  |  /           \\              /    Cliff!     \\
-  | /             \\            /                 \\
-  |/               \\    ___  /                    \\
-  |                 \\__/   \\/                      \\
-  |                  "belly"                        \\___
-  |_________________________________________________
-     12am   6am    12pm    6pm    12am
-           Morning  Afternoon  Evening</div>
+Net Demand                            THE DUCK CURVE
+(MW)                            Why is it called "the duck"?
+
+         TAIL                                  HEAD
+   &gt;&gt;&gt;&gt;&gt;~.                              _.  .-&ldquo;&rdquo;-.
+        / \\   BACK                  /  \\/       \\  &lt; beak
+       /   \\                  NECK /              \\
+      /     \\                    /                 \\__  FEET
+     /       \\      BELLY      / &larr; Solar Cliff!      \\__/
+    /         \\               /     (steep ramp!)
+   /           \\   ______   /
+  /             \\./      \\./
+  |              "belly"
+  |_______________________________________________
+    12am   6am    12pm    6pm    10pm  12am
+          Morning  Afternoon  Evening
+
+  The shape traces: a raised tail (overnight demand),
+  a sagging belly (midday solar suppresses net demand),
+  a steep neck (evening ramp as solar drops off),
+  and a raised head (evening peak demand).
+  More solar = deeper belly = steeper neck = harder to manage.</div>
+
+  <div class="highlight">
+    <strong>Why "Duck"?</strong> The California Independent System Operator (CAISO) first published this
+    chart shape around 2013. Engineers noticed the net demand profile &mdash; with its raised ends, sagging
+    middle, and steep ramp &mdash; looked exactly like a duck in silhouette. The name stuck globally.
+    Australia's NEM now has one of the deepest duck curves in the world, thanks to its world-leading
+    rooftop and grid-scale solar penetration.
+  </div>
 
   <h3>How Renewables Push Down Prices</h3>
   <p>Consider a market where coal sets the clearing price at $40/MWh. Now add 2,000 MW of solar at $0:</p>
@@ -813,11 +831,150 @@ Demand
     <li>Charge revenue: 100 &times; $50 = $5,000 (paid to charge!)</li>
     <li>Profit: <span class="stat">$23,400</span></li>
   </ul>
+
+  <h3>The Park Spread &amp; Battery Utilisation</h3>
+  <p>While one-off price spikes can deliver spectacular single-day profits, the real question for battery
+  economics is: <strong>are there enough hours of sufficient arbitrage value to justify the investment?</strong></p>
+
+  <div class="highlight-amber">
+    <strong>Park Spread:</strong> The "park spread" refers to the average price difference between the
+    periods a battery charges and discharges, adjusted for efficiency losses. It is the battery equivalent
+    of a gas plant's "spark spread." A battery needs a consistent park spread &mdash; not just occasional
+    spikes &mdash; to repay its capital cost over its 15&ndash;20 year asset life.
+  </div>
+
+  <p>The core challenge is <strong>utilisation</strong>. A 200 MW / 400 MWh battery that only cycles
+  profitably on 100 days per year earns far less than one that finds a viable spread on 300+ days. Key factors:</p>
+  <ul>
+    <li><strong>Daily cycling:</strong> Batteries aim to charge and discharge at least once per day. A 2-hour
+    battery can cycle 1&ndash;2 times; a 4-hour battery typically once.</li>
+    <li><strong>Seasonal variation:</strong> Spring offers deep negative midday prices (great spreads), while
+    autumn may see flat prices with limited arbitrage opportunities.</li>
+    <li><strong>Revenue stacking:</strong> In practice, batteries earn from multiple sources &mdash; energy
+    arbitrage, FCAS (frequency control), and network services &mdash; to improve overall utilisation.</li>
+    <li><strong>Degradation:</strong> Batteries lose ~1&ndash;2% of capacity per year from cycling. Over a
+    15&ndash;20 year life, total usable capacity declines, meaning early-year economics matter most.</li>
+  </ul>
+
+  <div class="key-concept">
+    <strong>The Investment Test:</strong> A battery's economics are determined by the <em>cumulative</em>
+    arbitrage value over its lifetime, not any single event. A spectacular $50,000 profit on a heatwave day
+    helps, but what matters is the average annual revenue across 15&ndash;20 years of operation. The question
+    is always: does the total lifetime revenue (discounted back to today) exceed the upfront capital cost?
+    In 2025, a grid-scale battery costs roughly <span class="stat">$800k&ndash;$1.2M per MWh</span> installed.
+    At a 2-hour duration, a 200 MW system costs $320&ndash;$480 million &mdash; it needs consistent daily
+    spreads to pay that back within its useful life.
+  </div>
 </div>
 
-<!-- PAGE 10: BIDDING STRATEGIES -->
+<!-- PAGE 10: PUMPED HYDRO -->
 <div class="page content">
-  <h2>9. Bidding Strategies</h2>
+  <h2>9. Pumped Hydro Energy Storage</h2>
+
+  <p>Pumped hydro is <strong>not featured in the game</strong>, but it plays a critical role in the real NEM
+  and acts similarly to a battery in storing and shifting energy. Understanding how it compares to batteries
+  completes the storage picture.</p>
+
+  <h3>How Pumped Hydro Works</h3>
+  <p>Pumped hydro uses two reservoirs at different elevations. When electricity is cheap, water is
+  <strong>pumped uphill</strong> to the upper reservoir (charging). When electricity is expensive, water
+  flows <strong>downhill through turbines</strong> to generate power (discharging). The principle is identical
+  to a battery: buy low, sell high, minus efficiency losses (~75&ndash;85% round-trip efficiency).</p>
+
+  <div class="two-col">
+    <div class="card">
+      <h4>&#128267; Grid-Scale Battery</h4>
+      <ul>
+        <li>Duration: <span class="stat">2&ndash;4 hours</span> (typical)</li>
+        <li>Capacity: <span class="stat">100&ndash;850 MW</span></li>
+        <li>Efficiency: <span class="stat">85&ndash;92%</span></li>
+        <li>Asset life: <span class="stat">15&ndash;20 years</span></li>
+        <li>Build time: <span class="stat">1&ndash;3 years</span></li>
+        <li>Capital cost: lower per MW, higher per MWh</li>
+        <li>Response time: milliseconds</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>&#128167; Pumped Hydro</h4>
+      <ul>
+        <li>Duration: <span class="stat">8&ndash;175 hours</span></li>
+        <li>Capacity: <span class="stat">250&ndash;2,000 MW</span></li>
+        <li>Efficiency: <span class="stat">75&ndash;85%</span></li>
+        <li>Asset life: <span class="stat">80&ndash;100+ years</span></li>
+        <li>Build time: <span class="stat">5&ndash;10 years</span></li>
+        <li>Capital cost: very high upfront, low per MWh at scale</li>
+        <li>Response time: minutes</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="highlight">
+    <strong>The Key Difference: Duration.</strong> A typical NEM battery stores 2&ndash;4 hours of energy &mdash;
+    enough to bridge the evening solar cliff. Pumped hydro stores <em>days to weeks</em> of energy. Snowy 2.0's
+    350 GWh reservoir can sustain 2,000 MW output for over <strong>175 hours</strong> (more than a week).
+    This makes pumped hydro essential for managing multi-day weather events like dunkelflaute, where batteries
+    would be depleted within hours.
+  </div>
+
+  <h3>Australia's Pumped Hydro Projects</h3>
+  <div class="gen-card">
+    <div class="gen-header">
+      <span class="gen-icon">&#9968;</span>
+      <span class="gen-name">Snowy 2.0 (NSW)</span>
+    </div>
+    <div class="gen-stats">
+      <span class="stat">2,000 MW</span>
+      <span class="stat">350 GWh</span>
+      <span class="stat">175 hours</span>
+      <span class="stat">~$12 billion</span>
+    </div>
+    <div class="gen-desc">
+      Links the Tantangara and Talbingo reservoirs through a 27 km tunnel to an underground power station.
+      Expected to be fully operational by 2028&ndash;29 with a projected asset life of <strong>100+ years</strong>.
+      Will have five times more storage than all of Australia's current grid batteries combined.
+    </div>
+  </div>
+
+  <div class="gen-card">
+    <div class="gen-header">
+      <span class="gen-icon">&#9968;</span>
+      <span class="gen-name">Borumba (QLD)</span>
+    </div>
+    <div class="gen-stats">
+      <span class="stat">2,000 MW</span>
+      <span class="stat">48 GWh</span>
+      <span class="stat">24 hours</span>
+      <span class="stat">~$14.2 billion</span>
+    </div>
+    <div class="gen-desc">
+      Being developed by Queensland Hydro, one of the largest pumped hydro facilities in the world.
+      24 hours of storage duration &mdash; enough to provide dispatchable power across an entire day.
+      Currently in early works with bipartisan political support.
+    </div>
+  </div>
+
+  <h3>Why Both Storage Types Are Needed</h3>
+  <p>Batteries and pumped hydro are <strong>complementary, not competing</strong> technologies:</p>
+  <ul>
+    <li><strong>Batteries</strong> excel at fast response (milliseconds), daily cycling, frequency control,
+    and bridging the 2&ndash;4 hour evening solar cliff. They are quick to build and costs are falling rapidly.</li>
+    <li><strong>Pumped hydro</strong> excels at multi-day storage, seasonal energy shifting, and providing
+    the deep reserves needed for extended low-renewable periods. Their 80&ndash;100 year asset life means
+    the capital cost is spread across multiple generations.</li>
+  </ul>
+
+  <div class="highlight-amber">
+    <strong>Capital Intensity vs. Longevity:</strong> Pumped hydro projects are hugely capital intensive &mdash;
+    Snowy 2.0 and Borumba each cost $12&ndash;14 billion. But spread over 100 years of operation, the per-year cost
+    is far lower than replacing batteries every 15&ndash;20 years. A battery installed today might be replaced
+    5&ndash;6 times within a single pumped hydro asset's lifetime. The NEM needs both: batteries for the daily
+    grind, pumped hydro for the long haul.
+  </div>
+</div>
+
+<!-- PAGE 11: BIDDING STRATEGIES -->
+<div class="page content">
+  <h2>10. Bidding Strategies</h2>
 
   <p>The game offers six core bidding strategies. Each has strengths, weaknesses, and situations where it
   is optimal. Mastering when to use each strategy is the key to winning.</p>
@@ -933,7 +1090,7 @@ Demand
 
 <!-- PAGE 11: MARKET SCENARIOS -->
 <div class="page content">
-  <h2>10. Market Scenarios</h2>
+  <h2>11. Market Scenarios</h2>
 
   <p>The game features real-world-inspired scenarios that change market conditions mid-game. Each tests
   different strategic responses and teaches important lessons about NEM dynamics.</p>
@@ -1047,7 +1204,7 @@ Demand
 
 <!-- PAGE 12: THE ENERGY TRANSITION -->
 <div class="page content">
-  <h2>11. The Energy Transition</h2>
+  <h2>12. The Energy Transition</h2>
 
   <p>The game's progression mirrors the real transformation of Australia's electricity system. Understanding
   this context gives the market dynamics you experienced a much richer meaning.</p>
@@ -1125,9 +1282,207 @@ Net Demand
   </div>
 </div>
 
-<!-- PAGE 13: KEY FORMULAS -->
+<!-- PAGE 13: NEM GRID EVOLUTION -->
 <div class="page content">
-  <h2>12. Key Formulas</h2>
+  <h2>13. The Real NEM: From Centralised Giants to a Distributed Grid</h2>
+
+  <p>The game gives you a handful of generators per team. The real NEM has undergone a dramatic transformation
+  in the sheer <strong>number and type of assets</strong> connected to the grid &mdash; and understanding this
+  shift is key to understanding the energy transition.</p>
+
+  <h3>Historical Evolution: Asset Count by Era</h3>
+  <table>
+    <tr>
+      <th>Era</th>
+      <th>Period</th>
+      <th>Grid-Scale Assets</th>
+      <th>Avg Size (MW)</th>
+      <th>Character</th>
+    </tr>
+    <tr>
+      <td>&#127981; Coal Era</td>
+      <td>1998&ndash;2008</td>
+      <td>~50&ndash;60 large plants</td>
+      <td>500&ndash;750</td>
+      <td>Few, large, centralised. ~30 GW total. Coal provided ~85% of generation from ~25 plants.</td>
+    </tr>
+    <tr>
+      <td>&#127793; Early Transition</td>
+      <td>2009&ndash;2017</td>
+      <td>~120&ndash;150 facilities</td>
+      <td>100&ndash;400</td>
+      <td>Wind farms arriving at 200&ndash;400 MW. First solar farms at 50&ndash;150 MW. Coal retirements begin. Tesla Big Battery (100 MW) arrives 2017.</td>
+    </tr>
+    <tr>
+      <td>&#9889; Renewable Surge</td>
+      <td>2018&ndash;2023</td>
+      <td>~350&ndash;450 facilities</td>
+      <td>50&ndash;300</td>
+      <td>Rapid wind &amp; solar build-out. 20+ GW of renewables connected. First large batteries. Coal's share falls to ~50%.</td>
+    </tr>
+    <tr>
+      <td>&#128267; Storage Revolution</td>
+      <td>2024&ndash;2026</td>
+      <td>~550&ndash;650+ facilities</td>
+      <td>50&ndash;200</td>
+      <td>Battery deployment explodes. 11 large batteries in 2025 alone. Renewables hit 51% of generation. 5+ GW of BESS installed.</td>
+    </tr>
+  </table>
+
+  <div class="highlight">
+    <strong>The Multiplier Effect:</strong> Why does a grid transitioning to renewables need so many more assets?
+    Two reasons. First, <strong>capacity factor</strong>: a coal plant runs at 80&ndash;90% capacity factor, while
+    wind averages 25&ndash;40% and solar 15&ndash;25%. To replace 1,000 MW of always-on coal, you need roughly
+    2,500&ndash;4,000 MW of installed renewable capacity to produce the same energy over a year. Second,
+    <strong>average project size is smaller</strong>: a coal plant is 500&ndash;2,000 MW, while a typical solar farm
+    is 100&ndash;300 MW and a wind farm is 200&ndash;500 MW. So you need more MW AND each project delivers fewer
+    MW. The result: many more individual assets on the grid.
+  </div>
+
+  <p>On top of this, <strong>batteries are needed to shift renewable energy</strong> from when it's generated
+  (daytime solar, variable wind) to when it's needed (evening peak). Every GW of solar that causes
+  a deeper duck curve belly needs storage to fill the evening gap. More renewables = more batteries = even
+  more assets on the grid.</p>
+
+  <h3>Major Projects: 2024&ndash;2025</h3>
+  <p>The past two years have seen record deployment across all clean energy categories:</p>
+
+  <h4>&#128267; Grid-Scale Batteries Commissioned</h4>
+  <table>
+    <tr>
+      <th>Project</th>
+      <th>State</th>
+      <th>Capacity</th>
+      <th>Duration</th>
+    </tr>
+    <tr><td>Waratah Super Battery (Stage 1)</td><td>NSW</td><td>350 MW / 700 MWh</td><td>2 hr</td></tr>
+    <tr><td>Melbourne Renewable Energy Hub</td><td>VIC</td><td>600 MW / 1,600 MWh</td><td>2&ndash;4 hr</td></tr>
+    <tr><td>Western Downs BESS (Stages 1&ndash;2)</td><td>QLD</td><td>540 MW / 1,080 MWh</td><td>2 hr</td></tr>
+    <tr><td>Eraring BESS</td><td>NSW</td><td>460 MW / 1,073 MWh</td><td>2 hr</td></tr>
+    <tr><td>Tarong BESS</td><td>QLD</td><td>300 MW / 600 MWh</td><td>2 hr</td></tr>
+    <tr><td>Brendale BESS</td><td>QLD</td><td>205 MW / 410 MWh</td><td>2 hr</td></tr>
+    <tr><td>Templers BESS</td><td>SA</td><td>111 MW / 270 MWh</td><td>2 hr</td></tr>
+  </table>
+  <p style="font-size: 0.8rem; color: #718096;">In total, ~3.8 GW / 8.6 GWh of new batteries entered the NEM in 2024&ndash;2025 &mdash;
+  Australia surpassed the UK to become the world's third-largest utility battery market.</p>
+
+  <h4>&#127788;&#65039; Wind Farms Commissioned / Commissioning</h4>
+  <table>
+    <tr>
+      <th>Project</th>
+      <th>State</th>
+      <th>Capacity</th>
+    </tr>
+    <tr><td>MacIntyre Wind Farm</td><td>QLD</td><td>923 MW</td></tr>
+    <tr><td>Golden Plains Wind Farm East</td><td>VIC</td><td>756 MW</td></tr>
+    <tr><td>Clarke Creek Wind Farm (Stage 1)</td><td>QLD</td><td>450 MW</td></tr>
+    <tr><td>Rye Park Wind Farm</td><td>NSW</td><td>396 MW</td></tr>
+    <tr><td>Wambo Wind Farm (Stage 1)</td><td>QLD</td><td>252 MW</td></tr>
+    <tr><td>Goyder South Wind Farm</td><td>SA</td><td>196 MW</td></tr>
+  </table>
+
+  <h4>&#9728;&#65039; Solar Farms Commissioned / Commissioning</h4>
+  <table>
+    <tr>
+      <th>Project</th>
+      <th>State</th>
+      <th>Capacity</th>
+    </tr>
+    <tr><td>Stubbo Solar Farm</td><td>NSW</td><td>520 MW</td></tr>
+    <tr><td>Culcairn Solar Farm</td><td>NSW</td><td>440 MW</td></tr>
+    <tr><td>Walla Walla Solar Farm 1 &amp; 2</td><td>NSW</td><td>353 MW</td></tr>
+    <tr><td>Wollar Solar Farm</td><td>NSW</td><td>280 MW</td></tr>
+  </table>
+
+  <h3>&#128302; 2030 Forecast: What the Grid Will Look Like</h3>
+  <p>AEMO's Integrated System Plan projects a dramatically different grid by 2030:</p>
+
+  <table>
+    <tr>
+      <th>Technology</th>
+      <th>2025 (Current)</th>
+      <th>2030 (Forecast)</th>
+      <th>Change</th>
+    </tr>
+    <tr>
+      <td>&#127981; Coal</td>
+      <td>~21 GW (15 plants)</td>
+      <td>~10&ndash;14 GW (8&ndash;10 plants)</td>
+      <td>&#8595; Retiring at pace; avg age 38+ years</td>
+    </tr>
+    <tr>
+      <td>&#128293; Gas (CCGT + Peaker)</td>
+      <td>~11 GW</td>
+      <td>~12&ndash;15 GW</td>
+      <td>&#8596; Stable; some new peakers for firming</td>
+    </tr>
+    <tr>
+      <td>&#127788;&#65039; Wind</td>
+      <td>~12 GW</td>
+      <td>~26 GW</td>
+      <td>&#8593; More than doubling</td>
+    </tr>
+    <tr>
+      <td>&#9728;&#65039; Grid-Scale Solar</td>
+      <td>~11 GW</td>
+      <td>~32 GW</td>
+      <td>&#8593; Nearly tripling</td>
+    </tr>
+    <tr>
+      <td>&#9728;&#65039; Rooftop Solar</td>
+      <td>~25 GW</td>
+      <td>~36 GW</td>
+      <td>&#8593; Still growing fast</td>
+    </tr>
+    <tr>
+      <td>&#128167; Hydro</td>
+      <td>~8 GW</td>
+      <td>~10 GW (incl. Snowy 2.0)</td>
+      <td>&#8593; Snowy 2.0 adds 2 GW</td>
+    </tr>
+    <tr>
+      <td>&#128267; Grid-Scale Storage</td>
+      <td>~5 GW</td>
+      <td>~27 GW</td>
+      <td>&#8593;&#8593; Massive expansion needed</td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>Total Installed Capacity</strong></td>
+      <td><strong>~92 GW &rarr; ~160+ GW</strong></td>
+      <td>&#8593;&#8593; Nearly doubling in 5 years</td>
+    </tr>
+  </table>
+
+  <div class="highlight-green">
+    <strong>The Proportional Shift:</strong> In 2025, coal and gas represent roughly <span class="stat">35%</span>
+    of installed capacity with renewables + storage at <span class="stat">65%</span>. By 2030, fossil fuels
+    will be approximately <span class="stat">15&ndash;18%</span> of installed capacity, with renewables + storage
+    at <span class="stat">82&ndash;85%</span>. But because coal and gas have higher capacity factors and run
+    on demand, their share of actual <em>generation</em> will still be significant (~20&ndash;30%) until
+    sufficient storage is built to shift renewable energy to whenever it's needed.
+  </div>
+
+  <div class="highlight-red">
+    <strong>The Pipeline is Enormous:</strong> As of late 2025, AEMO reported a record <span class="stat">56.6 GW</span>
+    of new generation and storage in the NEM development pipeline across 275 projects &mdash; with storage comprising
+    26.1 GW (almost half). A further 75 battery projects alone representing 13 GW / 34.7 GWh are financially
+    committed or under construction. The grid of 2030 will have hundreds more individual assets than today,
+    managed by increasingly sophisticated market software and forecasting.
+  </div>
+
+  <div class="key-concept">
+    <strong>From Dozens to Thousands:</strong> The NEM has evolved from ~50 large centralised generators to
+    a grid with 650+ utility-scale facilities plus ~3.5 million rooftop solar systems. By 2030, the number of
+    grid-scale assets alone could exceed 800&ndash;1,000. This shift from centralised to distributed generation
+    is not just a technology change &mdash; it's a fundamental redesign of how electricity markets operate.
+    The game's merit order still applies, but managing it with hundreds of variable generators and storage
+    assets is an entirely different challenge than dispatching 50 coal plants.
+  </div>
+</div>
+
+<!-- PAGE 14: KEY FORMULAS -->
+<div class="page content">
+  <h2>14. Key Formulas</h2>
 
   <h3>Generator Profit</h3>
   <div class="formula">
@@ -1178,7 +1533,7 @@ Net Demand
 
 <!-- PAGE 14: GLOSSARY -->
 <div class="page content">
-  <h2>13. Glossary</h2>
+  <h2>15. Glossary</h2>
 
   <div class="two-col">
     <div>

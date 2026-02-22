@@ -7,6 +7,7 @@ import type {
   AssetBid, AssetInfo, BidBand, TeamAssetInstance, TimePeriod,
   AssetType, TeamBidSubmission, WalkthroughSuggestedBid,
   TeamAnalysis, RoundAnalysis, AssetPerformanceSummary,
+  AssetCategoryBreakdown,
 } from '../../../shared/types';
 import {
   TIME_PERIOD_SHORT_LABELS, TIME_PERIOD_TIME_RANGES,
@@ -1716,6 +1717,90 @@ export default function TeamGame() {
                 ))}
               </div>
             </div>
+
+            {/* Generation Mix — Asset Category Breakdown */}
+            {gameState?.lastRoundAnalysis?.assetCategoryBreakdown &&
+             gameState.lastRoundAnalysis.assetCategoryBreakdown.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Generation Mix</h3>
+
+                {/* Stacked bar */}
+                {(() => {
+                  const cats = gameState.lastRoundAnalysis.assetCategoryBreakdown as AssetCategoryBreakdown[];
+                  const totalEnergy = cats.reduce((s, c) => s + c.totalEnergyMWh, 0);
+                  if (totalEnergy <= 0) return null;
+
+                  const CAT_COLORS: Record<string, string> = {
+                    renewables: '#22c55e',
+                    fossil: '#6b7280',
+                    hydro: '#3b82f6',
+                    battery: '#a855f7',
+                  };
+
+                  return (
+                    <div className="space-y-3">
+                      {/* Proportional bar */}
+                      <div className="flex rounded-lg overflow-hidden h-6">
+                        {cats.filter(c => c.totalEnergyMWh > 0).map(cat => {
+                          const pct = (cat.totalEnergyMWh / totalEnergy) * 100;
+                          return (
+                            <div
+                              key={cat.category}
+                              className="flex items-center justify-center text-[9px] font-bold text-white min-w-[24px]"
+                              style={{
+                                width: `${Math.max(pct, 3)}%`,
+                                backgroundColor: CAT_COLORS[cat.category] || '#999',
+                              }}
+                              title={`${cat.categoryLabel}: ${pct.toFixed(0)}%`}
+                            >
+                              {pct >= 10 ? `${pct.toFixed(0)}%` : ''}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Legend + stats */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {cats.filter(c => c.totalEnergyMWh > 0 || c.totalProfit !== 0).map(cat => {
+                          const pct = totalEnergy > 0 ? (cat.totalEnergyMWh / totalEnergy) * 100 : 0;
+                          const myTeamBreakdown = cat.teamBreakdowns.find(tb => tb.teamId === team.id);
+                          return (
+                            <div key={cat.category} className="bg-gray-50 rounded-lg p-2.5">
+                              <div className="flex items-center gap-2 mb-1">
+                                <div
+                                  className="w-3 h-3 rounded-sm flex-shrink-0"
+                                  style={{ backgroundColor: CAT_COLORS[cat.category] || '#999' }}
+                                />
+                                <span className="text-xs font-semibold text-gray-700">
+                                  {cat.categoryIcon} {cat.categoryLabel}
+                                </span>
+                                <span className="text-[10px] text-gray-400 ml-auto font-mono">
+                                  {pct.toFixed(0)}%
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-gray-500 ml-5">
+                                {formatNumber(Math.round(cat.totalEnergyMWh))} MWh total
+                              </div>
+                              {myTeamBreakdown && myTeamBreakdown.energyMWh > 0 && (
+                                <div className="text-[10px] ml-5 mt-0.5">
+                                  <span className="text-gray-500">You: </span>
+                                  <span className={`font-mono font-bold ${
+                                    myTeamBreakdown.profit >= 0 ? 'text-green-600' : 'text-red-600'
+                                  }`}>
+                                    {myTeamBreakdown.profit >= 0 ? '+' : ''}{formatCurrency(myTeamBreakdown.profit)}
+                                  </span>
+                                  <span className="text-gray-400"> ({formatNumber(Math.round(myTeamBreakdown.energyMWh))} MWh)</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Walkthrough Button */}
             <button
