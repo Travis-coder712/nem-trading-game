@@ -104,7 +104,7 @@ export const quickGameRounds: RoundConfig[] = [
     hostTeachingNotes: [
       'First unguided round — teams bid independently across all 4 periods',
       'Highlight: demand differs by period. Overnight is quieter, Evening is tightest.',
-      'Introduce strategies: price taker ($0), marginal cost, price maker, strategic withdrawal',
+      'Introduce strategies: price taker ($0), marginal cost, price maker, capacity repricing',
       'After results: compare who adapted their bidding across periods vs who bid the same everywhere',
       'Discussion: "Which period had the highest clearing price? Who set it?"',
     ],
@@ -117,7 +117,7 @@ export const quickGameRounds: RoundConfig[] = [
         },
         {
           heading: 'Bidding Strategies',
-          body: '1. **Price Taker**: Bid $0 to guarantee dispatch\n2. **Marginal Cost Bidder**: Bid at your marginal cost (check your Marginal Cost badge!)\n3. **Price Maker**: Bid high on some capacity to push up prices\n4. **Strategic Withdrawal**: Withhold capacity to tighten supply\n\nWith 5 bands, you can mix strategies across your capacity. Consider bidding differently per period!',
+          body: '1. **Price Taker**: Bid $0 to guarantee dispatch\n2. **Marginal Cost Bidder**: Bid at your marginal cost (check your Marginal Cost badge!)\n3. **Price Maker**: Bid high on some capacity to push up prices\n4. **Capacity Repricing**: Reprice capacity to higher bands to tighten effective supply\n\nWith 5 bands, you can mix strategies across your capacity. Consider bidding differently per period!',
         },
       ],
     },

@@ -155,7 +155,7 @@ export const fullGameRounds: RoundConfig[] = [
     learningObjectives: [
       'Understand market power and how large players influence prices',
       'Learn price-taker vs price-maker strategies',
-      'Observe the effect of strategic withdrawal on prices',
+      'Observe the effect of capacity repricing on prices',
     ],
     season: 'autumn',
     timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
@@ -167,18 +167,18 @@ export const fullGameRounds: RoundConfig[] = [
     biddingTimeLimitSeconds: 210,
     maxBidBandsPerAsset: 5,
     hostTeachingNotes: [
-      'Introduce strategic bidding concepts: market power, price-making, and capacity withdrawal.',
+      'Introduce strategic bidding concepts: market power, price-making, and capacity repricing.',
       'Different SRMCs across teams create natural strategy differences — some teams are low-cost and can undercut, others must bid higher.',
-      'Watch for: teams withholding capacity to tighten supply. Point this out after results if it happens.',
-      'After results: "Did anyone withhold capacity? What happened to prices when they did?"',
-      'Discussion: "Is strategic withdrawal good or bad for the market? In the real NEM, the ACCC monitors for this."',
+      'Watch for: teams repricing capacity to higher bands to tighten effective supply. Point this out after results if it happens.',
+      'After results: "Did anyone reprice capacity to higher bands? What happened to prices when they did?"',
+      'Discussion: "Is capacity repricing good or bad for the market? In the real NEM, the ACCC monitors for this."',
     ],
     educationalContent: {
       title: 'Bidding Strategies',
       slides: [
         {
           heading: 'Six Bidding Strategies',
-          body: '1. **Price Taker**: Bid at $0 - guarantees dispatch, accepts market price\n2. **Marginal Cost Bidder**: Bid at your marginal cost - economically rational\n3. **Price Maker**: Bid high on some capacity to push up the clearing price\n4. **Portfolio Optimizer**: Mix strategies across different assets\n5. **Strategic Withdrawal**: Withhold capacity to tighten supply\n6. **Arbitrageur**: (For batteries later) Charge low, discharge high\n\nEach strategy has trade-offs between guaranteed dispatch volume and price.',
+          body: '1. **Price Taker**: Bid at $0 - guarantees dispatch, accepts market price\n2. **Marginal Cost Bidder**: Bid at your marginal cost - economically rational\n3. **Price Maker**: Bid high on some capacity to push up the clearing price\n4. **Portfolio Optimizer**: Mix strategies across different assets\n5. **Capacity Repricing**: Reprice capacity to higher bands to tighten effective supply\n6. **Arbitrageur**: (For batteries later) Charge low, discharge high\n\nEach strategy has trade-offs between guaranteed dispatch volume and price.',
         },
         {
           heading: 'Real-World Context',

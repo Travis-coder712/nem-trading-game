@@ -74,10 +74,10 @@ export const BIDDING_STRATEGIES: BiddingStrategy[] = [
     },
   },
   {
-    id: 'strategic_withdrawal',
-    name: 'Strategic Withdrawal',
-    description: 'Withhold 30% of your thermal capacity by bidding it at the market cap ($20,000/MWh), effectively removing it from the market. This tightens supply and may push clearing prices higher. The remaining 70% is bid at marginal cost. WARNING: if other teams also withdraw, you could trigger extreme prices.',
-    shortDescription: 'Withhold 30% capacity to tighten supply and raise prices',
+    id: 'capacity_repricing',
+    name: 'Capacity Repricing',
+    description: 'Reprice 30% of your thermal capacity to the market cap ($20,000/MWh), making it unlikely to be dispatched. This tightens effective supply and may push clearing prices higher. The remaining 70% is bid at marginal cost. This is a legitimate rebidding strategy but is monitored by the AER for potential economic withholding. WARNING: if other teams also reprice, you could trigger extreme prices.',
+    shortDescription: 'Reprice 30% of capacity to higher bands to influence clearing prices',
     generateBids: (assets, assetDefs, roundConfig) => {
       return generateStrategyBids(assets, assetDefs, roundConfig, (def, available) => {
         if (def.type === 'wind' || def.type === 'solar') {

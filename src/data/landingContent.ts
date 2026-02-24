@@ -102,7 +102,7 @@ export const EDUCATION_SLIDES: LandingSlide[] = [
   {
     icon: '🎯',
     heading: 'Bidding Strategies',
-    body: "**Price Taker** \u2014 Bid $0, guarantee dispatch, accept the clearing price.\n**Marginal Cost Bidder** \u2014 Bid at cost. Rational baseline, covers costs.\n**Price Maker** \u2014 Bid high to push up the clearing price for all your units.\n**Portfolio Optimizer** \u2014 Mix strategies across your different assets.\n**Strategic Withdrawal** \u2014 Withhold capacity to tighten supply and raise prices.\n**Battery Arbitrage** \u2014 Charge cheap, discharge expensive. Arbitrage revenue = discharge earnings minus charging cost.",
+    body: "**Price Taker** \u2014 Bid $0, guarantee dispatch, accept the clearing price.\n**Marginal Cost Bidder** \u2014 Bid at cost. Rational baseline, covers costs.\n**Price Maker** \u2014 Bid high to push up the clearing price for all your units.\n**Portfolio Optimizer** \u2014 Mix strategies across your different assets.\n**Capacity Repricing** \u2014 Reprice capacity to higher bands to tighten effective supply and influence clearing prices.\n**Battery Arbitrage** \u2014 Charge cheap, discharge expensive. Arbitrage revenue = discharge earnings minus charging cost.",
   },
   {
     icon: '🎮',

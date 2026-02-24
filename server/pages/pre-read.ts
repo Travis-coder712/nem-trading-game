@@ -431,9 +431,9 @@ export function getPreReadHTML(): string {
       <p><em>Best when:</em> You have diverse assets and want to maximise total portfolio profit rather than per-asset.</p>
     </div>
     <div class="card">
-      <h4>&#128683; Strategic Withdrawal</h4>
-      <p>Withhold 20&ndash;30% of capacity from the market to tighten supply and raise prices for your remaining dispatched units.</p>
-      <p><em>Best when:</em> You have significant market share and supply is near demand. Risky &mdash; other teams may undercut you.</p>
+      <h4>&#128683; Capacity Repricing</h4>
+      <p>Reprice 20&ndash;30% of capacity to higher bands to tighten supply and raise prices for your remaining dispatched units.</p>
+      <p><em>Best when:</em> You have significant market share and supply is near demand. Risky &mdash; the AER monitors for economic withholding and other teams may undercut you.</p>
     </div>
     <div class="card">
       <h4>&#128267; Battery Arbitrageur</h4>

@@ -233,7 +233,7 @@ export function getGameplaySummaryHTML(): string {
       <li><a href="#hydro">Hydro Mechanics</a></li>
       <li><a href="#bidding-by-asset">Bidding by Asset Type</a></li>
       <li><a href="#scenarios">Scenario Events</a></li>
-      <li><a href="#withdrawal">Strategic Withdrawal Detection</a></li>
+      <li><a href="#withdrawal">Economic Withholding Detection</a></li>
       <li><a href="#strategy">Key Strategic Insights</a></li>
       <li><a href="#ui-complexity">UI Complexity Levels</a></li>
       <li><a href="#walkthrough">Walkthrough Mode &amp; Guided Rounds</a></li>
@@ -685,21 +685,21 @@ export function getGameplaySummaryHTML(): string {
 
   <!-- ─────────────────────────────────────────── -->
   <section id="withdrawal">
-    <h2>12. Strategic Withdrawal Detection</h2>
+    <h2>12. Economic Withholding Detection</h2>
     <div class="card">
       <p>
         When the <strong>price cap</strong> is triggered (indicating a supply shortage), the system
-        checks whether any team <strong>withheld more than 25%</strong> of their available capacity
-        from the market.
+        checks whether any team <strong>repriced more than 25%</strong> of their available capacity
+        to the market cap.
       </p>
       <p>
-        Teams found to be withholding capacity during scarcity conditions receive a
+        Teams found to be repricing capacity to higher bands during scarcity conditions receive a
         <strong>public warning</strong>, visible to all participants. This models
-        <strong>AEMO&rsquo;s market monitoring</strong> of generator bidding behavior in the real NEM.
+        the <strong>AER&rsquo;s monitoring of economic withholding</strong> behaviour in the real NEM.
       </p>
     </div>
     <div class="important">
-      Strategic withdrawal can be profitable in theory, but the detection system creates
+      Capacity repricing can be profitable in theory, but the detection system creates
       reputational risk. Balance profit maximization against market conduct obligations.
     </div>
   </section>

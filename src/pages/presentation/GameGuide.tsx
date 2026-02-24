@@ -353,7 +353,7 @@ export default function GameGuide() {
             <StrategyCard name="Marginal Cost Bidder" desc="Bid at your Short Run Marginal Cost. Rational baseline — covers costs, earns when price is high." />
             <StrategyCard name="Price Maker" desc="Bid high on some capacity to push up the clearing price for all your dispatched units." />
             <StrategyCard name="Portfolio Optimizer" desc="Mix strategies: $0 on renewables, marginal cost on baseload, high on peakers." />
-            <StrategyCard name="Strategic Withdrawal" desc="Withhold 20-30% of capacity to tighten supply and raise prices." />
+            <StrategyCard name="Capacity Repricing" desc="Reprice 20-30% of capacity to higher bands to tighten effective supply and influence clearing prices." />
             <StrategyCard name="Battery Arbitrage" desc="Charge at low prices, discharge at peak. 6-hour battery. Use target SOC buttons. Battery strategy is independent — combine with thermal strategies." />
           </div>
         </Section>
@@ -387,7 +387,7 @@ export default function GameGuide() {
                 <tr className="border-b border-white/5 print:border-gray-200">
                   <td className="py-2 pr-4">Non-battery assets must bid &gt; 0 MW in every period</td>
                   <td className="py-2 pr-4 text-center">❌ Blocked</td>
-                  <td className="py-2 pr-4 text-center">✅ Allowed (strategic withdrawal)</td>
+                  <td className="py-2 pr-4 text-center">✅ Allowed (capacity repricing)</td>
                 </tr>
                 <tr className="border-b border-white/5 print:border-gray-200">
                   <td className="py-2 pr-4">Warning if &gt;60% of capacity bid at $0/MWh</td>
@@ -414,7 +414,7 @@ export default function GameGuide() {
             </table>
           </div>
           <p className="mt-3 text-xs text-navy-400 print:text-gray-500">
-            💡 Tip: With guardrails off, experienced players can use strategic withdrawal — withholding capacity to tighten supply and raise the clearing price.
+            💡 Tip: With guardrails off, experienced players can use capacity repricing — rebidding capacity to higher price bands to tighten effective supply and influence the clearing price.
           </p>
         </Section>
 

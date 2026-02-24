@@ -144,7 +144,7 @@ export const firstRunRounds: RoundConfig[] = [
         },
         {
           heading: 'Strategy Options',
-          body: '1. **Price Taker**: Bid $0 everywhere — guaranteed dispatch\n2. **SRMC Bidder**: Bid at your marginal cost\n3. **Price Maker**: Bid high on some capacity to push up prices\n4. **Strategic Withdrawal**: Withhold capacity to tighten supply\n\nWith 5 bands you can mix strategies across your capacity!',
+          body: '1. **Price Taker**: Bid $0 everywhere — guaranteed dispatch\n2. **SRMC Bidder**: Bid at your marginal cost\n3. **Price Maker**: Bid high on some capacity to push up prices\n4. **Capacity Repricing**: Reprice capacity to higher bands to tighten effective supply\n\nWith 5 bands you can mix strategies across your capacity!',
         },
       ],
     },

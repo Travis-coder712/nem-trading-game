@@ -1052,19 +1052,19 @@ Net Demand                            THE DUCK CURVE
   <div class="gen-card">
     <div class="gen-header">
       <span class="gen-icon">&#128683;</span>
-      <span class="gen-name">5. Strategic Withdrawal</span>
+      <span class="gen-name">5. Capacity Repricing</span>
     </div>
     <div class="gen-desc">
-      <p><strong>How it works:</strong> Deliberately withhold 20&ndash;30% of your capacity from the market
-      (bid it at very high prices so it won't be dispatched). This tightens supply, pushing up the
+      <p><strong>How it works:</strong> Reprice 20&ndash;30% of your capacity to higher bands
+      (bid it at very high prices so it is unlikely to be dispatched). This tightens supply, pushing up the
       clearing price for your remaining dispatched units.</p>
       <p><strong>Strengths:</strong> Can significantly increase the clearing price. The higher price on
-      remaining capacity may more than compensate for the volume lost from withdrawal.</p>
+      remaining capacity may more than compensate for the volume lost from repricing.</p>
       <p><strong>Weaknesses:</strong> Risky &mdash; if other teams increase supply, you lose volume without
-      gaining price. In competitive markets, withdrawal is punished. Regulators watch for this behaviour
-      in real markets (potential market manipulation).</p>
+      gaining price. In competitive markets, economic withholding is punished. The AER actively monitors for this behaviour
+      in real markets.</p>
       <p><strong>Best when:</strong> You have significant market share. Supply is near demand. Few competitors
-      can backfill the withdrawn capacity.</p>
+      can backfill the repriced capacity.</p>
     </div>
   </div>
 

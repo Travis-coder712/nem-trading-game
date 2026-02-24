@@ -284,17 +284,17 @@ const STRATEGY_SLIDES: StrategySlide[] = [
     realWorldAnalogy: 'AGL Energy operates exactly this way: Bayswater coal for baseload, Torrens Island gas for mid-merit, Broken Hill solar at $0, and the Torrens Island battery for peak arbitrage.',
   },
 
-  // ─── 5. Strategic Withdrawal ──────────────────────
+  // ─── 5. Capacity Repricing ──────────────────────
   {
-    id: 'strategic_withdrawal',
-    name: 'Strategic Withdrawal',
+    id: 'capacity_repricing',
+    name: 'Capacity Repricing',
     icon: '🔴',
     color: 'red',
-    tagline: 'Withhold capacity from the market to tighten supply and drive prices up',
+    tagline: 'Rebid capacity to higher price bands to tighten effective supply and influence clearing prices',
     conceptParagraphs: [
-      'Strategic Withdrawal is the most aggressive (and controversial) strategy. You deliberately bid a portion of your capacity at the market price cap ($20,000/MWh) — effectively removing it from the market. This tightens the supply-demand balance and pushes clearing prices higher.',
-      'The economics are simple: if removing 200 MW of supply raises the clearing price from $50 to $200/MWh, and your remaining 600 MW dispatches at $200 instead of $50, you earn $120,000 instead of $30,000 — even though you produced less.',
-      'This is the strategy that energy regulators worry about most. In a concentrated market (few large generators), withholding capacity can dramatically inflate prices. Australia\'s AER actively monitors for this behaviour.',
+      'Capacity Repricing is the most aggressive rebidding strategy. You shift a portion of your capacity to the market price cap ($20,000/MWh) — making it unlikely to be dispatched. This tightens the effective supply-demand balance and pushes clearing prices higher for your remaining dispatched capacity.',
+      'The economics are simple: if repricing 200 MW to the cap raises the clearing price from $50 to $200/MWh, and your remaining 600 MW dispatches at $200 instead of $50, you earn $120,000 instead of $30,000 — even though you produced less.',
+      'In the NEM, rebidding volumes between price bands is a legitimate market mechanism. However, the AER monitors for patterns of "economic withholding" — where generators reprice capacity significantly above cost to exercise market power. Sustained patterns during scarcity attract regulatory scrutiny.',
     ],
     mockBids: [
       {
@@ -303,10 +303,10 @@ const STRATEGY_SLIDES: StrategySlide[] = [
         nameplateMW: 800,
         srmcPerMWh: 35,
         bands: [
-          { pricePerMWh: 35, quantityMW: 560, label: 'Band 1: At SRMC — stays in market' },
-          { pricePerMWh: 20000, quantityMW: 240, label: 'Band 2: At cap — effectively withdrawn' },
+          { pricePerMWh: 35, quantityMW: 560, label: 'Band 1: At SRMC — stays in merit order' },
+          { pricePerMWh: 20000, quantityMW: 240, label: 'Band 2: Repriced to cap — unlikely to dispatch' },
         ],
-        note: '70% available at cost, 30% withheld at the $20,000 market cap',
+        note: '70% bid at cost, 30% repriced to the $20,000 market cap',
       },
       {
         assetType: 'gas_ccgt',
@@ -315,9 +315,9 @@ const STRATEGY_SLIDES: StrategySlide[] = [
         srmcPerMWh: 75,
         bands: [
           { pricePerMWh: 75, quantityMW: 245, label: 'Band 1: At SRMC' },
-          { pricePerMWh: 20000, quantityMW: 105, label: 'Band 2: Withdrawn' },
+          { pricePerMWh: 20000, quantityMW: 105, label: 'Band 2: Repriced to cap' },
         ],
-        note: '30% of gas capacity also withheld to amplify the effect',
+        note: '30% of gas capacity also repriced to amplify the effect',
       },
       {
         assetType: 'wind',
@@ -325,20 +325,20 @@ const STRATEGY_SLIDES: StrategySlide[] = [
         nameplateMW: 300,
         srmcPerMWh: 0,
         bands: [{ pricePerMWh: 0, quantityMW: 300, label: 'Renewables still bid $0' }],
-        note: 'Only thermal capacity is withdrawn — renewables always bid in',
+        note: 'Only thermal capacity is repriced — renewables always bid in',
       },
     ],
     whyItHelps: [
-      'Dramatically tightens supply, pushing clearing prices much higher',
+      'Dramatically tightens effective supply, pushing clearing prices much higher',
       'Your remaining dispatched capacity earns a much larger margin per MWh',
       'Can be more profitable than running 100% at lower prices',
       'Most effective during already-tight supply periods (heatwaves, outages)',
     ],
     gameTheory: {
-      reliesOn: 'This ONLY works if supply was already somewhat tight. If there\'s abundant spare capacity from other teams, removing your MW has no effect — someone else fills the gap. You need the market to be near the tipping point where every MW matters. It\'s most powerful when MULTIPLE teams coordinate (even implicitly) to withhold.',
-      risk: 'High risk. If other teams flood the market with cheap capacity, your withheld MW earns nothing AND you dispatched less volume. Regulators in real markets can penalise this behaviour. Other teams may retaliate by bidding aggressively cheap to undercut you.',
+      reliesOn: 'This ONLY works if supply was already somewhat tight. If there\'s abundant spare capacity from other teams, repricing your MW has no effect — someone else fills the gap. You need the market to be near the tipping point where every MW matters. It\'s most powerful when MULTIPLE teams coordinate (even implicitly) to reprice.',
+      risk: 'High risk. If other teams flood the market with cheap capacity, your repriced MW earns nothing AND you dispatched less volume. The AER monitors for economic withholding in real markets. Other teams may retaliate by bidding aggressively cheap to undercut you.',
     },
-    realWorldAnalogy: 'In 2017, the ACCC found that AGL withdrew capacity from Liddell power station during a heatwave, contributing to price spikes. This led to calls for the "big stick" legislation to penalise market manipulation.',
+    realWorldAnalogy: 'The AER\'s Wholesale Electricity Market Performance Reports track patterns of economic withholding — where generators reprice capacity significantly above cost during scarcity. The ACCC has investigated instances where generators repriced capacity during heatwaves, contributing to price spikes.',
   },
 
   // ─── 6. Battery Arbitrageur ───────────────────────

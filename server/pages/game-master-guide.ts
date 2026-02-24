@@ -150,7 +150,7 @@ export function getGameMasterGuideHTML(): string {
     <li>Toggle options:
       <ul>
         <li><strong>Bidding Guardrails</strong> &mdash; recommended ON for beginners, OFF for experienced</li>
-        <li><strong>Balancing</strong> &mdash; penalises teams that withhold too much capacity (recommended ON)</li>
+        <li><strong>Balancing</strong> &mdash; penalises teams that reprice too much capacity to higher bands (recommended ON)</li>
       </ul>
     </li>
     <li>Optionally customise <strong>asset configurations</strong> (names, costs, capacities)</li>
@@ -311,7 +311,7 @@ export function getGameMasterGuideHTML(): string {
       <span class="tag-time">4 periods, 5 bands</span>
     </div>
     <p><strong>What happens:</strong> First full-day round &mdash; Overnight, Morning, Afternoon, Evening.</p>
-    <p><strong>Key teaching:</strong> Introduce strategy options: price taker ($0), SRMC, price maker, strategic withdrawal.</p>
+    <p><strong>Key teaching:</strong> Introduce strategy options: price taker ($0), SRMC, price maker, capacity repricing.</p>
     <p><strong>After results:</strong> Compare team strategies. &ldquo;Who adapted well to each period? Who bid the same everywhere?&rdquo;</p>
   </div>
 
@@ -492,7 +492,7 @@ export function getGameMasterGuideHTML(): string {
       <li>When demand exceeds supply, the clearing price can hit $20,000/MWh (price cap)</li>
       <li>Even coal and gas earn enormous infra-marginal profits in scarcity</li>
       <li>This is when peakers really shine &mdash; they run at the most profitable time</li>
-      <li>Strategic withdrawal is risky but can push prices up (if balancing is on, beware penalties)</li>
+      <li>Capacity repricing is risky but can push prices up (if balancing is on, beware penalties)</li>
     </ul>
     <div class="tip"><strong>GM tip:</strong> This round usually produces the biggest profits (or losses). The walkthrough will show dramatic price spikes. Ask: &ldquo;Who made the most money and why? Who got burned?&rdquo; This is a key moment for understanding market power.</div>
   </div>
@@ -735,7 +735,7 @@ export function getGameMasterGuideHTML(): string {
       <span class="tag-scenario">Negative prices</span>
       <span class="tag-time">&#9202; 240s</span>
     </div>
-    <p>Oversupply and negative pricing. Battery arbitrage is the winning strategy. Coal players need to decide whether to bid negative or withdraw.</p>
+    <p>Oversupply and negative pricing. Battery arbitrage is the winning strategy. Coal players need to decide whether to bid negative or reprice to higher bands.</p>
   </div>
 
   <div class="round-card">
@@ -873,7 +873,7 @@ export function getGameMasterGuideHTML(): string {
     <p>Use these to spark post-round discussion:</p>
     <ul>
       <li><strong>Merit order:</strong> &ldquo;Who was the marginal generator? How much did everyone earn?&rdquo;</li>
-      <li><strong>Strategy:</strong> &ldquo;Did anyone withdraw capacity? What happened to the clearing price?&rdquo;</li>
+      <li><strong>Strategy:</strong> &ldquo;Did anyone reprice capacity to higher bands? What happened to the clearing price?&rdquo;</li>
       <li><strong>Renewables:</strong> &ldquo;How did zero-cost renewables change the clearing price vs last round?&rdquo;</li>
       <li><strong>Battery:</strong> &ldquo;Who made money on their battery? What was the spread between charging and discharging?&rdquo;</li>
       <li><strong>Scenarios:</strong> &ldquo;How would you have bid differently if you knew the heatwave was coming?&rdquo;</li>
@@ -1212,10 +1212,10 @@ export function getGameMasterGuideHTML(): string {
   </div>
 
   <div class="round-card">
-    <h4>&#128308; Strategic Withdrawal</h4>
-    <p>Deliberately withhold capacity by bidding some assets at the price cap ($20,000/MWh), effectively removing them from the supply stack. This tightens supply and can push clearing prices dramatically higher. It is a risky and controversial strategy &mdash; regulators in the real NEM actively monitor for this behaviour.</p>
-    <p><strong>Relies on:</strong> Supply already being tight. If other teams have surplus capacity, your withdrawal is absorbed and you simply lose dispatch revenue.</p>
-    <p><strong>Main risk:</strong> Balancing penalties (if enabled) punish teams that withhold too much. Even without penalties, you earn $0 on withheld capacity. If the gambit fails, you lose on both fronts.</p>
+    <h4>&#128308; Capacity Repricing</h4>
+    <p>Rebid capacity to the market cap ($20,000/MWh), making it unlikely to be dispatched. This tightens supply and can push clearing prices dramatically higher. It is a risky and controversial strategy &mdash; the AER in the real NEM actively monitors for economic withholding.</p>
+    <p><strong>Relies on:</strong> Supply already being tight. If other teams have surplus capacity, your repriced capacity is simply not dispatched and you lose revenue.</p>
+    <p><strong>Main risk:</strong> Balancing penalties (if enabled) punish teams that reprice too much capacity. Even without penalties, you earn $0 on repriced capacity. If the gambit fails, you lose on both fronts.</p>
   </div>
 
   <div class="round-card">
@@ -1270,7 +1270,7 @@ export function getGameMasterGuideHTML(): string {
     <tr>
       <td>Non-battery assets must bid &gt; 0 MW in every period</td>
       <td>&#10060; Blocked &mdash; submission rejected</td>
-      <td>&#9989; Allowed (strategic withdrawal)</td>
+      <td>&#9989; Allowed (capacity repricing)</td>
     </tr>
     <tr>
       <td>Warning if &gt;60% of capacity bid at $0/MWh</td>
@@ -1303,7 +1303,7 @@ export function getGameMasterGuideHTML(): string {
     </tr>
   </table>
 
-  <div class="tip"><strong>Recommendation:</strong> Use guardrails ON for teams new to the NEM. Switch to OFF for experienced players or the Experienced Replay mode, where strategic withdrawal is a legitimate advanced strategy.</div>
+  <div class="tip"><strong>Recommendation:</strong> Use guardrails ON for teams new to the NEM. Switch to OFF for experienced players or the Experienced Replay mode, where capacity repricing is a legitimate advanced strategy.</div>
 
   <!-- Section 16: Tips -->
   <h2 id="tips">17. Tips, Tricks &amp; Facilitation Notes</h2>
@@ -1407,8 +1407,8 @@ export function getGameMasterGuideHTML(): string {
     <h4>Questions to Ask Teams</h4>
     <ul>
       <li>&ldquo;Why did you bid [amount] for your coal plant in the evening?&rdquo;</li>
-      <li>&ldquo;What would happen if you withheld 200 MW and the clearing price doubled?&rdquo;</li>
-      <li>&ldquo;With solar flooding the market, should you bid your coal at $0 or withdraw it?&rdquo;</li>
+      <li>&ldquo;What would happen if you repriced 200 MW to the cap and the clearing price doubled?&rdquo;</li>
+      <li>&ldquo;With solar flooding the market, should you bid your coal at $0 or reprice it to higher bands?&rdquo;</li>
       <li>&ldquo;If we added a carbon price of $50/tonne, how would that change the merit order?&rdquo;</li>
       <li>&ldquo;Why do batteries love volatile markets?&rdquo;</li>
       <li>&ldquo;In a heatwave, who benefits most &mdash; the coal plant or the gas peaker? Why?&rdquo;</li>

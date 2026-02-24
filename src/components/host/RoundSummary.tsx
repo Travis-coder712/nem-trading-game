@@ -179,13 +179,13 @@ export default function RoundSummary({
         </p>
       </div>
 
-      {/* Strategic withdrawal warnings */}
-      {roundAnalysis.strategicWithdrawalWarnings && roundAnalysis.strategicWithdrawalWarnings.length > 0 && (
+      {/* Economic withholding warnings (AER monitoring) */}
+      {roundAnalysis.economicWithholdingWarnings && roundAnalysis.economicWithholdingWarnings.length > 0 && (
         <div className="max-w-3xl w-full mt-6 bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
           <div className="text-sm font-semibold text-red-400 uppercase tracking-wide mb-2">
-            ⚠️ Strategic Withdrawal Detected
+            ⚠️ Economic Withholding Detected
           </div>
-          {roundAnalysis.strategicWithdrawalWarnings.map((w, i) => (
+          {roundAnalysis.economicWithholdingWarnings.map((w, i) => (
             <p key={i} className="text-sm text-navy-200 mb-1">{w.explanation}</p>
           ))}
         </div>

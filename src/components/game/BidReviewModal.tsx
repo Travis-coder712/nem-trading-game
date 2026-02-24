@@ -349,7 +349,7 @@ export default function BidReviewModal({
                     ))}
                   </ul>
                   <p className="text-[10px] text-amber-600 mt-1.5 italic">
-                    Bidding less than your pro-rata share of demand means other teams will fill the gap. This could be strategic withdrawal, or it could be an oversight.
+                    Bidding less than your pro-rata share of demand means other teams will fill the gap. This could be capacity repricing (economic withholding), or it could be an oversight.
                   </p>
                 </div>
               )}

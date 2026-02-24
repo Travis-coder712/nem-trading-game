@@ -12,7 +12,7 @@ export type StrategyId =
   | 'srmc_bidder'
   | 'price_maker'
   | 'portfolio_optimizer'
-  | 'strategic_withdrawal'
+  | 'capacity_repricing'
   | 'battery_arbitrageur';
 
 export type Intensity = 'low' | 'medium' | 'max';
@@ -76,15 +76,15 @@ export const STRATEGIES: StrategyDefinition[] = [
     },
   },
   {
-    id: 'strategic_withdrawal',
-    name: 'Strategic Withdrawal',
+    id: 'capacity_repricing',
+    name: 'Capacity Repricing',
     icon: '🔴',
-    shortDescription: 'Withhold capacity to tighten supply',
-    description: 'Bid a portion at market cap ($20,000) to effectively remove it. Tightens supply and pushes prices up.',
+    shortDescription: 'Reprice capacity to higher bands to influence clearing prices',
+    description: 'Rebid a portion of capacity to the market cap ($20,000/MWh), making it unlikely to be dispatched. This tightens effective supply and may push clearing prices higher — a legitimate rebidding strategy monitored by the AER.',
     intensityLabels: {
-      low: 'Withhold 15% of thermal',
-      medium: 'Withhold 30% of thermal',
-      max: 'Withhold 50% of thermal',
+      low: 'Reprice 15% of thermal to cap',
+      medium: 'Reprice 30% of thermal to cap',
+      max: 'Reprice 50% of thermal to cap',
     },
   },
   {
@@ -121,7 +121,7 @@ export function getAvailableStrategies(assetTypes: AssetType[]): StrategyDefinit
       case 'portfolio_optimizer':
         // Requires 2+ distinct thermal/hydro asset types (not counting renewables or battery)
         return thermalHydroTypes.length >= 2;
-      case 'strategic_withdrawal':
+      case 'capacity_repricing':
       case 'price_maker':
         return hasThermal || typeSet.has('hydro');
       case 'price_taker':
@@ -323,8 +323,8 @@ function generateBandsForAsset(
       return priceMakerBands(mw, srmc, intensity, type);
     case 'portfolio_optimizer':
       return portfolioOptimizerBands(mw, srmc, intensity, type);
-    case 'strategic_withdrawal':
-      return strategicWithdrawalBands(mw, srmc, intensity, type);
+    case 'capacity_repricing':
+      return capacityRepricingBands(mw, srmc, intensity, type);
     case 'battery_arbitrageur':
       return batteryArbitrageurBands(mw, intensity, period);
     default:
@@ -416,22 +416,22 @@ function portfolioOptimizerBands(mw: number, srmc: number, intensity: Intensity,
   }
 }
 
-function strategicWithdrawalBands(mw: number, srmc: number, intensity: Intensity, type: AssetType): BidBand[] {
-  // Hydro: withheld entirely — no dispatch period selected (return empty bands)
+function capacityRepricingBands(mw: number, srmc: number, intensity: Intensity, type: AssetType): BidBand[] {
+  // Hydro: not repriced — no dispatch period selected (return empty bands)
   if (type === 'hydro') {
     return [];
   }
 
-  // Thermal assets: withhold a portion at market cap
-  const withdrawPercent = intensity === 'low' ? 0.15 : intensity === 'medium' ? 0.30 : 0.50;
-  const activeMW = Math.round(mw * (1 - withdrawPercent));
-  const withdrawnMW = mw - activeMW;
+  // Thermal assets: reprice a portion to the market cap (economic withholding)
+  const repricePercent = intensity === 'low' ? 0.15 : intensity === 'medium' ? 0.30 : 0.50;
+  const activeMW = Math.round(mw * (1 - repricePercent));
+  const repricedMW = mw - activeMW;
 
   const bands: BidBand[] = [
     { pricePerMWh: srmc, quantityMW: activeMW },
   ];
-  if (withdrawnMW > 0) {
-    bands.push({ pricePerMWh: 20000, quantityMW: withdrawnMW });
+  if (repricedMW > 0) {
+    bands.push({ pricePerMWh: 20000, quantityMW: repricedMW });
   }
   return bands;
 }

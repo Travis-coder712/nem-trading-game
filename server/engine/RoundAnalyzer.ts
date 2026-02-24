@@ -1,7 +1,7 @@
 import type {
   AssetCategoryBreakdown, AssetDefinition, AssetPerformanceSummary, AssetType, GameState,
   PeriodAnalysis, RoundAnalysis, RoundConfig, RoundDispatchResult,
-  StrategicWithdrawalWarning, TeamAnalysis, TeamBidSubmission, TeamRoundResult, TimePeriod,
+  EconomicWithholdingWarning, TeamAnalysis, TeamBidSubmission, TeamRoundResult, TimePeriod,
   TimePeriodDispatchResult,
 } from '../../shared/types.ts';
 import { TIME_PERIOD_SHORT_LABELS, ASSET_TYPE_LABELS, getAssetCategory } from '../../shared/types.ts';
@@ -52,7 +52,7 @@ export function analyzeRound(
     game, roundResult, assetDefs,
   );
 
-  const strategicWithdrawalWarnings = detectStrategicWithdrawals(
+  const economicWithholdingWarnings = detectEconomicWithholding(
     game, roundResult, assetDefs,
   );
 
@@ -65,7 +65,7 @@ export function analyzeRound(
     teamAnalyses,
     keyTakeaways,
     assetCategoryBreakdown: assetCategoryBreakdown.length > 0 ? assetCategoryBreakdown : undefined,
-    strategicWithdrawalWarnings: strategicWithdrawalWarnings.length > 0 ? strategicWithdrawalWarnings : undefined,
+    economicWithholdingWarnings: economicWithholdingWarnings.length > 0 ? economicWithholdingWarnings : undefined,
   };
 }
 
@@ -714,14 +714,14 @@ function buildAssetCategoryBreakdown(
     });
 }
 
-// ---- Strategic Withdrawal Detection ----
+// ---- Economic Withholding Detection (AER monitoring) ----
 
-function detectStrategicWithdrawals(
+function detectEconomicWithholding(
   game: GameState,
   roundResult: RoundDispatchResult,
   assetDefs: Map<string, AssetDefinition>,
-): StrategicWithdrawalWarning[] {
-  const warnings: StrategicWithdrawalWarning[] = [];
+): EconomicWithholdingWarning[] {
+  const warnings: EconomicWithholdingWarning[] = [];
 
   for (const periodResult of roundResult.periodResults) {
     // Only check periods where the price cap was hit (supply shortage)
@@ -777,7 +777,7 @@ function detectStrategicWithdrawals(
           timePeriod: period as TimePeriod,
           withheldCapacityMW: Math.round(withheldMW),
           withheldAssets,
-          explanation: `${team.name} withheld ${fmtNum(withheldMW)} MW of available capacity during a supply shortage in the ${TIME_PERIOD_SHORT_LABELS[period as TimePeriod]}. Withheld: ${assetNames}. In tight markets, all generators are expected to contribute — regulators monitor for strategic withdrawal.`,
+          explanation: `${team.name} withheld ${fmtNum(withheldMW)} MW of available capacity during a supply shortage in the ${TIME_PERIOD_SHORT_LABELS[period as TimePeriod]}. Withheld: ${assetNames}. The AER monitors for economic withholding — repricing or withholding capacity to exercise market power during scarcity.`,
         });
       }
     }

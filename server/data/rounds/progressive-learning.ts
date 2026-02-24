@@ -128,7 +128,7 @@ export const progressiveLearningRounds: RoundConfig[] = [
       'First full-day round — teams must think about all 4 periods',
       'Discuss strategies: price taker ($0 everywhere) vs strategic bidder (vary by period)',
       'After results: compare team strategies. Who adapted well to each period?',
-      'Introduce concept: "strategic withdrawal" — withholding capacity to tighten supply',
+      'Introduce concept: "capacity repricing" — repricing capacity to higher bands to tighten effective supply',
     ],
     uiComplexity: 'standard',
     educationalContent: {
@@ -140,7 +140,7 @@ export const progressiveLearningRounds: RoundConfig[] = [
         },
         {
           heading: 'Strategy Options',
-          body: '1. **Price Taker**: Bid $0 everywhere — guaranteed dispatch\n2. **SRMC Bidder**: Bid at your marginal cost\n3. **Price Maker**: Bid high on some capacity to push up prices\n4. **Strategic Withdrawal**: Withhold capacity to tighten supply\n\nWith 5 bands you can mix strategies across your capacity!',
+          body: '1. **Price Taker**: Bid $0 everywhere — guaranteed dispatch\n2. **SRMC Bidder**: Bid at your marginal cost\n3. **Price Maker**: Bid high on some capacity to push up prices\n4. **Capacity Repricing**: Reprice capacity to higher bands to tighten effective supply\n\nWith 5 bands you can mix strategies across your capacity!',
         },
       ],
     },
@@ -309,11 +309,11 @@ export const progressiveLearningRounds: RoundConfig[] = [
       slides: [
         {
           heading: 'Beyond Basics',
-          body: 'You\'ve learned the assets. Now master the strategies:\n\n1. **Portfolio Optimisation**: Bid each asset at its optimal price point\n2. **Price Making**: Use strategic withdrawal to influence clearing prices\n3. **Competitive Awareness**: What are other teams likely bidding?\n\nThe best teams combine all three.',
+          body: 'You\'ve learned the assets. Now master the strategies:\n\n1. **Portfolio Optimisation**: Bid each asset at its optimal price point\n2. **Price Making**: Use capacity repricing to influence clearing prices\n3. **Competitive Awareness**: What are other teams likely bidding?\n\nThe best teams combine all three.',
         },
         {
           heading: 'Think Like a Trader',
-          body: 'Key questions for each period:\n- What\'s the likely clearing price range?\n- Which of my assets are marginal (on the edge of being dispatched)?\n- Can I push the clearing price up by withholding some capacity?\n- What happens if everyone tries the same strategy?\n\nRemember: profit = (price − cost) × volume. Maximise the product, not just one factor.',
+          body: 'Key questions for each period:\n- What\'s the likely clearing price range?\n- Which of my assets are marginal (on the edge of being dispatched)?\n- Can I push the clearing price up by repricing some capacity to higher bands?\n- What happens if everyone tries the same strategy?\n\nRemember: profit = (price − cost) × volume. Maximise the product, not just one factor.',
         },
       ],
     },

@@ -55,7 +55,7 @@ const slides: Slide[] = [
   {
     icon: '🎯',
     heading: 'Bidding Strategies',
-    body: '<strong>Price Taker</strong> &mdash; Bid $0, guarantee dispatch, accept the clearing price.<br><strong>Marginal Cost Bidder</strong> &mdash; Bid at cost. Rational baseline, covers costs.<br><strong>Price Maker</strong> &mdash; Bid high to push up the clearing price for all your units.<br><strong>Portfolio Optimizer</strong> &mdash; Mix strategies across your different assets.<br><strong>Strategic Withdrawal</strong> &mdash; Withhold capacity to tighten supply and raise prices.<br><strong>Battery Arbitrage</strong> &mdash; Charge cheap, discharge expensive.<br><strong>Independent Layers</strong> &mdash; Battery strategy is separate from thermal strategy. Apply both without conflicts.',
+    body: '<strong>Price Taker</strong> &mdash; Bid $0, guarantee dispatch, accept the clearing price.<br><strong>Marginal Cost Bidder</strong> &mdash; Bid at cost. Rational baseline, covers costs.<br><strong>Price Maker</strong> &mdash; Bid high to push up the clearing price for all your units.<br><strong>Portfolio Optimizer</strong> &mdash; Mix strategies across your different assets.<br><strong>Capacity Repricing</strong> &mdash; Reprice capacity to higher bands to tighten effective supply and influence clearing prices.<br><strong>Battery Arbitrage</strong> &mdash; Charge cheap, discharge expensive.<br><strong>Independent Layers</strong> &mdash; Battery strategy is separate from thermal strategy. Apply both without conflicts.',
   },
   {
     icon: '🎮',

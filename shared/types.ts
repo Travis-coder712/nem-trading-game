@@ -50,7 +50,7 @@ export type BiddingStrategyType =
   | 'srmc_bidder'
   | 'price_maker'
   | 'portfolio_optimizer'
-  | 'strategic_withdrawal'
+  | 'capacity_repricing'
   | 'battery_arbitrageur';
 
 // ---- Core Data Structures ----
@@ -674,7 +674,7 @@ export interface AssetCategoryBreakdown {
   }>;
 }
 
-export interface StrategicWithdrawalWarning {
+export interface EconomicWithholdingWarning {
   teamId: string;
   teamName: string;
   timePeriod: TimePeriod;
@@ -705,8 +705,8 @@ export interface RoundAnalysis {
   /** Breakdown of results by asset category (renewables, batteries, fossil fuels) */
   assetCategoryBreakdown?: AssetCategoryBreakdown[];
 
-  /** Strategic withdrawal warnings — teams that withheld capacity during scarcity */
-  strategicWithdrawalWarnings?: StrategicWithdrawalWarning[];
+  /** Economic withholding warnings — teams that repriced capacity to extreme bands during scarcity */
+  economicWithholdingWarnings?: EconomicWithholdingWarning[];
 }
 
 export interface PeriodAnalysis {
