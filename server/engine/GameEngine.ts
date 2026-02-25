@@ -122,6 +122,7 @@ export class GameEngine {
       surpriseIncidents: [],
       currentBids: new Map(),
       minigameCompletedTeams: new Set(),
+      minigameScores: new Map(),
       biddingTimeRemaining: 0,
       startedAt: Date.now(),
       updatedAt: Date.now(),
@@ -227,32 +228,36 @@ export class GameEngine {
     game.phase = 'briefing';
     game.currentBids = new Map();
     game.minigameCompletedTeams = new Set();
+    game.minigameScores = new Map();
     game.biddingTimeRemaining = roundConfig.biddingTimeLimitSeconds;
     game.activeSurpriseEvents = [];  // Reset surprise events for the new round
     game.preSurpriseDemandMW = null;
     game.surpriseIncidents = [];
 
-    // Assign assets for this round
+    // Assign assets for this round (harmless for minigame-only rounds)
     this.assignAssetsForRound(game, roundConfig);
 
-    // Apply scenario events
-    this.applyScenarioEvents(game, roundConfig);
+    // Skip demand generation and scenario events for minigame-only rounds
+    if (!roundConfig.minigameOnlyRound) {
+      // Apply scenario events
+      this.applyScenarioEvents(game, roundConfig);
 
-    // Compute actual fleet capacity per period (accounting for capacity factors)
-    const fleetCapPerPeriod = this.computeFleetCapacityPerPeriod(game, roundConfig);
+      // Compute actual fleet capacity per period (accounting for capacity factors)
+      const fleetCapPerPeriod = this.computeFleetCapacityPerPeriod(game, roundConfig);
 
-    // Generate demand (fill in the baseDemandMW values)
-    const scenarioMultiplier = this.getScenarioDemandMultipliers(game);
-    const demand = generateDemandForRound(
-      game.teams.length,
-      roundConfig.season,
-      roundConfig.timePeriods,
-      roundConfig.demandVariability,
-      game.currentRound,
-      scenarioMultiplier,
-      fleetCapPerPeriod,
-    );
-    roundConfig.baseDemandMW = demand;
+      // Generate demand (fill in the baseDemandMW values)
+      const scenarioMultiplier = this.getScenarioDemandMultipliers(game);
+      const demand = generateDemandForRound(
+        game.teams.length,
+        roundConfig.season,
+        roundConfig.timePeriods,
+        roundConfig.demandVariability,
+        game.currentRound,
+        scenarioMultiplier,
+        fleetCapPerPeriod,
+      );
+      roundConfig.baseDemandMW = demand;
+    }
 
     game.updatedAt = Date.now();
     return roundConfig;
@@ -279,6 +284,7 @@ export class GameEngine {
     game.surpriseIncidents = [];
     game.currentBids = new Map();
     game.minigameCompletedTeams = new Set();
+    game.minigameScores = new Map();
     game.biddingTimeRemaining = 0;
 
     // Reset team cumulative profits and round results for clean restart
@@ -355,10 +361,33 @@ export class GameEngine {
     return game.teams.every(t => game.currentBids.has(t.id));
   }
 
-  markMinigameCompleted(gameId: string, teamId: string): boolean {
+  markMinigameCompleted(
+    gameId: string,
+    teamId: string,
+    score?: {
+      totalProfit: number;
+      optimalProfit: number;
+      predispatchOptimalProfit?: number;
+      decisionsCorrect: number;
+      decisionsTotal: number;
+    },
+  ): boolean {
     const game = this.games.get(gameId);
     if (!game) return false;
     game.minigameCompletedTeams.add(teamId);
+
+    if (score) {
+      game.minigameScores.set(teamId, {
+        teamId,
+        totalProfit: score.totalProfit,
+        optimalProfit: score.optimalProfit,
+        predispatchOptimalProfit: score.predispatchOptimalProfit,
+        decisionsCorrect: score.decisionsCorrect,
+        decisionsTotal: score.decisionsTotal,
+        completedAt: Date.now(),
+      });
+    }
+
     return true;
   }
 
@@ -370,6 +399,25 @@ export class GameEngine {
       status[team.id] = game.minigameCompletedTeams.has(team.id);
     }
     return status;
+  }
+
+  getMinigameScores(gameId: string): import('../../shared/types.ts').MinigameScore[] {
+    const game = this.games.get(gameId);
+    if (!game) return [];
+    return [...game.minigameScores.values()]
+      .sort((a, b) => b.totalProfit - a.totalProfit);
+  }
+
+  completeMinigameRound(gameId: string): boolean {
+    const game = this.games.get(gameId);
+    if (!game) return false;
+
+    const roundConfig = game.config.rounds[game.currentRound - 1];
+    if (!roundConfig?.minigameOnlyRound) return false;
+
+    game.phase = 'results';
+    game.updatedAt = Date.now();
+    return true;
   }
 
   tickTimer(gameId: string): number {
@@ -663,8 +711,11 @@ export class GameEngine {
       leaderboard: this.getLeaderboard(gameId),
       biddingTimeRemaining: game.biddingTimeRemaining,
       bidStatus: this.getBidStatus(gameId),
-      minigameStatus: (roundConfig?.batteryMiniGame || roundConfig?.portfolioExplainer)
+      minigameStatus: (roundConfig?.batteryMiniGame || roundConfig?.portfolioExplainer || roundConfig?.minigameOnlyRound)
         ? this.getMinigameStatus(gameId)
+        : undefined,
+      minigameScores: roundConfig?.minigameOnlyRound
+        ? this.getMinigameScores(gameId)
         : undefined,
       lastRoundResults: game.roundResults.length > 0
         ? game.roundResults[game.roundResults.length - 1]
@@ -825,9 +876,12 @@ export class GameEngine {
     const roundConfig = game.config.rounds[game.currentRound - 1];
     if (!roundConfig) return false;
 
+    // Cap demand at fleet supply so demand never exceeds available generation
+    const fleetCapPerPeriod = this.computeFleetCapacityPerPeriod(game, roundConfig);
     for (const [period, mw] of Object.entries(demand)) {
       if (roundConfig.timePeriods.includes(period as TimePeriod)) {
-        roundConfig.baseDemandMW[period] = Math.max(0, Math.round(mw));
+        const fleetMW = fleetCapPerPeriod[period] || Infinity;
+        roundConfig.baseDemandMW[period] = Math.min(Math.max(0, Math.round(mw)), fleetMW);
       }
     }
 

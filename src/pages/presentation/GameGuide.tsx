@@ -421,7 +421,7 @@ export default function GameGuide() {
         {/* Game Modes */}
         <Section title="Game Modes">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 print:gap-2">
-            <StrategyCard name="🎯 First Run (8 rounds, 45-60 min)" desc="Lean portfolio (4 assets). Best starting point for groups new to the NEM. Progressive unlock with teaching notes." />
+            <StrategyCard name="🎯 First Run JD Remix (9 rounds, 45-60 min)" desc="Lean portfolio (4 assets) with battery arbitrage challenge. Best starting point for groups new to the NEM. Progressive unlock with teaching notes." />
             <StrategyCard name="🎓 Beginner Intro (1 round, 10-15 min)" desc="One guided round with 2 assets (coal + gas). Perfect for quick demos." />
             <StrategyCard name="📈 Progressive Learning (10 rounds, 90-120 min)" desc="Builds complexity gradually: 1 asset → full portfolio over 10 rounds. Best for 2-hour sessions." />
             <StrategyCard name="⚡ Quick Game (8 rounds, 60-90 min)" desc="Compressed version covering all key concepts. Great for time-limited workshops." />

@@ -17,7 +17,7 @@ interface GameStartTransitionProps {
 }
 
 function getModeLabel(totalRounds: number, gameMode?: string): string {
-  if (gameMode === 'first_run') return 'First Run';
+  if (gameMode === 'first_run') return 'First Run JD Remix';
   if (gameMode === 'progressive') return 'Progressive';
   if (totalRounds <= 1) return 'Beginner Intro';
   if (totalRounds <= 4) return 'Experienced Replay';

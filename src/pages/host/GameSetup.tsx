@@ -25,10 +25,10 @@ const GAME_MODES = [
   },
   {
     id: 'first_run',
-    name: 'First Run',
-    rounds: 8,
+    name: 'First Run JD Remix',
+    rounds: 9,
     duration: '45-60 min',
-    description: 'Lean portfolio: 1 coal, 1 gas, 1 renewable, 1 battery. Fast full-mix intro.',
+    description: 'Lean portfolio: 1 coal, 1 gas, 1 renewable, 1 battery. Includes battery arbitrage challenge. Fast full-mix intro.',
     icon: '🚀',
   },
   {

@@ -453,6 +453,8 @@ export interface RoundConfig {
   uiComplexity?: 'minimal' | 'standard' | 'full';
   /** Whether to show the Battery Arbitrage Mini-Game before this round's bidding */
   batteryMiniGame?: boolean;
+  /** Whether this round is a standalone minigame round (no bidding/dispatch) */
+  minigameOnlyRound?: boolean;
   /** Whether to auto-show the Portfolio Explainer at the start of this round's briefing */
   portfolioExplainer?: boolean;
   /** Optional seasonal context shown during briefing to explain how this season affects demand, supply, and bidding */
@@ -499,6 +501,16 @@ export interface GameConfig {
   assetVariation?: boolean;
 }
 
+export interface MinigameScore {
+  teamId: string;
+  totalProfit: number;
+  optimalProfit: number;
+  predispatchOptimalProfit?: number;
+  decisionsCorrect: number;
+  decisionsTotal: number;
+  completedAt: number;
+}
+
 export interface GameState {
   id: string;
   config: GameConfig;
@@ -516,6 +528,8 @@ export interface GameState {
   currentBids: Map<string, TeamBidSubmission>;
   /** Teams that have completed the minigame + explainer sequence this round */
   minigameCompletedTeams: Set<string>;
+  /** Minigame scores per team (for minigameOnlyRound rounds) */
+  minigameScores: Map<string, MinigameScore>;
   biddingTimeRemaining: number;
   startedAt: number;
   updatedAt: number;
@@ -590,6 +604,8 @@ export interface GameStateSnapshot {
   bidStatus: Record<string, boolean>;
   /** Per-team minigame/explainer completion status (true = finished, only present when a minigame round is active) */
   minigameStatus?: Record<string, boolean>;
+  /** Minigame scores for the live leaderboard (only present during minigameOnlyRound) */
+  minigameScores?: MinigameScore[];
   lastRoundResults?: RoundDispatchResult;
   lastRoundAnalysis?: RoundAnalysis;
   fleetInfo?: FleetInfo;

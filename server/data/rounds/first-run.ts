@@ -1,7 +1,7 @@
 import type { RoundConfig } from '../../../shared/types.ts';
 
 /**
- * First Run mode — 8 rounds with a lean portfolio.
+ * First Run JD Remix — 9 rounds with a lean portfolio + battery arbitrage challenge.
  *
  * Each team gets only: 1 coal, 1 gas (CCGT or Peaker), 1 renewable (Wind or Solar), 1 battery.
  * Follows the same progressive unlock pattern but with far fewer assets per team.
@@ -241,9 +241,49 @@ export const firstRunRounds: RoundConfig[] = [
     },
   },
 
-  // ── Round 6: Add Battery ──
+  // ── Round 6: Battery Arbitrage Challenge (Minigame Only) ──
   {
     roundNumber: 6,
+    name: 'Battery Arbitrage Challenge',
+    description: 'Before you get a battery, learn how battery arbitrage works! Charge when prices are low, discharge when high. Compete against other teams for the best profit.',
+    learningObjectives: [
+      'Understand energy arbitrage: buy low, sell high',
+      'Learn about battery round-trip efficiency losses',
+      'Practice reading price forecasts and making charge/discharge decisions',
+      'See how actual prices differ from forecasts (market uncertainty)',
+    ],
+    season: 'spring',
+    minigameOnlyRound: true,
+    batteryMiniGame: true,
+    timePeriods: ['night_offpeak', 'day_offpeak', 'day_peak', 'night_peak'],
+    periodDurations: { night_offpeak: 6, day_offpeak: 6, day_peak: 6, night_peak: 6 },
+    baseDemandMW: { night_offpeak: 0, day_offpeak: 0, day_peak: 0, night_peak: 0 },
+    demandVariability: 0,
+    newAssetsUnlocked: [],
+    activeScenarioEvents: [],
+    biddingTimeLimitSeconds: 0,
+    maxBidBandsPerAsset: 0,
+    hostTeachingNotes: [
+      'This is a standalone minigame round — no bidding or dispatch',
+      'Teams compete to make the best battery arbitrage decisions over 24 hours',
+      'The host screen shows a live leaderboard as teams complete',
+      'Use this as a discussion point: "Who charged at the lowest prices? Who timed discharge best?"',
+      'After results, the next round unlocks the actual battery for bidding',
+    ],
+    educationalContent: {
+      title: 'Battery Arbitrage Challenge',
+      slides: [
+        {
+          heading: 'The Arbitrage Opportunity',
+          body: 'Before you get a battery in your portfolio, let\'s practice the core skill: **energy arbitrage**.\n\nYou\'ll operate a 500 MW / 3,000 MWh battery for 24 hours. **Charge** when electricity is cheap, **discharge** when it\'s expensive, and account for the 8% round-trip efficiency loss.\n\nCompete against other teams for the highest profit!',
+        },
+      ],
+    },
+  },
+
+  // ── Round 7: Add Battery ──
+  {
+    roundNumber: 7,
     name: 'Battery Storage',
     description: 'A battery completes your lean portfolio. Charge cheap, discharge at premium. The ultimate arbitrage machine — buy low, sell high across the day.',
     learningObjectives: [
@@ -258,7 +298,6 @@ export const firstRunRounds: RoundConfig[] = [
     demandVariability: 0.10,
     newAssetsUnlocked: ['battery'],
     activeScenarioEvents: [],
-    batteryMiniGame: true,
     biddingTimeLimitSeconds: 300,
     maxBidBandsPerAsset: 10,
     hostTeachingNotes: [
@@ -283,9 +322,9 @@ export const firstRunRounds: RoundConfig[] = [
     },
   },
 
-  // ── Round 7: Summer Heatwave ──
+  // ── Round 8: Summer Heatwave ──
   {
-    roundNumber: 7,
+    roundNumber: 8,
     name: 'Summer Heatwave',
     description: 'Extreme heat, record demand, coal derating. With your lean portfolio, every MW counts. Scarcity pricing in action!',
     learningObjectives: [
@@ -331,9 +370,9 @@ export const firstRunRounds: RoundConfig[] = [
     },
   },
 
-  // ── Round 8: The Full NEM — Heatwave + Outage ──
+  // ── Round 9: The Full NEM — Heatwave + Outage ──
   {
-    roundNumber: 8,
+    roundNumber: 9,
     name: 'The Full NEM',
     description: 'Final round: summer crisis with heatwave and plant outage. Everything you\'ve learned comes together. Highest cumulative profit wins!',
     learningObjectives: [
@@ -369,7 +408,7 @@ export const firstRunRounds: RoundConfig[] = [
       slides: [
         {
           heading: 'Final Round',
-          body: 'A hot summer day with a major plant outage. Everything you\'ve learned comes together.\n\nWith your lean portfolio of just 4 assets, every decision matters. One outage could be catastrophic.\n\n🌙 Hot night, elevated demand\n🌅 Industry + solar ramping. Outage makes supply tighter.\n☀️ Peak summer demand. Scarcity pricing likely!\n🌆 Solar cliff + heat + outage = maximum stress.\n\nHighest cumulative profit across all 8 rounds wins!',
+          body: 'A hot summer day with a major plant outage. Everything you\'ve learned comes together.\n\nWith your lean portfolio of just 4 assets, every decision matters. One outage could be catastrophic.\n\n🌙 Hot night, elevated demand\n🌅 Industry + solar ramping. Outage makes supply tighter.\n☀️ Peak summer demand. Scarcity pricing likely!\n🌆 Solar cliff + heat + outage = maximum stress.\n\nHighest cumulative profit across all rounds wins!',
         },
       ],
     },

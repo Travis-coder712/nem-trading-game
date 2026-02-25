@@ -146,16 +146,36 @@ export function registerTeamHandlers(
     }
   }));
 
-  socket.on('team:minigame_completed', safe(() => {
+  socket.on('team:minigame_completed', safe((data?: {
+    totalProfit: number;
+    optimalProfit: number;
+    predispatchOptimalProfit?: number;
+    decisionsCorrect: number;
+    decisionsTotal: number;
+  }) => {
     const gameId = (socket as any).gameId;
     const teamId = (socket as any).teamId;
     if (!gameId || !teamId) return;
 
-    engine.markMinigameCompleted(gameId, teamId);
+    engine.markMinigameCompleted(gameId, teamId, data || undefined);
 
     // Update host with minigame status
     const minigameStatus = engine.getMinigameStatus(gameId);
     io.to(`game:${gameId}:host`).emit('host:minigame_status', minigameStatus);
+
+    // For minigame-only rounds, also send live scores to host
+    const game = engine.getGame(gameId);
+    const roundConfig = game?.config.rounds[(game?.currentRound ?? 1) - 1];
+    if (roundConfig?.minigameOnlyRound) {
+      const scores = engine.getMinigameScores(gameId);
+      io.to(`game:${gameId}:host`).emit('host:minigame_scores' as any, scores);
+
+      // Broadcast full snapshot so host dashboard gets updated data
+      const hostSnapshot = engine.getSnapshot(gameId);
+      if (hostSnapshot) {
+        io.to(`game:${gameId}:host`).emit('game:state_update', hostSnapshot);
+      }
+    }
   }));
 
   socket.on('team:request_state', safe(() => {

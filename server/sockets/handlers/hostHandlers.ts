@@ -78,9 +78,31 @@ export function registerHostHandlers(
     broadcastSnapshot(io, engine, gameId);
   }));
 
+  socket.on('host:complete_minigame_round', safe(() => {
+    const gameId = (socket as any).gameId;
+    if (!gameId) return;
+
+    const success = engine.completeMinigameRound(gameId);
+    if (!success) {
+      socket.emit('error', 'Cannot complete minigame round');
+      return;
+    }
+
+    io.to(`game:${gameId}`).emit('game:phase_changed', 'results');
+    broadcastSnapshot(io, engine, gameId);
+  }));
+
   socket.on('host:start_bidding', safe(() => {
     const gameId = (socket as any).gameId;
     if (!gameId) return;
+
+    // Prevent starting bidding on minigame-only rounds
+    const game = engine.getGame(gameId);
+    const roundConfig = game?.config.rounds[(game?.currentRound ?? 1) - 1];
+    if (roundConfig?.minigameOnlyRound) {
+      socket.emit('error', 'Cannot start bidding on a minigame-only round');
+      return;
+    }
 
     engine.startBidding(gameId);
     io.to(`game:${gameId}`).emit('game:phase_changed', 'bidding');

@@ -837,6 +837,18 @@ function Step3Bids(props: GuidedBiddingProps & { onBack: () => void }) {
                           );
                         })}
                       </tr>
+                      {/* Sub-header row: $/MWh and MW column labels */}
+                      <tr className="border-b border-gray-100 bg-gray-50/50">
+                        <th className="sticky left-0 bg-gray-50/50 z-10"></th>
+                        {periods.map(p => (
+                          <th key={`sub-${p}`} className="py-0.5 px-1">
+                            <div className="flex gap-0.5 justify-center">
+                              <span className="text-[8px] font-semibold text-blue-500 w-14 text-center">$/MWh</span>
+                              <span className="text-[8px] font-semibold text-green-500 w-14 text-center">MW</span>
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
                     </thead>
                     <tbody>
                       {/* ── Renewable rows (read-only — generation pattern) ── */}
@@ -924,7 +936,7 @@ function Step3Bids(props: GuidedBiddingProps & { onBack: () => void }) {
                                             onChange={e => onUpdateBand(asset.assetDefinitionId, period, i, 'pricePerMWh', parseFloat(e.target.value) || 0)}
                                             onFocus={e => e.target.select()}
                                             placeholder="$"
-                                            className={`w-14 px-1 py-0.5 border rounded text-[11px] font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                                            className={`w-14 px-1 py-0.5 border border-l-2 border-l-blue-400 rounded text-[11px] font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
                                               walkthroughExpl ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
                                             }`}
                                             min={-1000}
@@ -936,7 +948,7 @@ function Step3Bids(props: GuidedBiddingProps & { onBack: () => void }) {
                                             onChange={e => onUpdateBand(asset.assetDefinitionId, period, i, 'quantityMW', parseFloat(e.target.value) || 0)}
                                             onFocus={e => e.target.select()}
                                             placeholder="MW"
-                                            className={`w-14 px-1 py-0.5 border rounded text-[11px] font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                                            className={`w-14 px-1 py-0.5 border border-l-2 border-l-green-400 rounded text-[11px] font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
                                               walkthroughExpl ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
                                             }`}
                                             min={0}
@@ -1223,6 +1235,29 @@ function Step3Bids(props: GuidedBiddingProps & { onBack: () => void }) {
                     totalBid > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                   }`}>
                     {totalBid}/{asset.currentAvailableMW} MW
+                  </div>
+                </div>
+
+                {/* Mini period tabs — quick switch without scrolling to top */}
+                <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50/50">
+                  <div className="flex gap-1 overflow-x-auto">
+                    {roundConfig.timePeriods.map(p => {
+                      const period = p as TimePeriod;
+                      const desc = getPeriodDescriptions(period, roundConfig.season, availableAssetTypes);
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => onPeriodChange(period)}
+                          className={`flex-shrink-0 px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                            selectedPeriod === p
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          {desc.icon} {desc.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

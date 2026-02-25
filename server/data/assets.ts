@@ -352,10 +352,10 @@ export function getAvailableAssets(allAssets: AssetDefinition[], roundNumber: nu
     1: 1, 2: 1, 3: 1, 4: 5, 5: 7, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8,
   };
 
-  // First Run: 8 rounds, lean portfolio (coal → +gas → +renewable → +battery)
-  // Round 1-3: coal only, Round 4: +gas, Round 5: +renewable, Round 6+: +battery
+  // First Run: 9 rounds, lean portfolio (coal → +gas → +renewable → minigame → +battery)
+  // Round 1-3: coal only, Round 4: +gas, Round 5: +renewable, Round 6: minigame (no battery), Round 7+: +battery
   const firstRunModeRoundMap: Record<number, number> = {
-    1: 1, 2: 1, 3: 1, 4: 5, 5: 7, 6: 8, 7: 8, 8: 8,
+    1: 1, 2: 1, 3: 1, 4: 5, 5: 7, 6: 7, 7: 8, 8: 8, 9: 8,
   };
 
   const effectiveRound = gameMode === 'quick'

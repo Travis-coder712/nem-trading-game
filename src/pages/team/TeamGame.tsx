@@ -1571,14 +1571,14 @@ export default function TeamGame() {
                               <span className="text-xs text-gray-400 w-4">{i + 1}</span>
                               <div className="flex-1 flex gap-2">
                                 <div className="flex-1">
-                                  <label className="text-[10px] text-gray-400">$/MWh</label>
+                                  <label className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1 rounded">$/MWh</label>
                                   <input
                                     type="number"
                                     value={band.pricePerMWh ?? ''}
                                     onChange={e => updateBand(asset.assetDefinitionId, selectedPeriod, i, 'pricePerMWh', parseFloat(e.target.value) || 0)}
                                     onFocus={e => e.target.select()}
                                     placeholder="Price"
-                                    className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                                    className={`w-full px-2 py-1.5 border border-l-2 border-l-blue-400 rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
                                       walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
                                     }`}
                                     min={-1000}
@@ -1586,14 +1586,14 @@ export default function TeamGame() {
                                   />
                                 </div>
                                 <div className="flex-1">
-                                  <label className="text-[10px] text-gray-400">MW</label>
+                                  <label className="text-[10px] font-semibold text-green-600 bg-green-50 px-1 rounded">MW</label>
                                   <input
                                     type="number"
                                     value={band.quantityMW ?? ''}
                                     onChange={e => updateBand(asset.assetDefinitionId, selectedPeriod, i, 'quantityMW', parseFloat(e.target.value) || 0)}
                                     onFocus={e => e.target.select()}
                                     placeholder="MW"
-                                    className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                                    className={`w-full px-2 py-1.5 border border-l-2 border-l-green-400 rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
                                       walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
                                     }`}
                                     min={0}
@@ -2151,13 +2151,47 @@ export default function TeamGame() {
         <BatteryArbitrageMiniGame
           onComplete={(result) => {
             setShowBatteryMiniGame(false);
-            setShowBatteryBiddingExplainer(true);
+            if (roundConfig?.minigameOnlyRound) {
+              // Standalone minigame round: send scores directly, skip explainer
+              setBatteryMiniGameCompleted(true);
+              notifyMinigameCompleted({
+                totalProfit: result.totalProfit,
+                optimalProfit: result.optimalProfit,
+                predispatchOptimalProfit: result.predispatchOptimalProfit,
+                decisionsCorrect: result.decisionsCorrect ?? 0,
+                decisionsTotal: result.decisionsTotal ?? 24,
+              });
+            } else {
+              setShowBatteryBiddingExplainer(true);
+            }
           }}
           onSkip={() => {
             setShowBatteryMiniGame(false);
-            setShowBatteryBiddingExplainer(true);
+            if (roundConfig?.minigameOnlyRound) {
+              setBatteryMiniGameCompleted(true);
+              notifyMinigameCompleted({
+                totalProfit: 0,
+                optimalProfit: 0,
+                decisionsCorrect: 0,
+                decisionsTotal: 24,
+              });
+            } else {
+              setShowBatteryBiddingExplainer(true);
+            }
           }}
         />
+      )}
+
+      {/* Waiting screen for standalone minigame rounds after completion */}
+      {roundConfig?.minigameOnlyRound && batteryMiniGameCompleted && gameState?.phase === 'briefing' && (
+        <div className="fixed inset-0 z-[80] bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">&#9989;</div>
+            <h2 className="text-2xl font-bold text-white mb-2">Challenge Complete!</h2>
+            <p className="text-slate-400">Waiting for other teams to finish...</p>
+            <div className="mt-4 w-8 h-8 border-2 border-slate-600 border-t-blue-400 rounded-full animate-spin mx-auto" />
+          </div>
+        </div>
       )}
 
       {showBatteryBiddingExplainer && (

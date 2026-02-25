@@ -13,7 +13,7 @@ export const DEMAND_FLEET_TARGETS: Record<Season, Record<TimePeriod, number>> = 
   summer: {
     night_offpeak: 0.55,
     day_offpeak:   0.65,
-    day_peak:      0.88,    // tight but manageable without scenarios; heatwave ×1.4 → 1.23 (shortage)
+    day_peak:      0.88,    // tight but manageable without scenarios; heatwave ×1.4 → capped at 98% of fleet
     night_peak:    0.78,
   },
   autumn: {
@@ -67,7 +67,9 @@ export function generateDemandForRound(
       const scenarioMult = scenarioMultiplier[period] || 1.0;
       const randomVariation = 1 + (Math.random() * 2 - 1) * variability;
 
-      demand[period] = Math.round(fleetMW * target * scenarioMult * randomVariation);
+      const rawDemand = Math.round(fleetMW * target * scenarioMult * randomVariation);
+      // Cap demand at 98% of fleet so supply always slightly exceeds demand at round start
+      demand[period] = Math.min(rawDemand, Math.round(fleetMW * 0.98));
     } else {
       // Fallback: legacy fixed calculation if fleet info not available
       const baseDemand = calculateScaledBaseDemand(_teamCount, _roundNumber);

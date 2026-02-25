@@ -3,7 +3,7 @@ import { socket } from '../lib/socket';
 import type {
   GameStateSnapshot, GamePhase, RoundConfig, TeamAssetInstance,
   RoundDispatchResult, LeaderboardEntry, BalancingResult,
-  ScenarioEvent, TeamPublicInfo, AssetConfigOverrides,
+  ScenarioEvent, TeamPublicInfo, AssetConfigOverrides, MinigameScore,
 } from '../../shared/types';
 
 // SessionStorage keys for reconnection (sessionStorage is per-tab, so multiple tabs can join as different teams)
@@ -29,6 +29,7 @@ interface SocketContextValue {
   biddingTimeRemaining: number;
   bidStatus: Record<string, boolean>;
   minigameStatus: Record<string, boolean>;
+  minigameScores: MinigameScore[];
   allBidsIn: boolean;
   timerPaused: boolean;
   teamScreenData: GameStateSnapshot | null;
@@ -58,11 +59,18 @@ interface SocketContextValue {
   inviteToTeam: (teamId: string) => void;
   lastInviteCode: { teamId: string; inviteCode: string } | null;
   clearInviteCode: () => void;
+  completeMinigameRound: () => void;
 
   // Team actions
   joinGame: (teamName: string, gameId: string) => void;
   submitBids: (bids: any) => void;
-  notifyMinigameCompleted: () => void;
+  notifyMinigameCompleted: (data?: {
+    totalProfit: number;
+    optimalProfit: number;
+    predispatchOptimalProfit?: number;
+    decisionsCorrect: number;
+    decisionsTotal: number;
+  }) => void;
   requestState: () => void;
   clearSession: () => void;
 
@@ -89,6 +97,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [biddingTimeRemaining, setBiddingTimeRemaining] = useState(0);
   const [bidStatus, setBidStatus] = useState<Record<string, boolean>>({});
   const [minigameStatus, setMinigameStatus] = useState<Record<string, boolean>>({});
+  const [minigameScores, setMinigameScores] = useState<MinigameScore[]>([]);
   const [allBidsIn, setAllBidsIn] = useState(false);
   const [timerPaused, setTimerPaused] = useState(false);
   const [teamScreenData, setTeamScreenData] = useState<GameStateSnapshot | null>(null);
@@ -139,6 +148,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setBiddingTimeRemaining(state.biddingTimeRemaining);
       setBidStatus(state.bidStatus || {});
       setMinigameStatus(state.minigameStatus || {});
+      if (state.minigameScores) setMinigameScores(state.minigameScores);
       setReconnecting(false);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -182,6 +192,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     socket.on('host:minigame_status', (status) => {
       setMinigameStatus(status);
+    });
+
+    socket.on('host:minigame_scores' as any, (scores: MinigameScore[]) => {
+      setMinigameScores(scores);
     });
 
     socket.on('scenario:event_triggered', (event) => {
@@ -274,6 +288,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       socket.off('bidding:all_submitted');
       socket.off('host:bid_status');
       socket.off('host:minigame_status');
+      socket.off('host:minigame_scores' as any);
       socket.off('scenario:event_triggered');
       socket.off('scenario:balancing_applied');
       socket.off('team:reconnected');
@@ -356,8 +371,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     socket.emit('team:submit_bids', submission);
   }, []);
 
-  const notifyMinigameCompleted = useCallback(() => {
-    socket.emit('team:minigame_completed');
+  const notifyMinigameCompleted = useCallback((data?: {
+    totalProfit: number;
+    optimalProfit: number;
+    predispatchOptimalProfit?: number;
+    decisionsCorrect: number;
+    decisionsTotal: number;
+  }) => {
+    socket.emit('team:minigame_completed', data);
+  }, []);
+
+  const completeMinigameRound = useCallback(() => {
+    socket.emit('host:complete_minigame_round' as any);
   }, []);
 
   const requestState = useCallback(() => {
@@ -400,6 +425,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       biddingTimeRemaining,
       bidStatus,
       minigameStatus,
+      minigameScores,
       allBidsIn,
       timerPaused,
       teamScreenData,
@@ -424,6 +450,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       inviteToTeam,
       lastInviteCode,
       clearInviteCode,
+      completeMinigameRound,
       joinGame,
       submitBids,
       notifyMinigameCompleted,

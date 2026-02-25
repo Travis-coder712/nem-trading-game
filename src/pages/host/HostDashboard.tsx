@@ -23,10 +23,10 @@ export default function HostDashboard() {
   const navigate = useNavigate();
   const {
     connected, gameState, roundResults, biddingTimeRemaining,
-    bidStatus, minigameStatus, allBidsIn, timerPaused, lastBalancing, teamScreenData,
+    bidStatus, minigameStatus, minigameScores, allBidsIn, timerPaused, lastBalancing, teamScreenData,
     startRound, startBidding, endBidding, nextRound, resetGame, setDemand, applySurprises, viewTeamScreen,
     clearHostSession, inviteToTeam, lastInviteCode, clearInviteCode,
-    pauseTimer, resumeTimer, jumpToRound,
+    pauseTimer, resumeTimer, jumpToRound, completeMinigameRound,
   } = useSocket();
   const [qrData, setQrData] = useState<{ qrDataUrl: string; joinUrl: string } | null>(null);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -216,12 +216,19 @@ export default function HostDashboard() {
     handleStartBiddingWithSurprises();
   }, [handleStartBiddingWithSurprises]);
 
-  // Reset surprise state when round changes
+  // Reset surprise state when round changes; auto-show minigame waiting for minigame rounds
   useEffect(() => {
     setActiveSurprises(new Set());
     setSurprisesApplied(false);
     setSurprisesExpanded(false);
-    setMinigameWaiting(false);
+    const rc = gameState?.roundConfig;
+    if (rc?.batteryMiniGame || rc?.portfolioExplainer) {
+      setMinigameWaiting(true);
+      setMinigameStartTime(Date.now());
+      setMinigameElapsed(0);
+    } else {
+      setMinigameWaiting(false);
+    }
   }, [gameState?.currentRound]);
 
   // Auto-show Round Briefing when entering briefing phase (or minigame waiting screen for minigame rounds)
@@ -264,8 +271,10 @@ export default function HostDashboard() {
   }, [gameState?.currentRound, gameState?.roundConfig?.baseDemandMW]);
 
   const handleDemandChange = useCallback((period: string, value: number) => {
-    setDemandEdits(prev => ({ ...prev, [period]: Math.max(0, Math.round(value)) }));
-  }, []);
+    const fleetMW = gameState?.fleetInfo?.totalFleetMW[period] || Infinity;
+    const capped = Math.min(Math.max(0, Math.round(value)), fleetMW);
+    setDemandEdits(prev => ({ ...prev, [period]: capped }));
+  }, [gameState?.fleetInfo?.totalFleetMW]);
 
   const handleDemandSave = useCallback(() => {
     setDemand(demandEdits);
@@ -475,24 +484,41 @@ export default function HostDashboard() {
             )}
 
             {phase === 'briefing' && minigameWaiting && (
-              <button
-                onClick={() => {
-                  setMinigameWaiting(false);
-                  setShowRoundBriefing(true);
-                }}
-                className={`w-full py-2.5 font-semibold rounded-lg transition-colors text-sm ${
-                  teams.length > 0 && teams.every(t => minigameStatus[t.id])
-                    ? 'bg-green-500 hover:bg-green-400 text-white animate-pulse-glow'
-                    : 'bg-white/10 hover:bg-white/20 text-navy-300 border border-white/10'
-                }`}
-              >
-                {teams.length > 0 && teams.every(t => minigameStatus[t.id])
-                  ? 'Continue to Briefing →'
-                  : 'Skip to Briefing →'}
-              </button>
+              roundConfig?.minigameOnlyRound ? (
+                <button
+                  onClick={() => {
+                    completeMinigameRound();
+                  }}
+                  className={`w-full py-2.5 font-semibold rounded-lg transition-colors text-sm ${
+                    teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                      ? 'bg-green-500 hover:bg-green-400 text-white animate-pulse-glow'
+                      : 'bg-amber-500 hover:bg-amber-400 text-white'
+                  }`}
+                >
+                  {teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                    ? 'Show Final Results →'
+                    : 'End Challenge & Show Results →'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMinigameWaiting(false);
+                    setShowRoundBriefing(true);
+                  }}
+                  className={`w-full py-2.5 font-semibold rounded-lg transition-colors text-sm ${
+                    teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                      ? 'bg-green-500 hover:bg-green-400 text-white animate-pulse-glow'
+                      : 'bg-white/10 hover:bg-white/20 text-navy-300 border border-white/10'
+                  }`}
+                >
+                  {teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                    ? 'Continue to Briefing →'
+                    : 'Skip to Briefing →'}
+                </button>
+              )
             )}
 
-            {phase === 'briefing' && !minigameWaiting && (
+            {phase === 'briefing' && !minigameWaiting && !roundConfig?.minigameOnlyRound && (
               <>
                 <button
                   onClick={handleStartBiddingWithSurprises}
@@ -585,8 +611,8 @@ export default function HostDashboard() {
           <div className="mb-6 space-y-1">
             <div className="text-xs text-navy-400 uppercase tracking-wide mb-2">Display</div>
 
-            {/* Round Summary — prominent button, only when results exist */}
-            {lastResults && gameState.lastRoundAnalysis && (
+            {/* Round Summary — prominent button, only when results exist (not for minigame-only rounds) */}
+            {lastResults && gameState.lastRoundAnalysis && !roundConfig?.minigameOnlyRound && (
               <button
                 onClick={() => setShowRoundSummary(true)}
                 className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 transition-colors mb-2"
@@ -622,20 +648,29 @@ export default function HostDashboard() {
           {phase === 'briefing' && (roundConfig?.batteryMiniGame || roundConfig?.portfolioExplainer) && (
             <div className="mb-6">
               <div className="text-xs text-navy-400 uppercase tracking-wide mb-2">
-                {roundConfig?.batteryMiniGame ? 'Battery Minigame' : 'Portfolio Explainer'}
+                {roundConfig?.minigameOnlyRound ? 'Challenge Scores' : roundConfig?.batteryMiniGame ? 'Battery Minigame' : 'Portfolio Explainer'}
               </div>
               <div className="space-y-1">
-                {teams.map(team => (
-                  <div key={team.id} className="flex items-center gap-2 text-xs">
-                    <div className={`w-2 h-2 rounded-full ${
-                      minigameStatus[team.id] ? 'bg-green-400' : 'bg-amber-400 animate-pulse'
-                    }`} />
-                    <span className="text-navy-300 truncate">{team.name}</span>
-                    <span className={`ml-auto text-xs ${minigameStatus[team.id] ? 'text-green-400' : 'text-amber-400'}`}>
-                      {minigameStatus[team.id] ? 'Done' : 'In progress...'}
-                    </span>
-                  </div>
-                ))}
+                {teams.map(team => {
+                  const score = minigameScores.find(s => s.teamId === team.id);
+                  return (
+                    <div key={team.id} className="flex items-center gap-2 text-xs">
+                      <div className={`w-2 h-2 rounded-full ${
+                        minigameStatus[team.id] ? 'bg-green-400' : 'bg-amber-400 animate-pulse'
+                      }`} />
+                      <span className="text-navy-300 truncate">{team.name}</span>
+                      {roundConfig?.minigameOnlyRound && score ? (
+                        <span className="ml-auto text-xs text-green-400 font-mono">
+                          {formatCurrency(score.totalProfit)}
+                        </span>
+                      ) : (
+                        <span className={`ml-auto text-xs ${minigameStatus[team.id] ? 'text-green-400' : 'text-amber-400'}`}>
+                          {minigameStatus[team.id] ? 'Done' : 'In progress...'}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               {teams.length > 0 && teams.every(t => minigameStatus[t.id]) && (
                 <div className="mt-2 text-xs text-green-400 font-medium">All teams ready!</div>
@@ -1051,12 +1086,15 @@ export default function HostDashboard() {
               <div className="text-center mb-8">
                 <div className="text-6xl mb-4">{roundConfig.batteryMiniGame ? '🔋' : '📊'}</div>
                 <h2 className="text-3xl font-bold text-white mb-2">
-                  {roundConfig.batteryMiniGame ? 'Battery Arbitrage Minigame' : 'Portfolio Strategy Explainer'}
+                  {roundConfig.minigameOnlyRound ? 'Battery Arbitrage Challenge' :
+                   roundConfig.batteryMiniGame ? 'Battery Arbitrage Minigame' : 'Portfolio Strategy Explainer'}
                 </h2>
                 <p className="text-navy-300 text-sm">
-                  {roundConfig.batteryMiniGame
-                    ? 'Teams are playing the battery arbitrage minigame and learning how battery bidding works.'
-                    : 'Teams are reviewing portfolio strategy concepts before this round begins.'}
+                  {roundConfig.minigameOnlyRound
+                    ? 'Teams are competing in the battery arbitrage challenge. Live scores update as teams finish.'
+                    : roundConfig.batteryMiniGame
+                      ? 'Teams are playing the battery arbitrage minigame and learning how battery bidding works.'
+                      : 'Teams are reviewing portfolio strategy concepts before this round begins.'}
                 </p>
               </div>
 
@@ -1070,55 +1108,150 @@ export default function HostDashboard() {
                 </div>
               </div>
 
-              {/* Team Status */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-6">
-                <div className="text-xs text-navy-400 uppercase tracking-wide mb-4">Team Progress</div>
-                <div className="space-y-3">
-                  {teams.map(team => {
-                    const done = minigameStatus[team.id];
+              {/* Live Leaderboard for minigame-only rounds */}
+              {roundConfig.minigameOnlyRound ? (
+                <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-6">
+                  <div className="text-xs text-navy-400 uppercase tracking-wide mb-4">Live Leaderboard</div>
+
+                  {/* Completed teams — sorted by profit descending */}
+                  {(() => {
+                    const completedTeams = teams
+                      .filter(t => minigameStatus[t.id])
+                      .map(t => {
+                        const score = minigameScores.find(s => s.teamId === t.id);
+                        return { team: t, score };
+                      })
+                      .sort((a, b) => (b.score?.totalProfit || 0) - (a.score?.totalProfit || 0));
+
+                    const inProgressTeams = teams.filter(t => !minigameStatus[t.id]);
+
                     return (
-                      <div key={team.id} className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                          done ? 'bg-green-400' : 'bg-amber-400 animate-pulse'
-                        }`} />
-                        <span className="text-sm text-white font-medium flex-1">{team.name}</span>
-                        <span className={`text-sm font-medium ${done ? 'text-green-400' : 'text-amber-400'}`}>
-                          {done ? '✓ Complete' : (roundConfig.batteryMiniGame ? 'Playing...' : 'Reading...')}
-                        </span>
+                      <div className="space-y-2">
+                        {completedTeams.map((entry, i) => (
+                          <div
+                            key={entry.team.id}
+                            className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3 animate-fade-in"
+                          >
+                            <div className="text-lg font-bold text-white w-8 text-center">
+                              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                            </div>
+                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: entry.team.color }} />
+                            <span className="text-sm text-white font-medium flex-1">{entry.team.name}</span>
+                            {entry.score && (
+                              <>
+                                <div className="text-right">
+                                  <div className="text-sm font-mono font-bold text-green-400">
+                                    {formatCurrency(entry.score.totalProfit)}
+                                  </div>
+                                  <div className="text-[10px] text-navy-400">profit</div>
+                                </div>
+                                <div className="text-right ml-3">
+                                  <div className="text-sm font-mono font-bold text-electric-300">
+                                    {entry.score.decisionsTotal > 0
+                                      ? `${Math.round((entry.score.decisionsCorrect / entry.score.decisionsTotal) * 100)}%`
+                                      : '—'}
+                                  </div>
+                                  <div className="text-[10px] text-navy-400">accuracy</div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* In-progress teams */}
+                        {inProgressTeams.map(team => (
+                          <div
+                            key={team.id}
+                            className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-lg px-4 py-3"
+                          >
+                            <div className="w-8 text-center">
+                              <div className="w-4 h-4 rounded-full bg-amber-400 animate-pulse mx-auto" />
+                            </div>
+                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: team.color }} />
+                            <span className="text-sm text-navy-300 font-medium flex-1">{team.name}</span>
+                            <span className="text-sm text-amber-400 italic">Playing...</span>
+                          </div>
+                        ))}
                       </div>
                     );
-                  })}
-                </div>
+                  })()}
 
-                {/* Summary */}
-                <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                  <span className="text-sm text-navy-300">
-                    {teams.filter(t => minigameStatus[t.id]).length} of {teams.length} teams finished
-                  </span>
-                  {teams.length > 0 && teams.every(t => minigameStatus[t.id]) && (
-                    <span className="text-sm font-semibold text-green-400 animate-pulse">All teams ready!</span>
-                  )}
+                  {/* Summary */}
+                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-sm text-navy-300">
+                      {teams.filter(t => minigameStatus[t.id]).length} of {teams.length} teams finished
+                    </span>
+                    {teams.length > 0 && teams.every(t => minigameStatus[t.id]) && (
+                      <span className="text-sm font-semibold text-green-400 animate-pulse">All teams finished!</span>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Standard done/not-done progress for non-standalone minigame rounds */
+                <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-6">
+                  <div className="text-xs text-navy-400 uppercase tracking-wide mb-4">Team Progress</div>
+                  <div className="space-y-3">
+                    {teams.map(team => {
+                      const done = minigameStatus[team.id];
+                      return (
+                        <div key={team.id} className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                            done ? 'bg-green-400' : 'bg-amber-400 animate-pulse'
+                          }`} />
+                          <span className="text-sm text-white font-medium flex-1">{team.name}</span>
+                          <span className={`text-sm font-medium ${done ? 'text-green-400' : 'text-amber-400'}`}>
+                            {done ? '✓ Complete' : (roundConfig.batteryMiniGame ? 'Playing...' : 'Reading...')}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Summary */}
+                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-sm text-navy-300">
+                      {teams.filter(t => minigameStatus[t.id]).length} of {teams.length} teams finished
+                    </span>
+                    {teams.length > 0 && teams.every(t => minigameStatus[t.id]) && (
+                      <span className="text-sm font-semibold text-green-400 animate-pulse">All teams ready!</span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Continue button */}
               <div className="text-center">
-                <button
-                  onClick={() => {
-                    setMinigameWaiting(false);
-                    setShowRoundBriefing(true);
-                  }}
-                  className={`px-8 py-3 rounded-xl font-semibold text-sm transition-all ${
-                    teams.length > 0 && teams.every(t => minigameStatus[t.id])
-                      ? 'bg-green-500 hover:bg-green-400 text-white animate-pulse-glow'
-                      : 'bg-white/10 hover:bg-white/20 text-navy-300 border border-white/10'
-                  }`}
-                >
-                  {teams.length > 0 && teams.every(t => minigameStatus[t.id])
-                    ? 'Continue to Round Briefing →'
-                    : 'Skip Waiting & Continue →'}
-                </button>
-                {!(teams.length > 0 && teams.every(t => minigameStatus[t.id])) && (
+                {roundConfig.minigameOnlyRound ? (
+                  <button
+                    onClick={() => completeMinigameRound()}
+                    className={`px-8 py-3 rounded-xl font-semibold text-sm transition-all ${
+                      teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                        ? 'bg-green-500 hover:bg-green-400 text-white animate-pulse-glow'
+                        : 'bg-amber-500 hover:bg-amber-400 text-white'
+                    }`}
+                  >
+                    {teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                      ? 'Show Final Results →'
+                      : 'End Challenge & Show Results →'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setMinigameWaiting(false);
+                      setShowRoundBriefing(true);
+                    }}
+                    className={`px-8 py-3 rounded-xl font-semibold text-sm transition-all ${
+                      teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                        ? 'bg-green-500 hover:bg-green-400 text-white animate-pulse-glow'
+                        : 'bg-white/10 hover:bg-white/20 text-navy-300 border border-white/10'
+                    }`}
+                  >
+                    {teams.length > 0 && teams.every(t => minigameStatus[t.id])
+                      ? 'Continue to Round Briefing →'
+                      : 'Skip Waiting & Continue →'}
+                  </button>
+                )}
+                {!(teams.length > 0 && teams.every(t => minigameStatus[t.id])) && !roundConfig.minigameOnlyRound && (
                   <p className="text-navy-500 text-xs mt-2">Some teams haven't finished yet</p>
                 )}
               </div>
@@ -1272,7 +1405,11 @@ export default function HostDashboard() {
                                   onChange={e => handleDemandChange(period, parseFloat(e.target.value) || 0)}
                                   className="w-full px-2 py-1.5 bg-navy-800 border border-navy-600 rounded text-sm font-mono text-white focus:border-electric-400 focus:outline-none"
                                   min={0}
+                                  max={fleetMW}
                                 />
+                                <div className="text-[9px] text-navy-600 mt-0.5">
+                                  Max: {formatMW(fleetMW)} (fleet supply)
+                                </div>
                               </div>
                               <div>
                                 <label className="text-[10px] text-navy-500">Set as % of fleet</label>
@@ -1285,10 +1422,25 @@ export default function HostDashboard() {
                                   }}
                                   className="w-full px-2 py-1.5 bg-navy-800 border border-navy-600 rounded text-sm font-mono text-white focus:border-electric-400 focus:outline-none"
                                   min={0}
-                                  max={200}
+                                  max={100}
                                   step={5}
                                 />
                               </div>
+                              {/* Supply proximity warning */}
+                              {(() => {
+                                const ratio = fleetMW > 0 ? currentDemandMW / fleetMW : 0;
+                                if (ratio > 0.95) return (
+                                  <div className="text-[10px] text-red-400 mt-1 font-medium">
+                                    {Math.round(ratio * 100)}% of supply — very tight!
+                                  </div>
+                                );
+                                if (ratio > 0.90) return (
+                                  <div className="text-[10px] text-amber-400 mt-1 font-medium">
+                                    {Math.round(ratio * 100)}% of supply — getting tight
+                                  </div>
+                                );
+                                return null;
+                              })()}
                             </div>
                           ) : (
                             <>
@@ -1685,8 +1837,95 @@ export default function HostDashboard() {
             </div>
           )}
 
+          {/* Minigame-Only Results — final leaderboard */}
+          {phase === 'results' && activeView === 'overview' && roundConfig?.minigameOnlyRound && (
+            <div className="max-w-2xl mx-auto animate-fade-in">
+              <div className="text-center mb-8">
+                <div className="text-6xl mb-4">🏆</div>
+                <h2 className="text-3xl font-bold text-white mb-2">Battery Arbitrage Results</h2>
+                <p className="text-navy-300 text-sm">Round {round} — {roundConfig.name}</p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-6">
+                <div className="text-xs text-navy-400 uppercase tracking-wide mb-4">Final Rankings</div>
+                {(() => {
+                  const rankedTeams = teams
+                    .filter(t => minigameStatus[t.id])
+                    .map(t => {
+                      const score = minigameScores.find(s => s.teamId === t.id);
+                      return { team: t, score };
+                    })
+                    .sort((a, b) => (b.score?.totalProfit || 0) - (a.score?.totalProfit || 0));
+
+                  const unfinishedTeams = teams.filter(t => !minigameStatus[t.id]);
+
+                  return (
+                    <div className="space-y-3">
+                      {rankedTeams.map((entry, i) => (
+                        <div
+                          key={entry.team.id}
+                          className={`flex items-center gap-4 rounded-xl px-5 py-4 ${
+                            i === 0 ? 'bg-amber-500/15 border-2 border-amber-500/30' :
+                            i === 1 ? 'bg-gray-400/10 border border-gray-400/20' :
+                            i === 2 ? 'bg-orange-700/10 border border-orange-700/20' :
+                            'bg-white/5 border border-white/10'
+                          }`}
+                        >
+                          <div className="text-2xl font-bold w-10 text-center">
+                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                          </div>
+                          <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: entry.team.color }} />
+                          <span className="text-lg text-white font-semibold flex-1">{entry.team.name}</span>
+                          {entry.score && (
+                            <>
+                              <div className="text-right">
+                                <div className="text-lg font-mono font-bold text-green-400">
+                                  {formatCurrency(entry.score.totalProfit)}
+                                </div>
+                                <div className="text-xs text-navy-400">
+                                  of {formatCurrency(entry.score.optimalProfit)} optimal
+                                </div>
+                              </div>
+                              <div className="text-right ml-4">
+                                <div className="text-lg font-mono font-bold text-electric-300">
+                                  {entry.score.decisionsTotal > 0
+                                    ? `${Math.round((entry.score.decisionsCorrect / entry.score.decisionsTotal) * 100)}%`
+                                    : '—'}
+                                </div>
+                                <div className="text-xs text-navy-400">
+                                  {entry.score.decisionsCorrect}/{entry.score.decisionsTotal} correct
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+
+                      {unfinishedTeams.length > 0 && (
+                        <div className="pt-2 border-t border-white/10">
+                          <div className="text-xs text-navy-500 mb-2">Did not finish</div>
+                          {unfinishedTeams.map(team => (
+                            <div key={team.id} className="flex items-center gap-3 px-5 py-2 text-navy-500">
+                              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: team.color }} />
+                              <span className="text-sm">{team.name}</span>
+                              <span className="ml-auto text-xs italic">DNF</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <p className="text-center text-navy-500 text-xs">
+                Minigame profits are separate from the main game leaderboard.
+              </p>
+            </div>
+          )}
+
           {/* Results Overview (default during results phase) */}
-          {phase === 'results' && activeView === 'overview' && lastResults && (
+          {phase === 'results' && activeView === 'overview' && !roundConfig?.minigameOnlyRound && lastResults && (
             <div className="animate-fade-in space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-white mb-1">Round {round} Results</h2>
@@ -2113,7 +2352,7 @@ export default function HostDashboard() {
       />
 
       {/* Full-screen Round Summary overlay */}
-      {showRoundSummary && lastResults && gameState.lastRoundAnalysis && roundConfig && (
+      {showRoundSummary && lastResults && gameState.lastRoundAnalysis && roundConfig && !roundConfig.minigameOnlyRound && (
         <RoundSummary
           roundResults={lastResults}
           roundAnalysis={gameState.lastRoundAnalysis}

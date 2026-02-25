@@ -429,7 +429,7 @@ function DischargeContent({
               <span className="text-xs text-gray-400 w-4">{i + 1}</span>
               <div className="flex-1 flex gap-2">
                 <div className="flex-1">
-                  <label className="text-[10px] text-gray-400">Price $/MWh</label>
+                  <label className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1 rounded">Price $/MWh</label>
                   <input
                     type="number"
                     value={band.pricePerMWh ?? ''}
@@ -438,7 +438,7 @@ function DischargeContent({
                     }
                     onFocus={e => e.target.select()}
                     placeholder="Price"
-                    className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                    className={`w-full px-2 py-1.5 border border-l-2 border-l-blue-400 rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
                       walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
                     }`}
                     min={-1000}
@@ -446,7 +446,7 @@ function DischargeContent({
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-[10px] text-gray-400">Quantity MW</label>
+                  <label className="text-[10px] font-semibold text-green-600 bg-green-50 px-1 rounded">Quantity MW</label>
                   <input
                     type="number"
                     value={band.quantityMW ?? ''}
@@ -455,7 +455,7 @@ function DischargeContent({
                     }
                     onFocus={e => e.target.select()}
                     placeholder="MW"
-                    className={`w-full px-2 py-1.5 border rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                    className={`w-full px-2 py-1.5 border border-l-2 border-l-green-400 rounded text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
                       walkthroughExplanation ? 'border-purple-300 bg-purple-50/30' : 'border-gray-200'
                     }`}
                     min={0}
